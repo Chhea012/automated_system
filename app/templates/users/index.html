@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+
+{% block content %}
+<style>
+  /* Enhanced Table Styling */
+  .table-custom {
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .table-custom thead th {
+    background-color: #0d6efd; /* Bootstrap primary blue */
+    color: #ffffff;
+    font-weight: 600;
+    padding: 12px;
+    text-align: left;
+    border-bottom: 2px solid #dee2e6;
+  }
+
+  .table-custom tbody tr {
+    background-color: #ffffff;
+    transition: background-color 0.2s ease;
+  }
+
+  .table-custom tbody tr:nth-child(even) {
+    background-color: #f8f9fa; /* Light gray for zebra striping */
+  }
+
+  .table-custom tbody tr:hover {
+    background-color: #e9ecef; /* Slightly darker on hover */
+  }
+
+  .table-custom td {
+    padding: 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .table-custom .image_profile {
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .table-custom .dropdown-menu {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .table-custom .dropdown-item {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+
+  .table-custom .dropdown-item i {
+    margin-right: 8px;
+  }
+  .user-container {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    margin-right: 35px;
+    margin-left: 35px;
+  }
+</style>
+
+<div class="user-container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>User Management</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+      <i class="bi bi-person-plus"></i> Add User
+    </button>
+  </div>
+
+  <div class="shadow-sm card-1">
+    <div class="card-body">
+      <table class="table table-hover align-middle table-custom">
+        <thead>
+          <tr>
+            <th>Id</th>
+            <th>Image</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Address</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>
+              <img src="{{ user.get_image_url() }}" 
+                   class="image_profile" width="80" height="80" alt="Profile Image">
+            </td>
+            <td>{{ user.username }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.phone_number or 'N/A' }}</td>
+            <td>{{ user.address or 'N/A' }}</td>
+            <td>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="bx bx-dots-horizontal-rounded"></i>
+                </button>
+                <ul class="dropdown-menu card-1">
+                  <li>
+                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id }}">
+                      <i class="bx bx-edit"></i> Edit
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteUserModal{{ user.id }}">
+                      <i class="bx bx-trash"></i> Delete
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Edit User Modal -->
+          <div class="modal fade" id="editUserModal{{ user.id }}" tabindex="-1">
+            <div class="modal-dialog">
+              <form method="POST" enctype="multipart/form-data" 
+                    action="{{ url_for('users.update', user_id=user.id, page=pagination.page) }}">
+                <div class="modal-content">
+                  <div class="modal-header bg-primary">
+                    <h5 class="modal-title text-white">Edit User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="mb-3">
+                      <label class="form-label">Username</label>
+                      <input type="text" class="form-control" name="username" value="{{ user.username }}" required>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Email</label>
+                      <input type="email" class="form-control" name="email" value="{{ user.email }}" required>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Phone Number</label>
+                      <input type="text" class="form-control" name="phone_number" value="{{ user.phone_number or '' }}">
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Address</label>
+                      <textarea class="form-control" name="address" rows="4">{{ user.address or '' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Profile Image</label>
+                      <input type="file" class="form-control" name="profile_image">
+                      <small class="form-text text-muted">Current: {{ user.image or 'default_profile.png' }}</small>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn bg-primary text-white" type="submit">Update</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Delete User Modal -->
+          <div class="modal fade" id="deleteUserModal{{ user.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                  <h5 class="modal-title"><i class="bx bx-trash"></i> Confirm Delete</h5>
+                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  Are you sure you want to delete user <strong>{{ user.username }}</strong>?
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <form action="{{ url_for('users.delete', user_id=user.id, page=pagination.page) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <!-- Pagination Controls -->
+    <div class="d-flex justify-content-center mt-3">
+      <nav>
+        <ul class="pagination">
+          {% if pagination.has_prev %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('users.index', page=pagination.prev_num) }}">Previous</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">Previous</span>
+          </li>
+          {% endif %}
+          {% for page_num in pagination.iter_pages() %}
+          {% if page_num %}
+          <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('users.index', page=page_num) }}">{{ page_num }}</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">...</span>
+          </li>
+          {% endif %}
+          {% endfor %}
+          {% if pagination.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('users.index', page=pagination.next_num) }}">Next</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">Next</span>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="POST" enctype="multipart/form-data" action="{{ url_for('users.create', page=pagination.page) }}">
+      <div class="modal-content">
+        <div class="modal-header bg-primary">
+          <h5 class="modal-title text-white">Add User</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input type="text" class="form-control" name="username" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" name="email" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" name="password" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Phone Number</label>
+            <input type="text" class="form-control" name="phone_number">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Address</label>
+            <textarea class="form-control" name="address" rows="4"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Profile Image</label>
+            <input type="file" class="form-control" name="profile_image">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-primary" type="submit">Create</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Boxicons CDN -->
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+{% endblock %}
