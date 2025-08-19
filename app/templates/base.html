@@ -17,41 +17,26 @@
     /* Custom Navbar Styling */
     .navbar-custom {
       background-color: #ffffff;
-      /* White navbar */
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      /* Subtle shadow */
       z-index: 1030;
-      /* Stay above content */
     }
 
     body {
       padding-top: 100px;
-      /* Give space so content doesn't go under navbar */
-    }
-
-    /* Custom Navbar Styling */
-    .navbar-custom {
-      background-color: #ffffff;
-      /* White navbar */
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      /* Subtle shadow */
     }
 
     .navbar-custom .navbar-brand h3 {
       color: #0d6efd;
-      /* Bootstrap primary blue for brand text */
       font-weight: bold;
     }
 
     .navbar-custom .nav-link {
       color: #333 !important;
-      /* Dark text for readability */
       font-weight: 500;
     }
 
     .navbar-custom .nav-link:hover {
       color: #0d6efd !important;
-      /* Hover effect with primary color */
     }
 
     .navbar-custom .nav-link.text-danger {
@@ -67,7 +52,17 @@
       border: none;
       border-radius: 10px;
       box-shadow: rgba(50, 50, 93, 0.25) 0px 6px 12px -2px, rgba(0, 0, 0, 0.3) 0px 3px 7px -3px;
-
+    }
+    .image_profile{
+      border:1px solid rgb(240, 240, 240);
+    box-shadow: rgba(50, 50, 93, 0.25) 0px 6px 12px -2px, rgba(0, 0, 0, 0.3) 0px 3px 7px -3px;
+    border-radius: 5px;
+    overflow: hidden;
+    }
+    .circle{
+      border-radius: 50px;
+      object-fit:contain;
+      overflow: hidden;
     }
   </style>
 </head>
@@ -76,9 +71,8 @@
   <nav class="navbar navbar-expand-lg navbar-custom fixed-top mb-4">
     <div class="container">
       <!-- Logo + Text -->
-      <a class="navbar-brand d-flex align-items-center" href="">
+      <a class="navbar-brand d-flex align-items-center" href="{{ url_for('main.dashboard') }}">
         <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" width="120" height="80" class="me-2">
-        <!-- <h3 class="mb-0">Automated System</h3> -->
       </a>
       <ul class="navbar-nav ms-auto align-items-center">
         <li class="nav-item">
@@ -90,25 +84,23 @@
             aria-expanded="false">
             <strong>Administration</strong>
           </a>
-          <ul class="dropdown-menu dropdown-menu-end card-1 ">
-            <li><a class="dropdown-item" href="">Roles</a></li>
-            <li><a class="dropdown-item" href="">Permissions</a></li>
-            <li><a class="dropdown-item" href="">Users</a></li>
-            <li><a class="dropdown-item" href="">Departments</a></li>
-          </ul>
+          <ul class="dropdown-menu dropdown-menu-end card-1">
+            <li><a class="dropdown-item" href="#">Roles</a></li>
+            <li><a class="dropdown-item" href="#">Permissions</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('users.index') }}">Users</a></li>
+            <li><a class="dropdown-item" href="#">Departments</a></li>
+          </ul>          
         </li>
       </ul>
 
       <div class="collapse navbar-collapse">
         <ul class="navbar-nav ms-auto align-items-center">
           {% if current_user.is_authenticated %}
-
-
           <!-- Profile Image + Username -->
           <li class="nav-item d-flex align-items-center me-3">
-            <img src="{{ current_user.profile_image_url or url_for('static', filename='img/default_profile.png') }}"
-              alt="Profile" class="rounded-circle me-2" width="40" height="40">
-            <span class="text">{{ current_user.username }}</span>
+            <img src="{{ current_user.get_image_url() }}"
+                 alt="Profile" class="image_profile circle" width="63" height="63">
+            <span class="text"><strong>{{ current_user.username }}</strong></span>
           </li>
 
           <!-- Logout -->
@@ -129,7 +121,7 @@
   </nav>
 
   <!-- Flash Messages -->
-  <div class="main">
+  <!-- <div class="main container"> -->
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
     {% for category, msg in messages %}
