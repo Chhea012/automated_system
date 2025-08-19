@@ -27,14 +27,17 @@ def create_app():
     from .routes.main import main_bp
     from .routes.users import users_bp
     from .routes.permission import permissions_bp
+    from .routes.role import roles_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(main_bp)
     app.register_blueprint(users_bp, url_prefix="/users")
     app.register_blueprint(permissions_bp, url_prefix="/permissions")
+    app.register_blueprint(roles_bp, url_prefix="/roles")
 
     from .models.user import User
     from .models.permission import Permission
+    from .models.role import Role
 
     @login_manager.user_loader
     def load_user(user_id):

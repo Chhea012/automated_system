@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+{% block title %}Roles{% endblock %}
+
+{% block content %}
+<style>
+  .table-custom {
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  .table-custom thead th {
+    background-color: #0d6efd;
+    color: #ffffff;
+    font-weight: 600;
+    padding: 12px;
+    text-align: left;
+    border-bottom: 2px solid #dee2e6;
+  }
+  .table-custom tbody tr {
+    background-color: #ffffff;
+    transition: background-color 0.2s ease;
+  }
+  .table-custom tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+  }
+  .table-custom tbody tr:hover {
+    background-color: #e9ecef;
+  }
+  .table-custom td {
+    padding: 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid #dee2e6;
+  }
+  .table-custom .dropdown-menu {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  .table-custom .dropdown-item {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+  .table-custom .dropdown-item i {
+    margin-right: 8px;
+  }
+  .role-container {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    margin-right: 35px;
+    margin-left: 35px;
+  }
+  .all-permissions-btn {
+    background-color: #0d6efd;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .all-permissions-btn:hover {
+    background-color: #0b5ed7;
+  }
+  .more-permissions {
+    color: #0d6efd;
+    font-style: italic;
+  }
+</style>
+
+<script>
+  // Toggle all permissions checkboxes
+  function toggleAllPermissions(button, modalId) {
+    const checkboxes = document.querySelectorAll(`#${modalId} input[name='permissions']`);
+    const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+    checkboxes.forEach(checkbox => {
+      checkbox.checked = !allChecked;
+    });
+    button.textContent = allChecked ? 'All Permissions' : 'Deselect All';
+  }
+</script>
+
+<div class="role-container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Role Management</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createRoleModal">
+      <i class="bi bi-plus-circle"></i> Add Role
+    </button>
+  </div>
+
+  <div class="shadow-sm card-1">
+    <div class="card-body">
+      <table class="table table-hover align-middle table-custom">
+        <thead>
+          <tr>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Permissions</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for role in roles %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ role.name }}</td>
+            <td>{{ role.description or 'N/A' }}</td>
+            <td>
+              {% if role.permissions %}
+                {% set permission_list = role.permissions | map(attribute='name') | list %}
+                {% set all_permissions = permissions | map(attribute='name') | list %}
+                {% if permission_list | length == all_permissions | length and permission_list | sort == all_permissions | sort %}
+                  <button type="button" class="all-permissions-btn">All Permissions</button>
+                {% else %}
+                  {% if permission_list | length > 3 %}
+                    {{ permission_list[:3] | join(', ') }} <span class="more-permissions">+{{ permission_list | length - 3 }} more</span>
+                  {% else %}
+                    {{ permission_list | join(', ') }}
+                  {% endif %}
+                {% endif %}
+              {% else %}
+                N/A
+              {% endif %}
+            </td>
+            <td>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="bx bx-dots-horizontal-rounded"></i>
+                </button>
+                <ul class="dropdown-menu card-1">
+                  <li>
+                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editRoleModal{{ role.id }}">
+                      <i class="bx bx-edit"></i> Edit
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteRoleModal{{ role.id }}">
+                      <i class="bx bx-trash"></i> Delete
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Edit Role Modal -->
+          <div class="modal fade" id="editRoleModal{{ role.id }}" tabindex="-1">
+            <div class="modal-dialog">
+              <form method="POST" action="{{ url_for('roles.update', role_id=role.id, page=pagination.page) }}">
+                <div class="modal-content">
+                  <div class="modal-header bg-primary">
+                    <h5 class="modal-title text-white">Edit Role</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="mb-3">
+                      <label class="form-label">Role Name</label>
+                      <input type="text" class="form-control" name="name" value="{{ role.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Description</label>
+                      <textarea class="form-control" name="description" rows="4">{{ role.description or '' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Permissions</label>
+                      <button type="button" class="all-permissions-btn" onclick="toggleAllPermissions(this, 'editRoleModal{{ role.id }}')">
+                        All Permissions
+                      </button>
+                      {% for permission in permissions %}
+                        <div class="form-check">
+                          <input type="checkbox" class="form-check-input" name="permissions" value="{{ permission.id }}"
+                                 id="permEdit{{ role.id }}_{{ permission.id }}"
+                                 {% if permission in role.permissions %}checked{% endif %}>
+                          <label class="form-check-label" for="permEdit{{ role.id }}_{{ permission.id }}">{{ permission.name }}</label>
+                        </div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn bg-primary text-white" type="submit">Update</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Delete Role Modal -->
+          <div class="modal fade" id="deleteRoleModal{{ role.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                  <h5 class="modal-title"><i class="bx bx-trash"></i> Confirm Delete</h5>
+                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  Are you sure you want to delete role <strong>{{ role.name }}</strong>?
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <form action="{{ url_for('roles.delete', role_id=role.id, page=pagination.page) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <!-- Pagination Controls -->
+    <div class="d-flex justify-content-center mt-3">
+      <nav>
+        <ul class="pagination">
+          {% if pagination.has_prev %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('roles.index', page=pagination.prev_num) }}">Previous</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">Previous</span>
+          </li>
+          {% endif %}
+          {% for page_num in pagination.iter_pages() %}
+          {% if page_num %}
+          <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('roles.index', page=page_num) }}">{{ page_num }}</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">...</span>
+          </li>
+          {% endif %}
+          {% endfor %}
+          {% if pagination.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('roles.index', page=pagination.next_num) }}">Next</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">Next</span>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+<!-- Create Role Modal -->
+<div class="modal fade" id="createRoleModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="POST" action="{{ url_for('roles.create', page=pagination.page) }}">
+      <div class="modal-content">
+        <div class="modal-header bg-primary">
+          <h5 class="modal-title text-white">Add Role</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Role Name</label>
+            <input type="text" class="form-control" name="name" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" name="description" rows="4"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Permissions</label>
+            <button type="button" class="all-permissions-btn" onclick="toggleAllPermissions(this, 'createRoleModal')">
+              All Permissions
+            </button>
+            {% for permission in permissions %}
+              <div class="form-check">
+                <input type="checkbox" class="form-check-input" name="permissions" value="{{ permission.id }}"
+                       id="permCreate{{ permission.id }}">
+                <label class="form-check-label" for="permCreate{{ permission.id }}">{{ permission.name }}</label>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-primary" type="submit">Create</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Boxicons CDN -->
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+{% endblock %}
