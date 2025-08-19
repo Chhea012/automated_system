@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block title %}Departments{% endblock %}
+
+{% block content %}
+<style>
+  .table-custom {
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  .table-custom thead th {
+    background-color: #0d6efd;
+    color: #ffffff;
+    font-weight: 600;
+    padding: 12px;
+    text-align: left;
+    border-bottom: 2px solid #dee2e6;
+  }
+  .table-custom tbody tr {
+    background-color: #ffffff;
+    transition: background-color 0.2s ease;
+  }
+  .table-custom tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+  }
+  .table-custom tbody tr:hover {
+    background-color: #e9ecef;
+  }
+  .table-custom td {
+    padding: 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid #dee2e6;
+  }
+  .table-custom .dropdown-menu {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  .table-custom .dropdown-item {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+  .table-custom .dropdown-item i {
+    margin-right: 8px;
+  }
+  .department-container {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    margin-right: 35px;
+    margin-left: 35px;
+  }
+</style>
+
+<div class="department-container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Department Management</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createDepartmentModal">
+      <i class="bi bi-plus-circle"></i> Add Department
+    </button>
+  </div>
+
+  <div class="shadow-sm card-1">
+    <div class="card-body">
+      <table class="table table-hover align-middle table-custom">
+        <thead>
+          <tr>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for department in departments %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ department.name }}</td>
+            <td>{{ department.description or 'N/A' }}</td>
+            <td>
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="bx bx-dots-horizontal-rounded"></i>
+                </button>
+                <ul class="dropdown-menu card-1">
+                  <li>
+                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editDepartmentModal{{ department.id }}">
+                      <i class="bx bx-edit"></i> Edit
+                    </a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteDepartmentModal{{ department.id }}">
+                      <i class="bx bx-trash"></i> Delete
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Edit Department Modal -->
+          <div class="modal fade" id="editDepartmentModal{{ department.id }}" tabindex="-1">
+            <div class="modal-dialog">
+              <form method="POST" action="{{ url_for('departments.update', department_id=department.id, page=pagination.page) }}">
+                <div class="modal-content">
+                  <div class="modal-header bg-primary">
+                    <h5 class="modal-title text-white">Edit Department</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="mb-3">
+                      <label class="form-label">Department Name</label>
+                      <input type="text" class="form-control" name="name" value="{{ department.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Description</label>
+                      <textarea class="form-control" name="description" rows="4">{{ department.description or '' }}</textarea>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn bg-primary text-white" type="submit">Update</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Delete Department Modal -->
+          <div class="modal fade" id="deleteDepartmentModal{{ department.id }}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                  <h5 class="modal-title"><i class="bx bx-trash"></i> Confirm Delete</h5>
+                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  Are you sure you want to delete department <strong>{{ department.name }}</strong>?
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <form action="{{ url_for('departments.delete', department_id=department.id, page=pagination.page) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <!-- Pagination Controls -->
+    <div class="d-flex justify-content-center mt-3">
+      <nav>
+        <ul class="pagination">
+          {% if pagination.has_prev %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('departments.index', page=pagination.prev_num) }}">Previous</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">Previous</span>
+          </li>
+          {% endif %}
+          {% for page_num in pagination.iter_pages() %}
+          {% if page_num %}
+          <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('departments.index', page=page_num) }}">{{ page_num }}</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">...</span>
+          </li>
+          {% endif %}
+          {% endfor %}
+          {% if pagination.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="{{ url_for('departments.index', page=pagination.next_num) }}">Next</a>
+          </li>
+          {% else %}
+          <li class="page-item disabled">
+            <span class="page-link">Next</span>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </div>
+</div>
+
+<!-- Create Department Modal -->
+<div class="modal fade" id="createDepartmentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="POST" action="{{ url_for('departments.create', page=pagination.page) }}">
+      <div class="modal-content">
+        <div class="modal-header bg-primary">
+          <h5 class="modal-title text-white">Add Department</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Department Name</label>
+            <input type="text" class="form-control" name="name" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" name="description" rows="4"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-primary" type="submit">Create</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Boxicons CDN -->
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+{% endblock %}
