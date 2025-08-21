@@ -3,7 +3,6 @@
 
 {% block content %}
 <style>
-  /* Enhanced Table Styling */
   .table-custom {
     border-collapse: separate;
     border-spacing: 0;
@@ -11,50 +10,37 @@
     overflow: hidden;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
-
   .table-custom thead th {
-    background-color: #0d6efd; /* Bootstrap primary blue */
+    background-color: #0d6efd;
     color: #ffffff;
     font-weight: 600;
     padding: 12px;
     text-align: left;
     border-bottom: 2px solid #dee2e6;
   }
-
   .table-custom tbody tr {
     background-color: #ffffff;
     transition: background-color 0.2s ease;
   }
-
   .table-custom tbody tr:nth-child(even) {
-    background-color: #f8f9fa; /* Light gray for zebra striping */
+    background-color: #f8f9fa;
   }
-
   .table-custom tbody tr:hover {
-    background-color: #e9ecef; /* Slightly darker on hover */
+    background-color: #e9ecef;
   }
-
   .table-custom td {
     padding: 12px;
     vertical-align: middle;
     border-bottom: 1px solid #dee2e6;
   }
-
-  .table-custom .image_profile {
-    border-radius: 50%;
-    object-fit: cover;
-  }
-
   .table-custom .dropdown-menu {
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
-
   .table-custom .dropdown-item {
     padding: 8px 16px;
     font-size: 14px;
   }
-
   .table-custom .dropdown-item i {
     margin-right: 8px;
   }
@@ -65,13 +51,154 @@
     margin-right: 35px;
     margin-left: 35px;
   }
+  .profile-pic {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  /* Styles for left-aligned modals */
+  .modal-left {
+    justify-content: flex-start;
+  }
+  .modal-left .modal-dialog {
+    margin: 0;
+    height: 100vh;
+    max-width: 400px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+  }
+  .modal-left .modal-dialog.show {
+    transform: translateX(0);
+  }
+  .modal-left .modal-content {
+    border-radius: 0 10px 10px 0;
+    box-shadow: 4px 0 6px rgba(0, 0, 0, 0.1);
+    height: 100%;
+    overflow-y: auto;
+  }
+  .modal-left .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #dee2e6;
+  }
+  .modal-left .modal-body {
+    padding: 20px;
+  }
+  .modal-left .modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #dee2e6;
+  }
+  .modal-left .form-label {
+    font-weight: 500;
+    color: #333;
+  }
+  .modal-left .form-control,
+  .modal-left .form-select {
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    transition: border-color 0.2s ease;
+  }
+  .modal-left .form-control:focus,
+  .modal-left .form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  }
+  .modal-left .btn {
+    border-radius: 6px;
+    padding: 8px 16px;
+  }
+  /* Enhanced styles for image upload */
+  .image-upload-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border: 2px dashed #ced4da;
+    border-radius: 8px;
+    transition: border-color 0.2s ease;
+  }
+  .image-upload-container.dragover {
+    border-color: #0d6efd;
+    background-color: rgba(13, 110, 253, 0.05);
+  }
+  .image-preview {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #dee2e6;
+    background-color: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .image-preview-placeholder::before {
+    content: "\e030";
+    font-family: 'boxicons';
+    font-size: 48px;
+    color: #6c757d;
+  }
+  .custom-file-input {
+    display: none;
+  }
+  .custom-file-label {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    background-color: #0d6efd;
+    color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  .custom-file-label:hover {
+    background-color: #0b5ed7;
+  }
+  .custom-file-label i {
+    margin-right: 8px;
+  }
+  .remove-image-btn {
+    background-color: #dc3545;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  .remove-image-btn:hover {
+    background-color: #bb2d3b;
+  }
+  @media (max-width: 576px) {
+    .modal-left .modal-dialog {
+      max-width: 100%;
+      border-radius: 0;
+    }
+    .modal-left .modal-content {
+      border-radius: 0;
+    }
+    .image-preview {
+      width: 100px;
+      height: 100px;
+    }
+    .image-upload-container {
+      padding: 8px;
+    }
+  }
 </style>
 
 <div class="user-container mt-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>User Management</h2>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
-      <i class="bi bi-person-plus"></i> Add User
+      <i class="bi bi-plus-circle"></i> Add User
     </button>
   </div>
 
@@ -81,26 +208,33 @@
         <thead>
           <tr>
             <th>Id</th>
-            <th>Image</th>
+            <th>Profile</th>
             <th>Username</th>
             <th>Email</th>
             <th>Phone</th>
+            <th>Role</th>
+            <th>Department</th>
             <th>Address</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {% for user in users %}
+          {% for user in users|default([]) %}
           <tr>
             <td>{{ loop.index }}</td>
             <td>
-              <img src="{{ user.get_image_url() }}" 
-                   class="image_profile" width="80" height="80" alt="Profile Image">
+              {% if user.get_image_url()|default(None) %}
+                <img src="{{ user.get_image_url() }}" alt="Profile Picture" class="profile-pic">
+              {% else %}
+                N/A
+              {% endif %}
             </td>
-            <td>{{ user.username }}</td>
-            <td>{{ user.email }}</td>
-            <td>{{ user.phone_number or 'N/A' }}</td>
-            <td>{{ user.address or 'N/A' }}</td>
+            <td>{{ user.username|default('N/A') }}</td>
+            <td>{{ user.email|default('N/A') }}</td>
+            <td>{{ user.phone_number|default('N/A') }}</td>
+            <td>{{ user.role.name if user.role else 'N/A' }}</td>
+            <td>{{ user.department.name if user.department else 'N/A' }}</td>
+            <td>{{ user.address|default('N/A') }}</td>
             <td>
               <div class="dropdown">
                 <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -108,12 +242,12 @@
                 </button>
                 <ul class="dropdown-menu card-1">
                   <li>
-                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id }}">
+                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id|default('') }}">
                       <i class="bx bx-edit"></i> Edit
                     </a>
                   </li>
                   <li>
-                    <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteUserModal{{ user.id }}">
+                    <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteUserModal{{ user.id|default('') }}">
                       <i class="bx bx-trash"></i> Delete
                     </a>
                   </li>
@@ -123,41 +257,75 @@
           </tr>
 
           <!-- Edit User Modal -->
-          <div class="modal fade" id="editUserModal{{ user.id }}" tabindex="-1">
+          <div class="modal fade modal-center" id="editUserModal{{ user.id|default('') }}" tabindex="-1">
             <div class="modal-dialog">
-              <form method="POST" enctype="multipart/form-data" 
-                    action="{{ url_for('users.update', user_id=user.id, page=pagination.page) }}">
+              <form method="POST" action="{{ url_for('users.update', user_id=user.id|default(''), page=pagination.page|default(1)) }}" enctype="multipart/form-data">
                 <div class="modal-content">
                   <div class="modal-header bg-primary">
                     <h5 class="modal-title text-white">Edit User</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                   </div>
                   <div class="modal-body">
                     <div class="mb-3">
                       <label class="form-label">Username</label>
-                      <input type="text" class="form-control" name="username" value="{{ user.username }}" required>
+                      <input type="text" class="form-control" name="username" value="{{ user.username|default('') }}" required>
                     </div>
                     <div class="mb-3">
                       <label class="form-label">Email</label>
-                      <input type="email" class="form-control" name="email" value="{{ user.email }}" required>
+                      <input type="email" class="form-control" name="email" value="{{ user.email|default('') }}" required>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Password (leave blank to keep unchanged)</label>
+                      <input type="password" class="form-control" name="password">
                     </div>
                     <div class="mb-3">
                       <label class="form-label">Phone Number</label>
-                      <input type="text" class="form-control" name="phone_number" value="{{ user.phone_number or '' }}">
+                      <input type="text" class="form-control" name="phone_number" value="{{ user.phone_number|default('') }}">
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Role</label>
+                      <select class="form-select" name="role_id">
+                        <option value="">None</option>
+                        {% for role in roles|default([]) %}
+                          <option value="{{ role.id }}" {% if user.role_id|default(None) == role.id %}selected{% endif %}>{{ role.name|default('N/A') }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Department</label>
+                      <select class="form-select" name="department_id">
+                        <option value="">None</option>
+                        {% for department in departments|default([]) %}
+                          <option value="{{ department.id }}" {% if user.department_id|default(None) == department.id %}selected{% endif %}>{{ department.name|default('N/A') }}</option>
+                        {% endfor %}
+                      </select>
                     </div>
                     <div class="mb-3">
                       <label class="form-label">Address</label>
-                      <textarea class="form-control" name="address" rows="4">{{ user.address or '' }}</textarea>
+                      <textarea class="form-control" name="address" rows="3">{{ user.address|default('') }}</textarea>
                     </div>
+                    
                     <div class="mb-3">
-                      <label class="form-label">Profile Image</label>
-                      <input type="file" class="form-control" name="profile_image">
-                      <small class="form-text text-muted">Current: {{ user.image or 'default_profile.png' }}</small>
+                      <label class="form-label">Profile Picture</label>
+                      <div class="image-upload-container" ondragover="event.preventDefault(); this.classList.add('dragover');" ondragleave="this.classList.remove('dragover');" ondrop="event.preventDefault(); this.classList.remove('dragover'); handleImageDrop(event, 'imageInput{{ user.id|default('') }}', 'imagePreview{{ user.id|default('') }}');">
+                        <div class="image-preview {% if not user.get_image_url()|default(None) %}image-preview-placeholder{% endif %}" id="imagePreview{{ user.id|default('') }}">
+                          {% if user.get_image_url()|default(None) %}
+                            <img src="{{ user.get_image_url() }}" alt="Profile Picture">
+                          {% endif %}
+                        </div>
+                        <label class="custom-file-label" for="imageInput{{ user.id|default('') }}">
+                          <i class="bx bx-upload"></i> Choose or Drop Image
+                        </label>
+                        <input type="file" class="custom-file-input" id="imageInput{{ user.id|default('') }}" name="image" accept="image/*">
+                        {% if user.get_image_url()|default(None) %}
+                          <button type="button" class="remove-image-btn" onclick="removeImage('imageInput{{ user.id|default('') }}', 'imagePreview{{ user.id|default('') }}')">Remove Image</button>
+                        {% endif %}
+                      </div>
                     </div>
                   </div>
                   <div class="modal-footer">
-                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button class="btn bg-primary text-white" type="submit">Update</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update</button>
                   </div>
                 </div>
               </form>
@@ -165,7 +333,7 @@
           </div>
 
           <!-- Delete User Modal -->
-          <div class="modal fade" id="deleteUserModal{{ user.id }}" tabindex="-1">
+          <div class="modal fade" id="deleteUserModal{{ user.id|default('') }}" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
               <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
@@ -173,11 +341,11 @@
                   <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                  Are you sure you want to delete user <strong>{{ user.username }}</strong>?
+                  Are you sure you want to delete user <strong>{{ user.username|default('N/A') }}</strong>?
                 </div>
                 <div class="modal-footer">
                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                  <form action="{{ url_for('users.delete', user_id=user.id, page=pagination.page) }}" method="POST" class="d-inline">
+                  <form action="{{ url_for('users.delete', user_id=user.id|default(''), page=pagination.page|default(1)) }}" method="POST" class="d-inline">
                     <button type="submit" class="btn btn-danger">Delete</button>
                   </form>
                 </div>
@@ -192,18 +360,18 @@
     <div class="d-flex justify-content-center mt-3">
       <nav>
         <ul class="pagination">
-          {% if pagination.has_prev %}
+          {% if pagination.has_prev|default(False) %}
           <li class="page-item">
-            <a class="page-link" href="{{ url_for('users.index', page=pagination.prev_num) }}">Previous</a>
+            <a class="page-link" href="{{ url_for('users.index', page=pagination.prev_num|default(1)) }}">Previous</a>
           </li>
           {% else %}
           <li class="page-item disabled">
             <span class="page-link">Previous</span>
           </li>
           {% endif %}
-          {% for page_num in pagination.iter_pages() %}
+          {% for page_num in pagination.iter_pages()|default([]) %}
           {% if page_num %}
-          <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+          <li class="page-item {% if page_num == pagination.page|default(1) %}active{% endif %}">
             <a class="page-link" href="{{ url_for('users.index', page=page_num) }}">{{ page_num }}</a>
           </li>
           {% else %}
@@ -212,9 +380,9 @@
           </li>
           {% endif %}
           {% endfor %}
-          {% if pagination.has_next %}
+          {% if pagination.has_next|default(False) %}
           <li class="page-item">
-            <a class="page-link" href="{{ url_for('users.index', page=pagination.next_num) }}">Next</a>
+            <a class="page-link" href="{{ url_for('users.index', page=pagination.next_num|default(1)) }}">Next</a>
           </li>
           {% else %}
           <li class="page-item disabled">
@@ -228,13 +396,13 @@
 </div>
 
 <!-- Create User Modal -->
-<div class="modal fade" id="createUserModal" tabindex="-1">
+<div class="modal fade modal-center" id="createUserModal" tabindex="-1">
   <div class="modal-dialog">
-    <form method="POST" enctype="multipart/form-data" action="{{ url_for('users.create', page=pagination.page) }}">
+    <form method="POST" action="{{ url_for('users.create', page=pagination.page|default(1)) }}" enctype="multipart/form-data">
       <div class="modal-content">
         <div class="modal-header bg-primary">
           <h5 class="modal-title text-white">Add User</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <div class="mb-3">
@@ -254,17 +422,42 @@
             <input type="text" class="form-control" name="phone_number">
           </div>
           <div class="mb-3">
-            <label class="form-label">Address</label>
-            <textarea class="form-control" name="address" rows="4"></textarea>
+            <label class="form-label">Role</label>
+            <select class="form-select" name="role_id">
+              <option value="">None</option>
+              {% for role in roles|default([]) %}
+                <option value="{{ role.id }}">{{ role.name|default('N/A') }}</option>
+              {% endfor %}
+            </select>
           </div>
           <div class="mb-3">
-            <label class="form-label">Profile Image</label>
-            <input type="file" class="form-control" name="profile_image">
+            <label class="form-label">Department</label>
+            <select class="form-select" name="department_id">
+              <option value="">None</option>
+              {% for department in departments|default([]) %}
+                <option value="{{ department.id }}">{{ department.name|default('N/A') }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Address</label>
+            <textarea class="form-control" name="address" rows="3"></textarea>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Profile Picture</label>
+            <div class="image-upload-container" ondragover="event.preventDefault(); this.classList.add('dragover');" ondragleave="this.classList.remove('dragover');" ondrop="event.preventDefault(); this.classList.remove('dragover'); handleImageDrop(event, 'imageInputCreate', 'imagePreviewCreate');">
+              <div class="image-preview image-preview-placeholder" id="imagePreviewCreate"></div>
+              <label class="custom-file-label" for="imageInputCreate">
+                <i class="bx bx-upload"></i> Choose or Drop Image
+              </label>
+              <input type="file" class="custom-file-input" id="imageInputCreate" name="image" accept="image/*">
+            </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button class="btn btn-primary" type="submit">Create</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create</button>
         </div>
       </div>
     </form>
@@ -273,4 +466,84 @@
 
 <!-- Boxicons CDN -->
 <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+<!-- JavaScript for image preview and drag-and-drop -->
+<script>
+  function handleImagePreview(inputId, previewId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+
+    if (!input || !preview) return; // Prevent errors if elements are missing
+
+    input.addEventListener('change', function() {
+      const file = this.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          preview.innerHTML = `<img src="${e.target.result}" alt="Profile Picture">`;
+          preview.classList.remove('image-preview-placeholder');
+          addRemoveButton(inputId, previewId);
+        };
+        reader.onerror = function() {
+          console.error('Error reading file');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  function handleImageDrop(event, inputId, previewId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    const file = event.dataTransfer.files[0];
+
+    if (file && file.type.startsWith('image/')) {
+      input.files = event.dataTransfer.files;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        preview.innerHTML = `<img src="${e.target.result}" alt="Profile Picture">`;
+        preview.classList.remove('image-preview-placeholder');
+        addRemoveButton(inputId, previewId);
+      };
+      reader.onerror = function() {
+        console.error('Error reading dropped file');
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function addRemoveButton(inputId, previewId) {
+    const preview = document.getElementById(previewId);
+    const container = preview.parentElement;
+    let removeBtn = container.querySelector('.remove-image-btn');
+    if (!removeBtn) {
+      removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-image-btn';
+      removeBtn.textContent = 'Remove Image';
+      removeBtn.type = 'button';
+      removeBtn.onclick = () => removeImage(inputId, previewId);
+      container.appendChild(removeBtn);
+    }
+  }
+
+  function removeImage(inputId, previewId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    input.value = '';
+    preview.innerHTML = '';
+    preview.classList.add('image-preview-placeholder');
+    const removeBtn = preview.parentElement.querySelector('.remove-image-btn');
+    if (removeBtn) {
+      removeBtn.remove();
+    }
+  }
+
+  // Initialize image preview for Create User modal
+  handleImagePreview('imageInputCreate', 'imagePreviewCreate');
+
+  // Initialize image preview for each Edit User modal
+  {% for user in users|default([]) %}
+    handleImagePreview('imageInput{{ user.id|default('') }}', 'imagePreview{{ user.id|default('') }}');
+  {% endfor %}
+</script>
 {% endblock %}
