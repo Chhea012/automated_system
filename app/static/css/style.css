@@ -1,0 +1,95 @@
+
+.container {
+    max-width: 1500px;
+}
+.form-header {
+    background: linear-gradient(90deg, #007bff, #0056b3);
+    color: white;
+    padding: 0.5rem;
+    border-radius: 10px 10px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.form-header h1 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin: 0;
+}
+.table-card, .form-card {
+    background: white;
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+.section-header {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #1a3c6d;
+    margin: 1.5rem 0 1rem;
+    border-left: 4px solid #007bff;
+    padding-left: 0.75rem;
+}
+.btn-create, .btn-add-installment, .btn-add-article {
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 6px;
+}
+.btn-create:hover, .btn-add-installment:hover, .btn-add-article:hover {
+    background-color: #0056b3;
+}
+.btn-remove-installment, .btn-remove-article {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.5rem;
+    border-radius: 6px;
+    margin-left: 0.5rem;
+}
+.btn-remove-installment:hover, .btn-remove-article:hover {
+    background-color: #c82333;
+}
+.installment-container, .article-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.installment-container input, .article-container input, .article-container select {
+    flex: 1;
+}
+.table th {
+    font-weight: 600;
+    color: #1a3c6d;
+}
+.table td {
+    vertical-align: middle;
+}
+.dropdown-menu {
+    min-width: 120px;
+}
+.dropdown-item i {
+    margin-right: 8px;
+}
+.pagination .page-link {
+    color: #1b2d73;
+}
+.pagination .page-item.active .page-link {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+.form-control, .form-select {
+    border-radius: 6px;
+}
+.form-label {
+    font-weight: 500;
+    color: #1a3c6d;
+}
+.alert {
+    border-radius: 6px;
+}

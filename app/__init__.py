@@ -23,12 +23,14 @@ def create_app():
     login_manager.login_view = "auth.login"
     login_manager.login_message_category = "info"
 
+    # Register blueprints
     from .routes.auth import auth_bp
     from .routes.main import main_bp
     from .routes.users import users_bp
     from .routes.permission import permissions_bp
     from .routes.role import roles_bp
     from .routes.department import departments_bp
+    from .routes.contract import contracts_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(main_bp)
@@ -36,11 +38,14 @@ def create_app():
     app.register_blueprint(permissions_bp, url_prefix="/permissions")
     app.register_blueprint(roles_bp, url_prefix="/roles")
     app.register_blueprint(departments_bp, url_prefix="/departments")
+    app.register_blueprint(contracts_bp, url_prefix="/contracts")
 
+    # Import models to ensure they are registered with SQLAlchemy
     from .models.user import User
     from .models.permission import Permission
     from .models.role import Role
     from .models.department import Department
+    from .models.contract import Contract
 
     @login_manager.user_loader
     def load_user(user_id):

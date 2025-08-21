@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}Create Contract{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="form-header">
+        <h1 class="text-center mb-0">Create Contract</h1>
+    </div>
+    <div class="form-card">
+        <nav class="mb-3">
+            <a href="{{ url_for('contracts.index') }}" class="btn btn-outline-primary">Back to Contract List</a>
+        </nav>
+        <form id="contractForm" action="{{ url_for('contracts.create') }}" method="POST" class="needs-validation"
+            novalidate>
+            <!-- Project & Contract Details -->
+            <div class="section-header">Project & Contract Details</div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="projectTitle" class="form-label">Project Title</label>
+                    <input type="text" class="form-control" id="projectTitle" name="projectTitle"
+                        placeholder="e.g., Consultant for Budget Analysis" required>
+                    <div class="invalid-feedback">Please enter the project title.</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="outputDescription" class="form-label">Output Description</label>
+                    <input type="text" class="form-control" id="outputDescription" name="outputDescription"
+                        placeholder="e.g., Budget Analysis on MAFF’s Budget Allocation" required>
+                    <div class="invalid-feedback">Please enter the output description.</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="contractNumber" class="form-label">Contract Number</label>
+                    <input type="text" class="form-control" id="contractNumber" name="contractNumber"
+                        placeholder="e.g., NGOF/2025-002" required>
+                    <div class="invalid-feedback">Please enter the contract number.</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="taxPercentage" class="form-label">Tax Percentage (%)</label>
+                    <select class="form-select" id="taxPercentage" name="taxPercentage" required>
+                        <option value="0">0</option>
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="15" selected>15</option>
+                        <option value="20">20</option>
+                    </select>
+                    <div class="invalid-feedback">Please select a tax percentage.</div>
+                </div>
+            </div>
+    
+            <!-- Party B Information -->
+            <div class="section-header">Party B Information</div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="partyBSignatureName" class="form-label">Party B Signature Name</label>
+                    <input type="text" class="form-control" id="partyBSignatureName" name="partyBSignatureName"
+                        placeholder="e.g., Mr. SEAN Bunrith" required>
+                    <div class="invalid-feedback">Please enter Party B signature name.</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="partyBPosition" class="form-label">Party B Position</label>
+                    <input type="text" class="form-control" id="partyBPosition" name="partyBPosition"
+                        value="Freelance Consultant">
+                </div>
+                <div class="col-md-6">
+                    <label for="partyBPhone" class="form-label">Party B Phone</label>
+                    <input type="tel" class="form-control" id="partyBPhone" name="partyBPhone"
+                        placeholder="e.g., (+855) 11 535 354">
+                </div>
+                <div class="col-md-6">
+                    <label for="partyBEmail" class="form-label">Party B Email</label>
+                    <input type="email" class="form-control" id="partyBEmail" name="partyBEmail"
+                        placeholder="e.g., Seanbunrith@gmail.com">
+                </div>
+                <div class="col-12">
+                    <label for="partyBAddress" class="form-label">Party B Address</label>
+                    <textarea class="form-control" id="partyBAddress" name="partyBAddress" rows="3"
+                        placeholder="e.g., # F22 st. 113 Trapaeng Krosang, Porsenchey, Phnom Penh"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label for="focalPersonAName" class="form-label">Focal Person A Name</label>
+                    <input type="text" class="form-control" id="focalPersonAName" name="focalPersonAName"
+                        placeholder="e.g., Mr. Mar Sophal">
+                </div>
+                <div class="col-md-6">
+                    <label for="focalPersonAPosition" class="form-label">Focal Person A Position</label>
+                    <input type="text" class="form-control" id="focalPersonAPosition" name="focalPersonAPosition"
+                        placeholder="e.g., PALI Program Manager">
+                </div>
+                <div class="col-md-6">
+                    <label for="focalPersonAPhone" class="form-label">Focal Person A Phone</label>
+                    <input type="tel" class="form-control" id="focalPersonAPhone" name="focalPersonAPhone"
+                        placeholder="e.g., 012 845 091">
+                </div>
+                <div class="col-md-6">
+                    <label for="focalPersonAEmail" class="form-label">Focal Person A Email</label>
+                    <input type="email" class="form-control" id="focalPersonAEmail" name="focalPersonAEmail"
+                        placeholder="e.g., sophal@ngoforum.org.kh">
+                </div>
+            </div>
+    
+            <!-- Agreement Details -->
+            <div class="section-header">Agreement Details</div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="agreementStartDate" class="form-label">Agreement Start Date</label>
+                    <input type="date" class="form-control" id="agreementStartDate" name="agreementStartDate" required>
+                    <div class="invalid-feedback">Please select a start date.</div>
+                </div>
+                <div class="col-md-4">
+                    <label for="agreementEndDate" class="form-label">Agreement End Date</label>
+                    <input type="date" class="form-control" id="agreementEndDate" name="agreementEndDate" required>
+                    <div class="invalid-feedback">Please select an end date.</div>
+                </div>
+                <div class="col-md-4">
+                    <label for="totalFeeUSD" class="form-label">Total Fee USD (Gross)</label>
+                    <input type="number" class="form-control" id="totalFeeUSD" name="totalFeeUSD" min="0" step="0.01"
+                        required>
+                    <div class="invalid-feedback">Please enter a valid total fee.</div>
+                </div>
+                <div class="col-12" id="installmentContainer">
+                    <label class="form-label">Payment Installment Description</label>
+                    <div class="installment-container">
+                        <input type="text" class="form-control" name="paymentInstallmentDesc"
+                            placeholder="e.g., Installment #1 (50%)">
+                        <button type="button" class="btn-remove-installment d-none">Remove</button>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <button type="button" class="btn btn-primary btn-add-installment" onclick="addInstallmentField()">Add Payment Installment</button>
+                </div>
+                <div class="col-12">
+                    <label for="workshopDescription" class="form-label">Workshop Description</label>
+                    <input type="text" class="form-control" id="workshopDescription" name="workshopDescription"
+                        placeholder="e.g., Multi-stakeholder workshop">
+                </div>
+                <div class="col-12">
+                    <label for="deliverables" class="form-label">Deliverables (one per line)</label>
+                    <textarea class="form-control" id="deliverables" name="deliverables" rows="6" required>Sign Agreement
+    Submit the draft outline
+    Submit the draft budget analysis to NGOF
+    Submit the comprehensive analysis report
+    Present analysis report in a multi-stakeholder workshop
+    Submit invoice and receipt</textarea>
+                    <div class="invalid-feedback">Please enter deliverables.</div>
+                </div>
+            </div>
+    
+            <!-- Custom Article Sentences -->
+            <div class="section-header">Custom Article Sentences (Optional)</div>
+            <div class="col-12" id="articleContainer">
+                <div class="row g-3 article-container d-none">
+                    <div class="col-md-4">
+                        <label class="form-label">Article Number</label>
+                        <select class="form-select" name="articleNumber">
+                            {% for i in range(1, 17) %}
+                            <option value="{{ i }}">{{ i }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Custom Sentence</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="customSentence"
+                                placeholder="e.g., Additional requirements for this article...">
+                            <button type="button" class="btn-remove-article btn btn-danger">Remove</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12">
+                <button type="button" class="btn btn-primary btn-add-article" onclick="addArticleField()">Add Custom Article Sentence</button>
+            </div>
+    
+            <!-- Signatures -->
+            <div class="section-header">Signatures</div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="partyBSignatureNameConfirm" class="form-label">Party B Signature Name (Confirm)</label>
+                    <input type="text" class="form-control" id="partyBSignatureNameConfirm"
+                        name="partyBSignatureNameConfirm" placeholder="e.g., Mr. SEAN Bunrith" required>
+                    <div class="invalid-feedback">Please confirm Party B signature name.</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="title" class="form-label">Title</label>
+                    <input type="text" class="form-control" id="title" name="title"
+                        placeholder="e.g., Consultant for Budget Analysis">
+                </div>
+            </div>
+    
+            <!-- Submit Button -->
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-primary">Add Contract</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

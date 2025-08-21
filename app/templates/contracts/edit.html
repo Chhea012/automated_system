@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}Edit Contract{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <div class="form-header">
+    <h1 class="text-center mb-0">Edit Contract</h1>
+</div>
+<div class="form-card">
+    <nav class="mb-3">
+        <a href="{{ url_for('contracts.index') }}" class="btn btn-outline-primary">Back to Contract List</a>
+    </nav>
+    <form id="contractForm" action="{{ url_for('contracts.update', contract_id=contract.id) }}" method="POST" class="needs-validation" novalidate>
+        <input type="hidden" id="contractId" name="contractId" value="{{ contract.id }}">
+        <!-- Project & Contract Details -->
+        <div class="section-header">Project & Contract Details</div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="projectTitle" class="form-label">Project Title</label>
+                <input type="text" class="form-control" id="projectTitle" name="projectTitle" value="{{ contract.project_title }}" required>
+                <div class="invalid-feedback">Please enter the project title.</div>
+            </div>
+            <div class="col-md-6">
+                <label for="outputDescription" class="form-label">Output Description</label>
+                <input type="text" class="form-control" id="outputDescription" name="outputDescription" value="{{ contract.output_description }}" required>
+                <div class="invalid-feedback">Please enter the output description.</div>
+            </div>
+            <div class="col-md-6">
+                <label for="contractNumber" class="form-label">Contract Number</label>
+                <input type="text" class="form-control" id="contractNumber" name="contractNumber" value="{{ contract.contract_number }}" required>
+                <div class="invalid-feedback">Please enter the contract number.</div>
+            </div>
+            <div class="col-md-6">
+                <label for="taxPercentage" class="form-label">Tax Percentage (%)</label>
+                <select class="form-select" id="taxPercentage" name="taxPercentage" required>
+                    <option value="0" {% if contract.tax_percentage == 0 %}selected{% endif %}>0</option>
+                    <option value="5" {% if contract.tax_percentage == 5 %}selected{% endif %}>5</option>
+                    <option value="10" {% if contract.tax_percentage == 10 %}selected{% endif %}>10</option>
+                    <option value="15" {% if contract.tax_percentage == 15 %}selected{% endif %}>15</option>
+                    <option value="20" {% if contract.tax_percentage == 20 %}selected{% endif %}>20</option>
+                </select>
+                <div class="invalid-feedback">Please select a tax percentage.</div>
+            </div>
+        </div>
+
+        <!-- Party B Information -->
+        <div class="section-header">Party B Information</div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="partyBSignatureName" class="form-label">Party B Signature Name</label>
+                <input type="text" class="form-control" id="partyBSignatureName" name="partyBSignatureName" value="{{ contract.party_b_signature_name }}" required>
+                <div class="invalid-feedback">Please enter Party B signature name.</div>
+            </div>
+            <div class="col-md-6">
+                <label for="partyBPosition" class="form-label">Party B Position</label>
+                <input type="text" class="form-control" id="partyBPosition" name="partyBPosition" value="{{ contract.party_b_position }}">
+            </div>
+            <div class="col-md-6">
+                <label for="partyBPhone" class="form-label">Party B Phone</label>
+                <input type="tel" class="form-control" id="partyBPhone" name="partyBPhone" value="{{ contract.party_b_phone }}">
+            </div>
+            <div class="col-md-6">
+                <label for="partyBEmail" class="form-label">Party B Email</label>
+                <input type="email" class="form-control" id="partyBEmail" name="partyBEmail" value="{{ contract.party_b_email }}">
+            </div>
+            <div class="col-12">
+                <label for="partyBAddress" class="form-label">Party B Address</label>
+                <textarea class="form-control" id="partyBAddress" name="partyBAddress" rows="3">{{ contract.party_b_address }}</textarea>
+            </div>
+            <div class="col-md-6">
+                <label for="focalPersonAName" class="form-label">Focal Person A Name</label>
+                <input type="text" class="form-control" id="focalPersonAName" name="focalPersonAName" value="{{ contract.focal_person_a_name }}">
+            </div>
+            <div class="col-md-6">
+                <label for="focalPersonAPosition" class="form-label">Focal Person A Position</label>
+                <input type="text" class="form-control" id="focalPersonAPosition" name="focalPersonAPosition" value="{{ contract.focal_person_a_position }}">
+            </div>
+            <div class="col-md-6">
+                <label for="focalPersonAPhone" class="form-label">Focal Person A Phone</label>
+                <input type="tel" class="form-control" id="focalPersonAPhone" name="focalPersonAPhone" value="{{ contract.focal_person_a_phone }}">
+            </div>
+            <div class="col-md-6">
+                <label for="focalPersonAEmail" class="form-label">Focal Person A Email</label>
+                <input type="email" class="form-control" id="focalPersonAEmail" name="focalPersonAEmail" value="{{ contract.focal_person_a_email }}">
+            </div>
+        </div>
+
+        <!-- Agreement Details -->
+        <div class="section-header">Agreement Details</div>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label for="agreementStartDate" class="form-label">Agreement Start Date</label>
+                <input type="date" class="form-control" id="agreementStartDate" name="agreementStartDate" value="{{ contract.agreement_start_date }}" required>
+                <div class="invalid-feedback">Please select a start date.</div>
+            </div>
+            <div class="col-md-4">
+                <label for="agreementEndDate" class="form-label">Agreement End Date</label>
+                <input type="date" class="form-control" id="agreementEndDate" name="agreementEndDate" value="{{ contract.agreement_end_date }}" required>
+                <div class="invalid-feedback">Please select an end date.</div>
+            </div>
+            <div class="col-md-4">
+                <label for="totalFeeUSD" class="form-label">Total Fee USD (Gross)</label>
+                <input type="number" class="form-control" id="totalFeeUSD" name="totalFeeUSD" value="{{ contract.total_fee_usd }}" min="0" step="0.01" required>
+                <div class="invalid-feedback">Please enter a valid total fee.</div>
+            </div>
+            <div class="col-12" id="installmentContainer">
+                <label class="form-label">Payment Installment Description</label>
+                {% if contract.payment_installment_desc %}
+                    {% for desc in contract.payment_installment_desc.split('; ') %}
+                    <div class="installment-container">
+                        <input type="text" class="form-control" name="paymentInstallmentDesc" value="{{ desc }}">
+                        <button type="button" class="btn-remove-installment" onclick="removeInstallmentField(this)">Remove</button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="installment-container">
+                        <input type="text" class="form-control" name="paymentInstallmentDesc" placeholder="e.g., Installment #1 (50%)">
+                        <button type="button" class="btn-remove-installment d-none">Remove</button>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="col-12">
+                <button type="button" class="btn btn-primary btn-add-installment" onclick="addInstallmentField()">Add Payment Installment</button>
+            </div>
+            <div class="col-12">
+                <label for="workshopDescription" class="form-label">Workshop Description</label>
+                <input type="text" class="form-control" id="workshopDescription" name="workshopDescription" value="{{ contract.workshop_description }}">
+            </div>
+            <div class="col-12">
+                <label for="deliverables" class="form-label">Deliverables (one per line)</label>
+                <textarea class="form-control" id="deliverables" name="deliverables" rows="6" required>{{ '\n'.join(contract.deliverables) }}</textarea>
+                <div class="invalid-feedback">Please enter deliverables.</div>
+            </div>
+        </div>
+
+        <!-- Custom Article Sentences -->
+        <div class="section-header">Custom Article Sentences (Optional)</div>
+        <div class="col-12" id="articleContainer">
+            <div class="row g-3 article-container d-none">
+                <div class="col-md-4">
+                    <label class="form-label">Article Number</label>
+                    <select class="form-select" name="articleNumber">
+                        {% for i in range(1, 17) %}
+                        <option value="{{ i }}">{{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">Custom Sentence</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" name="customSentence" placeholder="e.g., Additional requirements for this article...">
+                        <button type="button" class="btn-remove-article btn btn-danger">Remove</button>
+                    </div>
+                </div>
+            </div>
+            {% for article in contract.articles %}
+            <div class="row g-3 article-container">
+                <div class="col-md-4">
+                    <label class="form-label">Article Number</label>
+                    <select class="form-select" name="articleNumber">
+                        {% for i in range(1, 17) %}
+                        <option value="{{ i }}" {% if article.articleNumber == i|string %}selected{% endif %}>{{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">Custom Sentence</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" name="customSentence" value="{{ article.customSentence }}">
+                        <button type="button" class="btn-remove-article btn btn-danger" onclick="removeArticleField(this.parentElement.parentElement.parentElement)">Remove</button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="col-12">
+            <button type="button" class="btn btn-primary btn-add-article" onclick="addArticleField()">Add Custom Article Sentence</button>
+        </div>
+
+        <!-- Signatures -->
+        <div class="section-header">Signatures</div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="partyBSignatureNameConfirm" class="form-label">Party B Signature Name (Confirm)</label>
+                <input type="text" class="form-control" id="partyBSignatureNameConfirm" name="partyBSignatureNameConfirm" value="{{ contract.party_b_signature_name }}" required>
+                <div class="invalid-feedback">Please confirm Party B signature name.</div>
+            </div>
+            <div class="col-md-6">
+                <label for="title" class="form-label">Title</label>
+                <input type="text" class="form-control" id="title" name="title" value="{{ contract.title }}">
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-primary">Update Contract</button>
+        </div>
+    </form>
+</div>
+</div>
+
+{% endblock %}
