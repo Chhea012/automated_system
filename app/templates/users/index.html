@@ -3,7 +3,6 @@
 
 {% block content %}
 <style>
-  /* Enhanced Table Styling */
   .table-custom {
     border-collapse: separate;
     border-spacing: 0;
@@ -11,50 +10,37 @@
     overflow: hidden;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
-
   .table-custom thead th {
-    background-color: #0d6efd; /* Bootstrap primary blue */
+    background-color: #0d6efd;
     color: #ffffff;
     font-weight: 600;
     padding: 12px;
     text-align: left;
     border-bottom: 2px solid #dee2e6;
   }
-
   .table-custom tbody tr {
     background-color: #ffffff;
     transition: background-color 0.2s ease;
   }
-
   .table-custom tbody tr:nth-child(even) {
-    background-color: #f8f9fa; /* Light gray for zebra striping */
+    background-color: #f8f9fa;
   }
-
   .table-custom tbody tr:hover {
-    background-color: #e9ecef; /* Slightly darker on hover */
+    background-color: #e9ecef;
   }
-
   .table-custom td {
     padding: 12px;
     vertical-align: middle;
     border-bottom: 1px solid #dee2e6;
   }
-
-  .table-custom .image_profile {
-    border-radius: 50%;
-    object-fit: cover;
-  }
-
   .table-custom .dropdown-menu {
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
-
   .table-custom .dropdown-item {
     padding: 8px 16px;
     font-size: 14px;
   }
-
   .table-custom .dropdown-item i {
     margin-right: 8px;
   }
@@ -65,13 +51,19 @@
     margin-right: 35px;
     margin-left: 35px;
   }
+  .profile-pic {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
 </style>
 
 <div class="user-container mt-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>User Management</h2>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
-      <i class="bi bi-person-plus"></i> Add User
+      <i class="bi bi-plus-circle"></i> Add User
     </button>
   </div>
 
@@ -81,11 +73,13 @@
         <thead>
           <tr>
             <th>Id</th>
-            <th>Image</th>
+            <th>Profile</th>
             <th>Username</th>
             <th>Email</th>
-            <th>Phone</th>
+            <th>Phone Number</th>
             <th>Address</th>
+            <th>Role</th>
+            <th>Department</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -94,13 +88,19 @@
           <tr>
             <td>{{ loop.index }}</td>
             <td>
-              <img src="{{ user.get_image_url() }}" 
-                   class="image_profile" width="80" height="80" alt="Profile Image">
+              {% if user.get_image_url() %}
+                <img src="{{ user.get_image_url() }}" alt="Profile Picture" class="profile-pic">
+              {% else %}
+                N/A
+              {% endif %}
             </td>
             <td>{{ user.username }}</td>
             <td>{{ user.email }}</td>
             <td>{{ user.phone_number or 'N/A' }}</td>
             <td>{{ user.address or 'N/A' }}</td>
+            
+            <td>{{ user.role.name if user.role else 'N/A' }}</td>
+            <td>{{ user.department.name if user.department else 'N/A' }}</td>
             <td>
               <div class="dropdown">
                 <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -125,8 +125,7 @@
           <!-- Edit User Modal -->
           <div class="modal fade" id="editUserModal{{ user.id }}" tabindex="-1">
             <div class="modal-dialog">
-              <form method="POST" enctype="multipart/form-data" 
-                    action="{{ url_for('users.update', user_id=user.id, page=pagination.page) }}">
+              <form method="POST" action="{{ url_for('users.update', user_id=user.id, page=pagination.page) }}" enctype="multipart/form-data">
                 <div class="modal-content">
                   <div class="modal-header bg-primary">
                     <h5 class="modal-title text-white">Edit User</h5>
@@ -142,17 +141,42 @@
                       <input type="email" class="form-control" name="email" value="{{ user.email }}" required>
                     </div>
                     <div class="mb-3">
+                      <label class="form-label">Password (leave blank to keep unchanged)</label>
+                      <input type="password" class="form-control" name="password">
+                    </div>
+                    <div class="mb-3">
                       <label class="form-label">Phone Number</label>
                       <input type="text" class="form-control" name="phone_number" value="{{ user.phone_number or '' }}">
                     </div>
                     <div class="mb-3">
                       <label class="form-label">Address</label>
-                      <textarea class="form-control" name="address" rows="4">{{ user.address or '' }}</textarea>
+                      <textarea class="form-control" name="address" rows="3">{{ user.address or '' }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                      <label class="form-label">Role</label>
+                      <select class="form-select" name="role_id">
+                        <option value="">None</option>
+                        {% for role in roles %}
+                          <option value="{{ role.id }}" {% if user.role_id == role.id %}selected{% endif %}>{{ role.name }}</option>
+                        {% endfor %}
+                      </select>
                     </div>
                     <div class="mb-3">
-                      <label class="form-label">Profile Image</label>
-                      <input type="file" class="form-control" name="profile_image">
-                      <small class="form-text text-muted">Current: {{ user.image or 'default_profile.png' }}</small>
+                      <label class="form-label">Department</label>
+                      <select class="form-select" name="department_id">
+                        <option value="">None</option>
+                        {% for department in departments %}
+                          <option value="{{ department.id }}" {% if user.department_id == department.id %}selected{% endif %}>{{ department.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Profile Picture</label>
+                      <input type="file" class="form-control" name="image" accept="image/*">
+                      {% if user.get_image_url() %}
+                        <small class="form-text">Current: <img src="{{ user.get_image_url() }}" alt="Profile Picture" class="profile-pic"></small>
+                      {% endif %}
                     </div>
                   </div>
                   <div class="modal-footer">
@@ -230,7 +254,7 @@
 <!-- Create User Modal -->
 <div class="modal fade" id="createUserModal" tabindex="-1">
   <div class="modal-dialog">
-    <form method="POST" enctype="multipart/form-data" action="{{ url_for('users.create', page=pagination.page) }}">
+    <form method="POST" action="{{ url_for('users.create', page=pagination.page) }}" enctype="multipart/form-data">
       <div class="modal-content">
         <div class="modal-header bg-primary">
           <h5 class="modal-title text-white">Add User</h5>
@@ -255,11 +279,29 @@
           </div>
           <div class="mb-3">
             <label class="form-label">Address</label>
-            <textarea class="form-control" name="address" rows="4"></textarea>
+            <textarea class="form-control" name="address" rows="3"></textarea>
           </div>
           <div class="mb-3">
-            <label class="form-label">Profile Image</label>
-            <input type="file" class="form-control" name="profile_image">
+            <label class="form-label">Role</label>
+            <select class="form-select" name="role_id">
+              <option value="">None</option>
+              {% for role in roles %}
+                <option value="{{ role.id }}">{{ role.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Department</label>
+            <select class="form-select" name="department_id">
+              <option value="">None</option>
+              {% for department in departments %}
+                <option value="{{ department.id }}">{{ department.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Profile Picture</label>
+            <input type="file" class="form-control" name="image" accept="image/*">
           </div>
         </div>
         <div class="modal-footer">
