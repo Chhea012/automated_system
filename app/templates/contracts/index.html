@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Contract List{% endblock %}
 {% block content %}
+
 <div class="container mt-4">
     
 <div class="form-header">
@@ -35,8 +36,8 @@
                     <i class='bx bx-download'></i> Export
                 </button>
                 <ul class="dropdown-menu" aria-labelledby="exportDropdown">
-                    <li><a class="dropdown-item" href="{{ url_for('contracts.export', format='excel', search=search_query) }}">Export to Excel</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('contracts.export', format='csv', search=search_query) }}">Export to CSV</a></li>
+                    <li><a class="dropdown-item" href="">Export to Excel</a></li>
+                    <li><a class="dropdown-item" href="">Export to CSV</a></li>
                 </ul>
             </div>
         </div>
@@ -66,17 +67,30 @@
                 <td>{{ contract.articles|length }} {{ 'article' if contract.articles|length == 1 else 'articles' }}</td>
                 <td>
                     <div class="dropdown">
-                        <button class="btn btn-link" type="button" id="dropdownMenuButton{{ loop.index }}" data-bs-toggle="dropdown">
-                            <i class='bx bx-dots-vertical-rounded'></i>
+                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bx bx-dots-horizontal-rounded"></i>
                         </button>
-                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ loop.index }}">
-                            <li><a class="dropdown-item" href="{{ url_for('contracts.view', contract_id=contract.id) }}"><i class='bx bx-show'></i> View</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('contracts.update', contract_id=contract.id) }}"><i class='bx bx-edit'></i> Edit</a></li>
-                            <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal{{ contract.id }}"><i class='bx bx-trash'></i> Delete</a></li>
+                        <ul class="dropdown-menu card-1">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('contracts.view', contract_id=contract.id|default('')) }}">
+                                    <i class="bx bx-show"></i> View
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('contracts.update', contract_id=contract.id|default('')) }}">
+                                    <i class="bx bx-edit"></i> Edit
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal{{ contract.id|default('') }}">
+                                    <i class="bx bx-trash"></i> Delete
+                                </a>
+                            </li>
                         </ul>
                     </div>
                 </td>
             </tr>
+            
             <!-- Delete Confirmation Modal -->
             <div class="modal fade" id="deleteConfirmModal{{ contract.id }}" tabindex="-1">
                 <div class="modal-dialog">

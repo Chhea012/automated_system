@@ -9,147 +9,136 @@
         <nav class="mb-3">
             <a href="{{ url_for('contracts.index') }}" class="btn btn-outline-primary">Back to Contract List</a>
         </nav>
-        <form id="contractForm" action="{{ url_for('contracts.create') }}" method="POST" class="needs-validation"
-            novalidate>
+        <form id="contractForm" action="{{ url_for('contracts.create') }}" method="POST" class="needs-validation" novalidate>
             <!-- Project & Contract Details -->
             <div class="section-header">Project & Contract Details</div>
             <div class="row g-3">
                 <div class="col-md-6">
                     <label for="projectTitle" class="form-label">Project Title</label>
-                    <input type="text" class="form-control" id="projectTitle" name="projectTitle"
-                        placeholder="e.g., Consultant for Budget Analysis" required>
+                    <input type="text" class="form-control" id="projectTitle" name="projectTitle" value="{{ form_data.projectTitle | default('') }}" placeholder="e.g., Consultant for Budget Analysis" required>
                     <div class="invalid-feedback">Please enter the project title.</div>
                 </div>
                 <div class="col-md-6">
                     <label for="outputDescription" class="form-label">Output Description</label>
-                    <input type="text" class="form-control" id="outputDescription" name="outputDescription"
-                        placeholder="e.g., Budget Analysis on MAFF’s Budget Allocation" required>
+                    <input type="text" class="form-control" id="outputDescription" name="outputDescription" value="{{ form_data.outputDescription | default('') }}" placeholder="e.g., Budget Analysis on MAFF’s Budget Allocation" required>
                     <div class="invalid-feedback">Please enter the output description.</div>
                 </div>
                 <div class="col-md-6">
                     <label for="contractNumber" class="form-label">Contract Number</label>
-                    <input type="text" class="form-control" id="contractNumber" name="contractNumber"
-                        placeholder="e.g., NGOF/2025-002" required>
+                    <input type="text" class="form-control" id="contractNumber" name="contractNumber" value="{{ form_data.contractNumber | default('') }}" placeholder="e.g., NGOF/2025-002" required>
                     <div class="invalid-feedback">Please enter the contract number.</div>
                 </div>
                 <div class="col-md-6">
                     <label for="taxPercentage" class="form-label">Tax Percentage (%)</label>
                     <select class="form-select" id="taxPercentage" name="taxPercentage" required>
-                        <option value="0">0</option>
-                        <option value="5">5</option>
-                        <option value="10">10</option>
-                        <option value="15" selected>15</option>
-                        <option value="20">20</option>
+                        <option value="0" {{ 'selected' if form_data.taxPercentage | default('15') == '0' }}>0</option>
+                        <option value="5" {{ 'selected' if form_data.taxPercentage | default('15') == '5' }}>5</option>
+                        <option value="10" {{ 'selected' if form_data.taxPercentage | default('15') == '10' }}>10</option>
+                        <option value="15" {{ 'selected' if form_data.taxPercentage | default('15') == '15' }}>15</option>
+                        <option value="20" {{ 'selected' if form_data.taxPercentage | default('15') == '20' }}>20</option>
                     </select>
                     <div class="invalid-feedback">Please select a tax percentage.</div>
                 </div>
             </div>
-    
+
             <!-- Party B Information -->
             <div class="section-header">Party B Information</div>
             <div class="row g-3">
                 <div class="col-md-6">
                     <label for="partyBSignatureName" class="form-label">Party B Signature Name</label>
-                    <input type="text" class="form-control" id="partyBSignatureName" name="partyBSignatureName"
-                        placeholder="e.g., Mr. SEAN Bunrith" required>
+                    <input type="text" class="form-control" id="partyBSignatureName" name="partyBSignatureName" value="{{ form_data.partyBSignatureName | default('') }}" placeholder="e.g., Mr. SEAN Bunrith" required>
                     <div class="invalid-feedback">Please enter Party B signature name.</div>
                 </div>
                 <div class="col-md-6">
                     <label for="partyBPosition" class="form-label">Party B Position</label>
-                    <input type="text" class="form-control" id="partyBPosition" name="partyBPosition"
-                        value="Freelance Consultant">
+                    <input type="text" class="form-control" id="partyBPosition" name="partyBPosition" value="{{ form_data.partyBPosition | default('Freelance Consultant') }}">
                 </div>
                 <div class="col-md-6">
                     <label for="partyBPhone" class="form-label">Party B Phone</label>
-                    <input type="tel" class="form-control" id="partyBPhone" name="partyBPhone"
-                        placeholder="e.g., (+855) 11 535 354">
+                    <input type="tel" class="form-control" id="partyBPhone" name="partyBPhone" value="{{ form_data.partyBPhone | default('') }}" placeholder="e.g., (+855) 11 535 354">
                 </div>
                 <div class="col-md-6">
                     <label for="partyBEmail" class="form-label">Party B Email</label>
-                    <input type="email" class="form-control" id="partyBEmail" name="partyBEmail"
-                        placeholder="e.g., Seanbunrith@gmail.com">
+                    <input type="email" class="form-control" id="partyBEmail" name="partyBEmail" value="{{ form_data.partyBEmail | default('') }}" placeholder="e.g., Seanbunrith@gmail.com">
                 </div>
                 <div class="col-12">
                     <label for="partyBAddress" class="form-label">Party B Address</label>
-                    <textarea class="form-control" id="partyBAddress" name="partyBAddress" rows="3"
-                        placeholder="e.g., # F22 st. 113 Trapaeng Krosang, Porsenchey, Phnom Penh"></textarea>
+                    <textarea class="form-control" id="partyBAddress" name="partyBAddress" rows="3" placeholder="e.g., # F22 st. 113 Trapaeng Krosang, Porsenchey, Phnom Penh">{{ form_data.partyBAddress | default('') }}</textarea>
                 </div>
                 <div class="col-md-6">
                     <label for="focalPersonAName" class="form-label">Focal Person A Name</label>
-                    <input type="text" class="form-control" id="focalPersonAName" name="focalPersonAName"
-                        placeholder="e.g., Mr. Mar Sophal">
+                    <input type="text" class="form-control" id="focalPersonAName" name="focalPersonAName" value="{{ form_data.focalPersonAName | default('') }}" placeholder="e.g., Mr. Mar Sophal">
                 </div>
                 <div class="col-md-6">
                     <label for="focalPersonAPosition" class="form-label">Focal Person A Position</label>
-                    <input type="text" class="form-control" id="focalPersonAPosition" name="focalPersonAPosition"
-                        placeholder="e.g., PALI Program Manager">
+                    <input type="text" class="form-control" id="focalPersonAPosition" name="focalPersonAPosition" value="{{ form_data.focalPersonAPosition | default('') }}" placeholder="e.g., PALI Program Manager">
                 </div>
                 <div class="col-md-6">
                     <label for="focalPersonAPhone" class="form-label">Focal Person A Phone</label>
-                    <input type="tel" class="form-control" id="focalPersonAPhone" name="focalPersonAPhone"
-                        placeholder="e.g., 012 845 091">
+                    <input type="tel" class="form-control" id="focalPersonAPhone" name="focalPersonAPhone" value="{{ form_data.focalPersonAPhone | default('') }}" placeholder="e.g., 012 845 091">
                 </div>
                 <div class="col-md-6">
                     <label for="focalPersonAEmail" class="form-label">Focal Person A Email</label>
-                    <input type="email" class="form-control" id="focalPersonAEmail" name="focalPersonAEmail"
-                        placeholder="e.g., sophal@ngoforum.org.kh">
+                    <input type="email" class="form-control" id="focalPersonAEmail" name="focalPersonAEmail" value="{{ form_data.focalPersonAEmail | default('') }}" placeholder="e.g., sophal@ngoforum.org.kh">
                 </div>
             </div>
-    
+
             <!-- Agreement Details -->
             <div class="section-header">Agreement Details</div>
             <div class="row g-3">
                 <div class="col-md-4">
                     <label for="agreementStartDate" class="form-label">Agreement Start Date</label>
-                    <input type="date" class="form-control" id="agreementStartDate" name="agreementStartDate" required>
+                    <input type="date" class="form-control" id="agreementStartDate" name="agreementStartDate" value="{{ form_data.agreementStartDate | default('') }}" required>
                     <div class="invalid-feedback">Please select a start date.</div>
                 </div>
                 <div class="col-md-4">
                     <label for="agreementEndDate" class="form-label">Agreement End Date</label>
-                    <input type="date" class="form-control" id="agreementEndDate" name="agreementEndDate" required>
+                    <input type="date" class="form-control" id="agreementEndDate" name="agreementEndDate" value="{{ form_data.agreementEndDate | default('') }}" required>
                     <div class="invalid-feedback">Please select an end date.</div>
                 </div>
                 <div class="col-md-4">
                     <label for="totalFeeUSD" class="form-label">Total Fee USD (Gross)</label>
-                    <input type="number" class="form-control" id="totalFeeUSD" name="totalFeeUSD" min="0" step="0.01"
-                        required>
+                    <input type="number" class="form-control" id="totalFeeUSD" name="totalFeeUSD" value="{{ form_data.totalFeeUSD | default('') }}" min="0" step="0.01" required>
                     <div class="invalid-feedback">Please enter a valid total fee.</div>
+                </div>
+                <div class="col-md-12">
+                    <label for="totalFeeWords" class="form-label">Total Fee in Words</label>
+                    <input type="text" class="form-control" id="totalFeeWords" name="totalFeeWords" value="{{ form_data.totalFeeWords | default('') }}" readonly>
+                    <div class="invalid-feedback">Total fee in words will be auto-generated.</div>
                 </div>
                 <div class="col-12" id="installmentContainer">
                     <label class="form-label">Payment Installment Description</label>
-                    <div class="installment-container">
-                        <input type="text" class="form-control" name="paymentInstallmentDesc"
-                            placeholder="e.g., Installment #1 (50%)">
-                        <button type="button" class="btn-remove-installment d-none">Remove</button>
+                    {% for installment in form_data.paymentInstallmentDesc | default(['']) %}
+                    <div class="installment-container mb-2">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="paymentInstallmentDesc[]" value="{{ installment }}" placeholder="e.g., Installment #1 (50%)" pattern=".*\(\d+%\)$" title="Please include a percentage, e.g., Installment #1 (50%)">
+                            <button type="button" class="btn btn-danger btn-remove-installment {{ 'd-none' if loop.first and loop.length == 1 else '' }}">Remove</button>
+                        </div>
+                        <div class="invalid-feedback">Please include a percentage, e.g., Installment #1 (50%).</div>
                     </div>
+                    {% endfor %}
                 </div>
                 <div class="col-12">
                     <button type="button" class="btn btn-primary btn-add-installment" onclick="addInstallmentField()">Add Payment Installment</button>
                 </div>
                 <div class="col-12">
                     <label for="workshopDescription" class="form-label">Workshop Description</label>
-                    <input type="text" class="form-control" id="workshopDescription" name="workshopDescription"
-                        placeholder="e.g., Multi-stakeholder workshop">
+                    <input type="text" class="form-control" id="workshopDescription" name="workshopDescription" value="{{ form_data.workshopDescription | default('') }}" placeholder="e.g., Multi-stakeholder workshop">
                 </div>
                 <div class="col-12">
                     <label for="deliverables" class="form-label">Deliverables (one per line)</label>
-                    <textarea class="form-control" id="deliverables" name="deliverables" rows="6" required>Sign Agreement
-    Submit the draft outline
-    Submit the draft budget analysis to NGOF
-    Submit the comprehensive analysis report
-    Present analysis report in a multi-stakeholder workshop
-    Submit invoice and receipt</textarea>
+                    <textarea class="form-control" id="deliverables" name="deliverables" rows="6" required>{{ form_data.deliverables | default('Sign Agreement\nSubmit the draft outline\nSubmit the draft budget analysis to NGOF\nSubmit the comprehensive analysis report\nPresent analysis report in a multi-stakeholder workshop\nSubmit invoice and receipt') }}</textarea>
                     <div class="invalid-feedback">Please enter deliverables.</div>
                 </div>
             </div>
-    
+
             <!-- Custom Article Sentences -->
             <div class="section-header">Custom Article Sentences (Optional)</div>
             <div class="col-12" id="articleContainer">
-                <div class="row g-3 article-container d-none">
+                <div class="row g-3 article-container mb-2 d-none">
                     <div class="col-md-4">
                         <label class="form-label">Article Number</label>
-                        <select class="form-select" name="articleNumber">
+                        <select class="form-select" name="articleNumber[]">
                             {% for i in range(1, 17) %}
                             <option value="{{ i }}">{{ i }}</option>
                             {% endfor %}
@@ -158,33 +147,49 @@
                     <div class="col-md-8">
                         <label class="form-label">Custom Sentence</label>
                         <div class="input-group">
-                            <input type="text" class="form-control" name="customSentence"
-                                placeholder="e.g., Additional requirements for this article...">
-                            <button type="button" class="btn-remove-article btn btn-danger">Remove</button>
+                            <input type="text" class="form-control" name="customSentence[]" placeholder="e.g., Additional requirements for this article...">
+                            <button type="button" class="btn btn-danger btn-remove-article">Remove</button>
                         </div>
                     </div>
                 </div>
+                {% for article in form_data.articles | default([]) %}
+                <div class="row g-3 article-container mb-2">
+                    <div class="col-md-4">
+                        <label class="form-label">Article Number</label>
+                        <select class="form-select" name="articleNumber[]">
+                            {% for i in range(1, 17) %}
+                            <option value="{{ i }}" {{ 'selected' if article.articleNumber == i | string }}">{{ i }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">Custom Sentence</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="customSentence[]" value="{{ article.customSentence }}" placeholder="e.g., Additional requirements for this article...">
+                            <button type="button" class="btn btn-danger btn-remove-article">Remove</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
             <div class="col-12">
                 <button type="button" class="btn btn-primary btn-add-article" onclick="addArticleField()">Add Custom Article Sentence</button>
             </div>
-    
+
             <!-- Signatures -->
             <div class="section-header">Signatures</div>
             <div class="row g-3">
                 <div class="col-md-6">
                     <label for="partyBSignatureNameConfirm" class="form-label">Party B Signature Name (Confirm)</label>
-                    <input type="text" class="form-control" id="partyBSignatureNameConfirm"
-                        name="partyBSignatureNameConfirm" placeholder="e.g., Mr. SEAN Bunrith" required>
+                    <input type="text" class="form-control" id="partyBSignatureNameConfirm" name="partyBSignatureNameConfirm" value="{{ form_data.partyBSignatureNameConfirm | default('') }}" placeholder="e.g., Mr. SEAN Bunrith" required>
                     <div class="invalid-feedback">Please confirm Party B signature name.</div>
                 </div>
                 <div class="col-md-6">
                     <label for="title" class="form-label">Title</label>
-                    <input type="text" class="form-control" id="title" name="title"
-                        placeholder="e.g., Consultant for Budget Analysis">
+                    <input type="text" class="form-control" id="title" name="title" value="{{ form_data.title | default('') }}" placeholder="e.g., Consultant for Budget Analysis">
                 </div>
             </div>
-    
+
             <!-- Submit Button -->
             <div class="text-center mt-4">
                 <button type="submit" class="btn btn-primary">Add Contract</button>
@@ -192,4 +197,162 @@
         </form>
     </div>
 </div>
+
+<!-- JavaScript for Dynamic Fields, Form Validation, and Number-to-Words Conversion -->
+<script>
+    // Number-to-Words Conversion Function
+    function numberToWords(num) {
+        if (!num || isNaN(num) || num < 0) return '';
+
+        const single = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+        const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        const thousands = ['', 'Thousand', 'Million', 'Billion'];
+
+        function convertChunk(n) {
+            let words = '';
+            if (n >= 100) {
+                words += single[Math.floor(n / 100)] + ' Hundred';
+                n %= 100;
+                if (n > 0) words += ' ';
+            }
+            if (n >= 20) {
+                words += tens[Math.floor(n / 10)];
+                n %= 10;
+                if (n > 0) words += ' ';
+            }
+            if (n >= 10 && n < 20) {
+                words += teens[n - 10];
+            } else if (n > 0 && n < 10) {
+                words += single[n];
+            }
+            return words;
+        }
+
+        let words = '';
+        let chunkCount = 0;
+
+        // Handle whole number part
+        let wholeNum = Math.floor(num);
+        while (wholeNum > 0) {
+            let chunk = wholeNum % 1000;
+            if (chunk > 0) {
+                let chunkWords = convertChunk(chunk);
+                if (chunkWords) {
+                    words = chunkWords + (thousands[chunkCount] ? ' ' + thousands[chunkCount] : '') + (words ? ' ' + words : '');
+                }
+            }
+            wholeNum = Math.floor(wholeNum / 1000);
+            chunkCount++;
+        }
+
+        // Handle decimal part
+        let decimal = Math.round((num - Math.floor(num)) * 100);
+        if (decimal > 0) {
+            words += words ? ' and ' : '';
+            words += convertChunk(decimal) + ' Cents';
+        }
+
+        return words ? words + ' US Dollars only' : 'Zero US Dollars only';
+    }
+
+    // Update totalFeeWords on input
+    document.getElementById('totalFeeUSD').addEventListener('input', function () {
+        const totalFeeUSD = parseFloat(this.value);
+        const totalFeeWordsInput = document.getElementById('totalFeeWords');
+        totalFeeWordsInput.value = numberToWords(totalFeeUSD);
+    });
+
+    // Bootstrap Form Validation
+    (function () {
+        'use strict';
+        const form = document.getElementById('contractForm');
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    })();
+
+    // Add Installment Field
+    function addInstallmentField() {
+        const container = document.getElementById('installmentContainer');
+        const firstInstallment = container.querySelector('.installment-container');
+        const newInstallment = firstInstallment.cloneNode(true);
+
+        // Clear input value
+        newInstallment.querySelector('input').value = '';
+
+        // Show Remove button for new field
+        const removeButton = newInstallment.querySelector('.btn-remove-installment');
+        removeButton.classList.remove('d-none');
+
+        // Add event listener to Remove button
+        removeButton.addEventListener('click', function () {
+            newInstallment.remove();
+            updateRemoveButtons();
+        });
+
+        // Append new field
+        container.appendChild(newInstallment);
+
+        // Update Remove buttons
+        updateRemoveButtons();
+    }
+
+    // Update Remove Buttons for Installments
+    function updateRemoveButtons() {
+        const container = document.getElementById('installmentContainer');
+        const installments = container.querySelectorAll('.installment-container');
+        if (installments.length === 1) {
+            installments[0].querySelector('.btn-remove-installment').classList.add('d-none');
+        } else {
+            installments.forEach(installment => {
+                installment.querySelector('.btn-remove-installment').classList.remove('d-none');
+            });
+        }
+    }
+
+    // Add Article Field
+    function addArticleField() {
+        const container = document.getElementById('articleContainer');
+        const template = container.querySelector('.article-container.d-none');
+        const newArticle = template.cloneNode(true);
+
+        // Remove d-none to make it visible
+        newArticle.classList.remove('d-none');
+
+        // Clear input value
+        newArticle.querySelector('input').value = '';
+
+        // Reset select to first option
+        newArticle.querySelector('select').selectedIndex = 0;
+
+        // Add event listener to Remove button
+        newArticle.querySelector('.btn-remove-article').addEventListener('click', function () {
+            newArticle.remove();
+        });
+
+        // Append new field
+        container.appendChild(newArticle);
+    }
+
+    // Initialize Remove buttons and totalFeeWords on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        updateRemoveButtons();
+        // Add event listeners to existing Remove buttons for articles
+        document.querySelectorAll('.btn-remove-article').forEach(button => {
+            button.addEventListener('click', function () {
+                button.closest('.article-container').remove();
+            });
+        });
+        // Initialize totalFeeWords if totalFeeUSD has a value
+        const totalFeeUSD = document.getElementById('totalFeeUSD').value;
+        if (totalFeeUSD) {
+            document.getElementById('totalFeeWords').value = numberToWords(parseFloat(totalFeeUSD));
+        }
+    });
+</script>
 {% endblock %}
