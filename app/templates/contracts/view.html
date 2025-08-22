@@ -2,14 +2,15 @@
 {% block title %}View Contract - {{ contract.contract_number }}{% endblock %}
 {% block content %}
 <!-- Navigation Buttons -->
-<div class="d-flex justify-content-center mt-3 mb-2">
-    <a href="{{ url_for('contracts.index') }}" class="btn btn-secondary">Back to List</a>
+<div class="d-flex justify-content-center mt-3 mb-2 gap-2">
+    <a href="{{ url_for('contracts.index') }}" class="btn btn-secondary mr-2">Back to List</a>
+    <a href="{{ url_for('contracts.export_docx', contract_id=contract.id) }}" class="btn btn-primary">Export to DOCX</a>
 </div>
 
 <div class="container d-flex justify-content-center mt-3">
-    <div class="container-card shadow-sm p-5" style="font-family: Calibri, sans-serif; ">
+    <div class="container-card shadow-sm p-5 mb-3" style="font-family: Calibri, sans-serif; ">
         <!-- Header -->
-        <h1 class="text-center" style="font-size: 24px; font-weight: bold;">The Service Agreement</h1>
+        <h1 class="text-center mt-5" style="font-size: 24px; font-weight: bold;">The Service Agreement</h1>
         <p class="text-center" style="font-weight: bold;">ON</p>
         <h2 class="text-center" style="font-size: 18px;">{{ contract.project_title or 'N/A' }}</h2>
         <p class="text-center" style="font-weight: bold;">No.: {{ contract.contract_number or 'N/A' }}</p>
@@ -17,7 +18,7 @@
 
         <!-- Party A -->
         <p class="text-center">
-            <strong>The NGO Forum on Cambodia</strong>, represented by Mr. Soeung Saroeun, Executive Director.<br>
+            <strong>The NGO Forum on Cambodia</strong>, represented by <strong>Mr. Soeung Saroeun</strong>, Executive Director.<br>
             Address: #9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia.<br>
             hereinafter called the “<strong>Party A</strong>”
         </p>
@@ -26,7 +27,7 @@
 
         <!-- Party B -->
         <p class="text-center ">
-            <strong>{{ contract.party_b_signature_name or 'N/A' }}</strong>,<br>
+            <strong>{{ contract.party_b_position or 'N/A' }} {{ contract.party_b_signature_name or 'N/A' }}</strong>,<br>
             Address: {{ contract.party_b_address or 'N/A' }}<br>
             H/P: {{ contract.party_b_phone or 'N/A' }}, E-mail: <span style="color: blue; text-decoration: underline;">{{ contract.party_b_email or 'N/A' }}</span><br>
             hereinafter called the “<strong>Party B</strong>”
