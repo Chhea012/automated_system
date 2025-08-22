@@ -751,6 +751,7 @@ def export(format):
         flash(f'Export failed: {str(e)}', 'danger')
         return redirect(url_for('contracts.index'))
 
+
 # Export contract to DOCX
 @contracts_bp.route('/export_docx/<string:contract_id>')
 @login_required
@@ -835,9 +836,36 @@ def export_docx(contract_id):
             run.font.size = Pt(11)
             return p
 
+        # Helper function to add paragraph with selective bold and underline
+        def add_styled_paragraph(text, bold_terms=None, underline_terms=None, alignment=WD_ALIGN_PARAGRAPH.LEFT, font_size=11):
+            p = doc.add_paragraph()
+            p.alignment = alignment
+            # Split text into parts to handle bold and underline separately
+            parts = [text]
+            if bold_terms:
+                parts = []
+                current_text = text
+                for term in bold_terms:
+                    split_text = current_text.split(term)
+                    for i, piece in enumerate(split_text[:-1]):
+                        parts.append(piece)
+                        parts.append(term)
+                    parts.append(split_text[-1])
+                    current_text = ''.join(parts[-len(split_text)+1:])
+            for part in parts:
+                run = p.add_run(part)
+                run.font.name = 'Calibri'
+                run.font.size = Pt(font_size)
+                if bold_terms and part in bold_terms:
+                    run.bold = True
+                if underline_terms and part in underline_terms:
+                    run.underline = True
+                    run.font.color.rgb = RGBColor(0, 0, 255)
+            return p
+
         # Add header
         add_centered_paragraph("The Service Agreement", bold=True, font_size=14)
-        add_centered_paragraph("On", bold=True)
+        add_centered_paragraph("ON", bold=True)
         add_centered_paragraph(contract_data['project_title'] or 'N/A', font_size=12)
         add_centered_paragraph(f"No.: {contract_data['contract_number'] or 'N/A'}", bold=True)
         add_centered_paragraph("BETWEEN")
@@ -847,34 +875,24 @@ def export_docx(contract_id):
                         f"{contract_data['party_a_position'] or 'Executive Director'}.\n"
                         f"Address: {contract_data['party_a_address'] or '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia'}.\n"
                         "hereinafter called the “Party A”")
-        p = add_centered_paragraph(party_a_text)
-        for run in p.runs:
-            if "Party A" in run.text:
-                run.bold = True
+        add_styled_paragraph(party_a_text, bold_terms=["Party A"])
 
         add_centered_paragraph("AND")
 
         # Party B
-        party_b_text = (f"{contract_data['party_b_position'] or 'N/A'}{contract_data['party_b_signature_name'] or 'N/A'},\n"
+        party_b_text = (f"{contract_data['party_b_position'] or 'N/A'} {contract_data['party_b_signature_name'] or 'N/A'},\n"
                         f"Address: {contract_data['party_b_address'] or 'N/A'}\n"
                         f"H/P: {contract_data['party_b_phone'] or 'N/A'}, E-mail: {contract_data['party_b_email'] or 'N/A'}\n"
                         "hereinafter called the “Party B”")
-        p = add_centered_paragraph(party_b_text)
-        for run in p.runs:
-            if "Party B" in run.text or contract_data['party_b_signature_name'] in run.text:
-                run.bold = True
-            if contract_data['party_b_email'] and contract_data['party_b_email'] in run.text:
-                run.underline = True
-                run.font.color.rgb = RGBColor(0, 0, 255)
+        add_styled_paragraph(party_b_text, bold_terms=["Party B", contract_data['party_b_signature_name'] or 'N/A'],
+                            underline_terms=[contract_data['party_b_email'] or 'N/A'])
 
         # Whereas clauses
         add_paragraph(f"Whereas NGOF is a legal entity registered with the Ministry of Interior (MOI) "
                       f"{contract_data['registration_number'] or '#304 សជណ'} dated "
                       f"{contract_data['registration_date'] or '07 March 2012'}.")
-        p = add_paragraph(f"Whereas NGOF will engage the services of “Party B” which accepts the engagement under the following terms and conditions.")
-        for run in p.runs:
-            if "Party B" in run.text:
-                run.bold = True
+        add_styled_paragraph(f"Whereas NGOF will engage the services of “Party B” which accepts the engagement under the following terms and conditions.",
+                            bold_terms=["Party B"])
         add_centered_paragraph("Both Parties Agreed as follows:", bold=True)
 
         # Define standard articles
@@ -1027,18 +1045,13 @@ def export_docx(contract_id):
         # Add articles
         for article in standard_articles:
             add_article_heading(article['number'], article['title'])
-            p = add_paragraph(article['content'])
-            for run in p.runs:
-                if "Party A" in run.text or "Party B" in run.text:
-                    run.bold = True
-                if article['number'] == 6 and (
-                    (contract_data['focal_person_a_email'] and ("Email: " + contract_data['focal_person_a_email']) in run.text) or
-                    (contract_data['party_b_email'] and ("E-mail: " + contract_data['party_b_email']) in run.text)
-                ):
-                    run.underline = True
-                    run.font.color.rgb = RGBColor(0, 0, 255)
-                if article['number'] == 7 and f'“{contract_data["output_description"] or "N/A"}”' in run.text:
-                    run.underline = True
+            bold_terms = ['Party A', 'Party B']
+            underline_terms = []
+            if article['number'] == 6:
+                underline_terms = [contract_data['focal_person_a_email'] or 'N/A', contract_data['party_b_email'] or 'N/A']
+            elif article['number'] == 7:
+                underline_terms = [f'“{contract_data["output_description"] or "N/A"}”']
+            add_styled_paragraph(article['content'], bold_terms=bold_terms, underline_terms=underline_terms)
 
             # Add table for Article 4
             if article.get('table'):
