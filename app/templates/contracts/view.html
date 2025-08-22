@@ -1,75 +1,115 @@
 {% extends "base.html" %}
-{% block title %}View Contract{% endblock %}
+{% block title %}View Contract - {{ contract.contract_number }}{% endblock %}
 {% block content %}
-<div class="container mt-4">
-    <div class="form-header">
-        <h1 class="text-center mb-0">View Contract</h1>
-    </div>
-    <div class="form-card">
-        <nav class="mb-3">
-            <a href="{{ url_for('contracts.index') }}" class="btn btn-outline-primary">Back to Contract List</a>
-            <a href="{{ url_for('contracts.update', contract_id=contract.id) }}" class="btn btn-outline-primary">Edit Contract</a>
-        </nav>
-        <div class="section-header">Project & Contract Details</div>
-        <div class="row g-3">
-            <div class="col-md-6"><strong>Project Title:</strong> {{ contract.project_title }}</div>
-            <div class="col-md-6"><strong>Output Description:</strong> {{ contract.output_description }}</div>
-            <div class="col-md-6"><strong>Contract Number:</strong> {{ contract.contract_number }}</div>
-            <div class="col-md-6"><strong>Tax Percentage (%):</strong> {{ contract.tax_percentage }}</div>
-        </div>
-    
-        <div class="section-header">Party B Information</div>
-        <div class="row g-3">
-            <div class="col-md-6"><strong>Party B Signature Name:</strong> {{ contract.party_b_signature_name }}</div>
-            <div class="col-md-6"><strong>Party B Position:</strong> {{ contract.party_b_position or 'N/A' }}</div>
-            <div class="col-md-6"><strong>Party B Phone:</strong> {{ contract.party_b_phone or 'N/A' }}</div>
-            <div class="col-md-6"><strong>Party B Email:</strong> {{ contract.party_b_email or 'N/A' }}</div>
-            <div class="col-12"><strong>Party B Address:</strong> {{ contract.party_b_address or 'N/A' }}</div>
-            <div class="col-md-6"><strong>Focal Person A Name:</strong> {{ contract.focal_person_a_name or 'N/A' }}</div>
-            <div class="col-md-6"><strong>Focal Person A Position:</strong> {{ contract.focal_person_a_position or 'N/A' }}</div>
-            <div class="col-md-6"><strong>Focal Person A Phone:</strong> {{ contract.focal_person_a_phone or 'N/A' }}</div>
-            <div class="col-md-6"><strong>Focal Person A Email:</strong> {{ contract.focal_person_a_email or 'N/A' }}</div>
-        </div>
-    
-        <div class="section-header">Agreement Details</div>
-        <div class="row g-3">
-            <div class="col-md-4"><strong>Start Date:</strong> {{ contract.agreement_start_date_display }}</div>
-            <div class="col-md-4"><strong>End Date:</strong> {{ contract.agreement_end_date_display }}</div>
-            <div class="col-md-4"><strong>Total Fee USD (Gross):</strong> ${{ contract.total_fee_usd|format('%.2f') }}</div>
-            <div class="col-12"><strong>Payment Installments:</strong> {{ contract.payment_installment_desc or 'N/A' }}</div>
-            <div class="col-12"><strong>Workshop Description:</strong> {{ contract.workshop_description or 'N/A' }}</div>
-            <div class="col-12">
-                <strong>Deliverables:</strong>
-                <ul>
-                    {% for deliverable in contract.deliverables %}
-                    <li>{{ deliverable }}</li>
-                    {% else %}
-                    <li>N/A</li>
+<!-- Navigation Buttons -->
+<div class="d-flex justify-content-center mt-3 mb-2">
+    <a href="{{ url_for('contracts.index') }}" class="btn btn-secondary">Back to List</a>
+</div>
+
+<div class="container d-flex justify-content-center mt-3">
+    <div class="container-card shadow-sm p-5" style="font-family: Calibri, sans-serif; ">
+        <!-- Header -->
+        <h1 class="text-center" style="font-size: 24px; font-weight: bold;">The Service Agreement</h1>
+        <p class="text-center" style="font-weight: bold;">ON</p>
+        <h2 class="text-center" style="font-size: 18px;">{{ contract.project_title or 'N/A' }}</h2>
+        <p class="text-center" style="font-weight: bold;">No.: {{ contract.contract_number or 'N/A' }}</p>
+        <p class="text-center">BETWEEN</p>
+
+        <!-- Party A -->
+        <p class="text-center">
+            <strong>The NGO Forum on Cambodia</strong>, represented by Mr. Soeung Saroeun, Executive Director.<br>
+            Address: #9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia.<br>
+            hereinafter called the “<strong>Party A</strong>”
+        </p>
+
+        <p class="text-center">AND</p>
+
+        <!-- Party B -->
+        <p class="text-center ">
+            <strong>{{ contract.party_b_signature_name or 'N/A' }}</strong>,<br>
+            Address: {{ contract.party_b_address or 'N/A' }}<br>
+            H/P: {{ contract.party_b_phone or 'N/A' }}, E-mail: <span style="color: blue; text-decoration: underline;">{{ contract.party_b_email or 'N/A' }}</span><br>
+            hereinafter called the “<strong>Party B</strong>”
+        </p>
+
+        <!-- Whereas Clauses -->
+        <p class="">
+            Whereas NGOF is a legal entity registered with the Ministry of Interior (MOI) {{ contract.registration_number or '#304 សជណ' }} dated {{ contract.registration_date or '07 March 2012' }}.
+        </p>
+        <p class="">
+            Whereas NGOF will engage the services of “<strong>Party B</strong>” which accepts the engagement under the following terms and conditions.
+        </p>
+        <p class="text-center" style="font-weight: bold;">Both Parties Agreed as follows:</p>
+
+        <!-- Articles -->
+        {% for article in standard_articles %}
+        <h6 class="mb-1" style="font-weight: bold;">
+            <span style="text-decoration: underline;">ARTICLE {{ article.number }}:</span> {{ article.title }}
+        </h6>
+
+        <p {% if article.number == 14 %}style="white-space: pre-line;"{% endif %}>
+            {% if article.number == 6 %}
+                {% set parts = article.content.split(' Email: ') %}
+                {% set focal_email = contract.focal_person_a_email or 'N/A' %}
+                {% set party_b_email = contract.party_b_email or 'N/A' %}
+                {{ parts[0] | replace('Party A', '<strong>Party A</strong>') | replace('Party B', '<strong>Party B</strong>') | safe }}
+                Email: <span style="color: blue; text-decoration: underline;">{{ focal_email }}</span>
+                {{ parts[1].split(' E-mail: ')[0] | safe }}
+                E-mail: <span style="color: blue; text-decoration: underline;">{{ party_b_email }}</span>
+                {{ parts[1].split(' E-mail: ')[1] | replace('Party A', '<strong>Party A</strong>') | replace('Party B', '<strong>Party B</strong>') | safe }}
+            {% else %}
+                {{ article.content | replace('Party A', '<strong>Party A</strong>') | replace('Party B', '<strong>Party B</strong>') | safe }}
+            {% endif %}
+        </p>
+
+        {% if article.table %}
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    {% for key in article.table[0].keys() %}
+                    <th class="text-center">{{ key }}</th>
                     {% endfor %}
-                </ul>
-            </div>
-        </div>
-    
-        <div class="section-header">Custom Article Sentences</div>
-        <div class="row g-3">
-            <div class="col-12">
-                {% if contract.articles %}
-                <ul>
-                    {% for article in contract.articles %}
-                    <li><strong>Article {{ article.articleNumber }}:</strong> {{ article.customSentence }}</li>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in article.table[1:] %}
+                <tr>
+                    {% for key in row.keys() %}
+                    <td style="white-space: pre-line;">{{ row[key] }}</td>
                     {% endfor %}
-                </ul>
-                {% else %}
-                <p>N/A</p>
-                {% endif %}
-            </div>
-        </div>
-    
-        <div class="section-header">Signatures</div>
-        <div class="row g-3">
-            <div class="col-md-6"><strong>Party B Signature Name:</strong> {{ contract.party_b_signature_name }}</div>
-            <div class="col-md-6"><strong>Title:</strong> {{ contract.title or 'N/A' }}</div>
-        </div>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+        {% for custom in articles %}
+        {% if custom.article_number | string == article.number | string %}
+        <p>{{ custom.custom_sentence }}</p>
+        {% endif %}
+        {% endfor %}
+        {% endfor %}
+
+        <!-- Signatures -->
+        <p class="text-center mt-3 mb-2" style="font-weight: bold;">
+            Date: {{ format_date(contract.agreement_start_date) }}
+        </p>
+        <table class="table table-borderless">
+            <tr>
+                <td class="text-center" style="width: 50%;">
+                    <strong>For “Party A”</strong><br>
+                    _________________<br>
+                    <strong>Mr. SOEUNG Saroeun</strong><br>
+                    <strong>Executive Director</strong>
+                </td>
+                <td class="text-center" style="width: 50%;">
+                    <strong>For “Party B”</strong><br>
+                    _________________<br>
+                    <strong>{{ contract.party_b_signature_name or 'N/A' }}</strong><br>
+                    <strong>{{ contract.party_b_position or 'N/A' }}</strong>
+                </td>
+            </tr>
+        </table>
     </div>
 </div>
 {% endblock %}

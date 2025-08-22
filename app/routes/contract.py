@@ -8,6 +8,8 @@ from datetime import datetime
 import pandas as pd
 from io import BytesIO
 import logging
+from num2words import num2words
+import re
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -27,34 +29,54 @@ def format_date(iso_date):
     except (ValueError, TypeError):
         return iso_date or 'N/A'
 
+# Helper function to convert number to words
+def number_to_words(num):
+    try:
+        if not num or num < 0:
+            return "Zero US Dollars only"
+        integer_part = int(num)
+        decimal_part = round((num - integer_part) * 100)
+        words = num2words(integer_part, lang='en').title()
+        if decimal_part > 0:
+            words += " and " + num2words(decimal_part, lang='en').title() + " Cents"
+        return f"{words} US Dollars only"
+    except Exception as e:
+        logger.error(f"Error converting number to words: {str(e)}")
+        return "N/A"
+
 # List contracts with pagination, search, and sorting
 @contracts_bp.route('/')
 @login_required
 def index():
-    page = request.args.get('page', 1, type=int)
-    search_query = request.args.get('search', '', type=str)
-    sort_order = request.args.get('sort', 'asc', type=str)
-    entries_per_page = request.args.get('entries', 10, type=int)
+    try:
+        page = request.args.get('page', 1, type=int)
+        search_query = request.args.get('search', '', type=str)
+        sort_order = request.args.get('sort', 'asc', type=str)
+        entries_per_page = request.args.get('entries', 10, type=int)
 
-    query = Contract.query
-    if search_query:
-        query = query.filter(Contract.project_title.ilike(f'%{search_query}%'))
+        query = Contract.query
+        if search_query:
+            query = query.filter(Contract.project_title.ilike(f'%{search_query}%'))
 
-    if sort_order == 'asc':
-        query = query.order_by(Contract.project_title.asc())
-    else:
-        query = query.order_by(Contract.project_title.desc())
+        if sort_order == 'asc':
+            query = query.order_by(Contract.project_title.asc())
+        else:
+            query = query.order_by(Contract.project_title.desc())
 
-    pagination = query.paginate(page=page, per_page=entries_per_page, error_out=False)
-    contracts = [contract.to_dict() for contract in pagination.items]
-    for contract in contracts:
-        contract['agreement_start_date_display'] = format_date(contract['agreement_start_date'])
-        contract['agreement_end_date_display'] = format_date(contract['agreement_end_date'])
-        contract['articles'] = [{'articleNumber': k, 'customSentence': v} for k, v in contract['custom_article_sentences'].items()] if contract['custom_article_sentences'] else []
-        contract['total_fee_usd'] = f"{contract['total_fee_usd']:.2f}" if contract['total_fee_usd'] is not None else '0.00'
+        pagination = query.paginate(page=page, per_page=entries_per_page, error_out=False)
+        contracts = [contract.to_dict() for contract in pagination.items]
+        for contract in contracts:
+            contract['agreement_start_date_display'] = format_date(contract['agreement_start_date'])
+            contract['agreement_end_date_display'] = format_date(contract['agreement_end_date'])
+            contract['total_fee_usd'] = f"{contract['total_fee_usd']:.2f}" if contract['total_fee_usd'] is not None else '0.00'
 
-    return render_template('contracts/index.html', contracts=contracts, pagination=pagination,
-                           search_query=search_query, sort_order=sort_order, entries_per_page=entries_per_page)
+        return render_template('contracts/index.html', contracts=contracts, pagination=pagination,
+                              search_query=search_query, sort_order=sort_order, entries_per_page=entries_per_page)
+    except Exception as e:
+        logger.error(f"Error in index route: {str(e)}")
+        flash(f"Error loading contracts: {str(e)}", 'danger')
+        return render_template('contracts/index.html', contracts=[], pagination=None,
+                              search_query='', sort_order='asc', entries_per_page=10)
 
 # Create contract
 @contracts_bp.route('/create', methods=['GET', 'POST'])
@@ -65,29 +87,29 @@ def create():
         try:
             # Collect all form data for re-rendering on error
             form_data = {
-                'projectTitle': request.form.get('projectTitle', ''),
-                'contractNumber': request.form.get('contractNumber', ''),
-                'outputDescription': request.form.get('outputDescription', ''),
-                'taxPercentage': request.form.get('taxPercentage', ''),
-                'partyBSignatureName': request.form.get('partyBSignatureName', ''),
-                'partyBPosition': request.form.get('partyBPosition', ''),
-                'partyBPhone': request.form.get('partyBPhone', ''),
-                'partyBEmail': request.form.get('partyBEmail', ''),
-                'partyBAddress': request.form.get('partyBAddress', ''),
-                'focalPersonAName': request.form.get('focalPersonAName', ''),
-                'focalPersonAPosition': request.form.get('focalPersonAPosition', ''),
-                'focalPersonAPhone': request.form.get('focalPersonAPhone', ''),
-                'focalPersonAEmail': request.form.get('focalPersonAEmail', ''),
-                'agreementStartDate': request.form.get('agreementStartDate', ''),
-                'agreementEndDate': request.form.get('agreementEndDate', ''),
-                'totalFeeUSD': request.form.get('totalFeeUSD', ''),
-                'totalFeeWords': request.form.get('totalFeeWords', ''),
+                'projectTitle': request.form.get('projectTitle', '').strip(),
+                'contractNumber': request.form.get('contractNumber', '').strip(),
+                'outputDescription': request.form.get('outputDescription', '').strip(),
+                'taxPercentage': request.form.get('taxPercentage', '').strip(),
+                'partyBSignatureName': request.form.get('partyBSignatureName', '').strip(),
+                'partyBPosition': request.form.get('partyBPosition', '').strip(),
+                'partyBPhone': request.form.get('partyBPhone', '').strip(),
+                'partyBEmail': request.form.get('partyBEmail', '').strip(),
+                'partyBAddress': request.form.get('partyBAddress', '').strip(),
+                'focalPersonAName': request.form.get('focalPersonAName', '').strip(),
+                'focalPersonAPosition': request.form.get('focalPersonAPosition', '').strip(),
+                'focalPersonAPhone': request.form.get('focalPersonAPhone', '').strip(),
+                'focalPersonAEmail': request.form.get('focalPersonAEmail', '').strip(),
+                'agreementStartDate': request.form.get('agreementStartDate', '').strip(),
+                'agreementEndDate': request.form.get('agreementEndDate', '').strip(),
+                'totalFeeUSD': request.form.get('totalFeeUSD', '').strip(),
+                'totalFeeWords': request.form.get('totalFeeWords', '').strip(),
                 'paymentInstallmentDesc': request.form.getlist('paymentInstallmentDesc[]'),
-                'workshopDescription': request.form.get('workshopDescription', ''),
-                'deliverables': request.form.get('deliverables', ''),
-                'articles': [{'articleNumber': num, 'customSentence': sent} for num, sent in zip(request.form.getlist('articleNumber[]'), request.form.getlist('customSentence[]')) if sent.strip()],
-                'partyBSignatureNameConfirm': request.form.get('partyBSignatureNameConfirm', ''),
-                'title': request.form.get('title', '')
+                'workshopDescription': request.form.get('workshopDescription', '').strip(),
+                'deliverables': request.form.get('deliverables', '').strip(),
+                'articles': [{'article_number': num.strip(), 'custom_sentence': sent.strip()} for num, sent in zip(request.form.getlist('articleNumber[]'), request.form.getlist('customSentence[]')) if sent.strip()],
+                'partyBSignatureNameConfirm': request.form.get('partyBSignatureNameConfirm', '').strip(),
+                'title': request.form.get('title', '').strip()
             }
 
             # Required field validation
@@ -126,25 +148,39 @@ def create():
 
             # Unique contract number validation
             if Contract.query.filter_by(contract_number=form_data['contractNumber']).first():
-                flash('Contract number already exists!', 'danger')
+                flash('Contract number already exists.', 'danger')
                 return render_template('contracts/create.html', form_data=form_data)
 
             # Date validation
             start_date = form_data['agreementStartDate']
             end_date = form_data['agreementEndDate']
-            if start_date and end_date and datetime.strptime(end_date, '%Y-%m-%d') < datetime.strptime(start_date, '%Y-%m-%d'):
-                flash('End date cannot be before start date.', 'danger')
-                return render_template('contracts/create.html', form_data=form_data)
+            if start_date and end_date:
+                try:
+                    if datetime.strptime(end_date, '%Y-%m-%d') < datetime.strptime(start_date, '%Y-%m-%d'):
+                        flash('End date cannot be before start date.', 'danger')
+                        return render_template('contracts/create.html', form_data=form_data)
+                except ValueError:
+                    flash('Invalid date format.', 'danger')
+                    return render_template('contracts/create.html', form_data=form_data)
 
             # Total fee validation
-            total_fee_usd = None
             try:
-                total_fee_usd = float(form_data['totalFeeUSD']) if form_data['totalFeeUSD'] else None
-                if total_fee_usd is not None and total_fee_usd < 0:
+                total_fee_usd = float(form_data['totalFeeUSD'])
+                if total_fee_usd < 0:
                     flash('Total fee cannot be negative.', 'danger')
                     return render_template('contracts/create.html', form_data=form_data)
             except ValueError:
                 flash('Invalid total fee amount.', 'danger')
+                return render_template('contracts/create.html', form_data=form_data)
+
+            # Tax percentage validation
+            try:
+                tax_percentage = float(form_data['taxPercentage']) if form_data['taxPercentage'] else 15.0
+                if tax_percentage < 0:
+                    flash('Tax percentage cannot be negative.', 'danger')
+                    return render_template('contracts/create.html', form_data=form_data)
+            except ValueError:
+                flash('Invalid tax percentage.', 'danger')
                 return render_template('contracts/create.html', form_data=form_data)
 
             # Payment installments validation
@@ -167,15 +203,15 @@ def create():
             article_numbers = set()
             for article in form_data['articles']:
                 try:
-                    article_num = int(article['articleNumber'])
-                    if article['customSentence'] and article_num not in article_numbers:
+                    article_num = int(article['article_number'])
+                    if article['custom_sentence'] and article_num not in article_numbers:
                         articles.append(article)
                         article_numbers.add(article_num)
-                    elif article['customSentence'] and article_num in article_numbers:
+                    elif article['custom_sentence'] and article_num in article_numbers:
                         flash(f'Duplicate article number {article_num} detected.', 'danger')
                         return render_template('contracts/create.html', form_data=form_data)
                 except ValueError:
-                    flash(f'Invalid article number: {article["articleNumber"]}.', 'danger')
+                    flash(f'Invalid article number: {article["article_number"]}.', 'danger')
                     return render_template('contracts/create.html', form_data=form_data)
 
             # Deliverables processing
@@ -185,8 +221,8 @@ def create():
                 flash('At least one deliverable is required.', 'danger')
                 return render_template('contracts/create.html', form_data=form_data)
 
-            # Numeric fields
-            tax_percentage = float(form_data['taxPercentage']) if form_data['taxPercentage'] else None
+            # Create total_fee_words if not provided
+            total_fee_words = form_data['totalFeeWords'] or number_to_words(total_fee_usd)
 
             # Create new contract
             new_contract = Contract(
@@ -208,9 +244,9 @@ def create():
                 total_fee_usd=total_fee_usd,
                 gross_amount_usd=total_fee_usd,
                 tax_percentage=tax_percentage,
-                payment_installment_desc='; '.join(payment_installments) if payment_installments else None,
-                payment_gross=f"USD {total_fee_usd:.2f}" if total_fee_usd else None,
-                payment_net=f"USD {total_fee_usd * (1 - tax_percentage / 100):.2f}" if total_fee_usd and tax_percentage is not None else None,
+                payment_installment_desc='; '.join(payment_installments) if payment_installments else '',
+                payment_gross=f"USD {total_fee_usd:.2f}" if total_fee_usd else '',
+                payment_net=f"USD {total_fee_usd * (1 - tax_percentage / 100):.2f}" if total_fee_usd and tax_percentage is not None else '',
                 workshop_description=form_data['workshopDescription'],
                 focal_person_a_name=form_data['focalPersonAName'],
                 focal_person_a_position=form_data['focalPersonAPosition'],
@@ -219,11 +255,11 @@ def create():
                 party_a_signature_name=request.form.get('partyASignatureName', 'Mr. SOEUNG Saroeun'),
                 party_b_signature_name=form_data['partyBSignatureName'],
                 party_b_position=form_data['partyBPosition'],
-                total_fee_words=form_data['totalFeeWords'],
+                total_fee_words=total_fee_words,
                 title=form_data['title'],
-                deliverables='; '.join(deliverables) if deliverables else None,
+                deliverables='; '.join(deliverables),
                 output_description=form_data['outputDescription'],
-                custom_article_sentences=json.dumps({article['articleNumber']: article['customSentence'] for article in articles}) if articles else '{}'
+                custom_article_sentences={article['article_number']: article['custom_sentence'] for article in articles}
             )
 
             db.session.add(new_contract)
@@ -238,231 +274,394 @@ def create():
 
     return render_template('contracts/create.html', form_data=form_data)
 
+# View contract
+@contracts_bp.route('/view/<string:contract_id>')
+@login_required
+def view(contract_id):
+    try:
+        # Fetch contract
+        contract = Contract.query.get_or_404(contract_id)
+        contract_data = contract.to_dict()
+
+        # Prepare dynamic data
+        total_fee = float(contract_data['total_fee_usd'] or 0.0)
+        tax_percentage = float(contract_data['tax_percentage'] or 15.0)
+        tax_amount = total_fee * (tax_percentage / 100)
+        net_amount = total_fee - tax_amount
+        total_fee_words = contract_data['total_fee_words'] or number_to_words(total_fee)
+        deliverables = contract_data['deliverables'] or []
+
+        # Process payment installments
+        payment_installments = contract_data['payment_installment_desc'].split('; ') if contract_data['payment_installment_desc'] else []
+        installment_data = []
+        total_percentage = 0
+        for desc in payment_installments:
+            match = re.search(r'\((\d+)%\)', desc)
+            perc = int(match.group(1)) if match else 0
+            total_percentage += perc
+            amount = total_fee * (perc / 100)
+            tax_am = amount * (tax_percentage / 100)
+            net_am = amount - tax_am
+            installment_data.append({
+                'desc': desc,
+                'amount': f"{amount:.2f}",
+                'tax_am': f"{tax_am:.2f}",
+                'net_am': f"{net_am:.2f}",
+                'perc': perc
+            })
+
+        if total_percentage != 100 and payment_installments:
+            logger.warning(f"Total percentages for contract {contract_id} do not add up to 100%: {total_percentage}")
+
+        # Process custom articles
+        articles = contract_data['articles'] if contract_data.get('articles') else []
+
+        # Define standard articles to match Mr.Sean Bunrith.docx
+        standard_articles = [
+            {
+                'number': 1,
+                'title': 'TERMS OF REFERENCE',
+                'content': 'Party B shall perform tasks as stated in the attached TOR (annex-1) to Party A, and deliver each milestone as stipulated in article 4.\nThe work shall be of good quality and well performed with the acceptance by Party A.'
+            },
+            {
+                'number': 2,
+                'title': 'TERM OF AGREEMENT',
+                'content': f'This agreement is effective from {format_date(contract_data["agreement_start_date"])} – {format_date(contract_data["agreement_end_date"])}.\nThis Agreement is terminated automatically after the due date of the Agreement Term unless otherwise, both Parties agree to extend the Term with a written agreement.'
+            },
+            {
+                'number': 3,
+                'title': 'PROFESSIONAL FEE',
+                'content': f'The professional fee is the total amount of USD {total_fee:.2f} ({total_fee_words}) including tax for the whole assignment period.\nTotal Service Fee: USD {total_fee:.2f}\nWithholding Tax {tax_percentage}%: USD {tax_amount:.2f}\nNet amount: USD {net_amount:.2f}\nParty B is responsible to issue the Invoice (net amount) and receipt (when receiving the payment) with the total amount as stipulated in each instalment as in the Article 4 after having done the agreed deliverable tasks, for payment request.\nThe payment will be processed after the satisfaction from Party A as of the required deliverable tasks as stated in Article 4.\nParty B is responsible for all related taxes payable to the government department.'
+            },
+            {
+                'number': 4,
+                'title': 'TERM OF PAYMENT',
+                'content': 'The payment will be made based on the following schedules:',
+                'table': [
+                    {'Installment': 'Installment', 'Total Amount (USD)': 'Total Amount (USD)', 'Deliverable': 'Deliverable', 'Due date': 'Due date'},
+                    *[{
+                        'Installment': inst['desc'],
+                        'Total Amount (USD)': f'· Gross: ${inst["amount"]}\n· Tax {tax_percentage}%: ${inst["tax_am"]}\n· Net pay: ${inst["net_am"]}',
+                        'Deliverable': '\n'.join([f'· {d}' for d in deliverables]),
+                        'Due date': format_date(contract_data['agreement_end_date'])
+                    } for inst in installment_data]
+                ]
+            },
+            {
+                'number': 5,
+                'title': 'NO OTHER PERSONS',
+                'content': 'No person or entity, which is not a party to this agreement, has any rights to enforce, take any action, or claim it is owed any benefit under this agreement.'
+            },
+            {
+                'number': 6,
+                'title': 'MONITORING and COORDINATION',
+                'content': f'{contract_data["focal_person_a_name"] or "N/A"}, {contract_data["focal_person_a_position"] or "N/A"} (Telephone {contract_data["focal_person_a_phone"] or "N/A"} Email: {contract_data["focal_person_a_email"] or "N/A"}) is the focal contact person of Party A and {contract_data["party_b_signature_name"] or "N/A"} (HP. {contract_data["party_b_phone"] or "N/A"}, E-mail: {contract_data["party_b_email"] or "N/A"}) the focal contact person of Party B.\nThe focal contact person of Party A and Party B will work together for overall coordination including reviewing and meeting discussions during the assignment process.'
+            },
+            {
+                'number': 7,
+                'title': 'CONFIDENTIALITY',
+                'content': f'All outputs produced, with the exception of the “{contract_data["output_description"] or "N/A"}”, which is a contribution from, and to be claimed as a public document by the main author and co-author in associated, and/or under this agreement, shall be the property of Party A.\nThe Party B agrees to not disclose any confidential information, of which he/she may take cognizance in the performance under this contract, except with the prior written approval of the Party A.'
+            },
+            {
+                'number': 8,
+                'title': 'ANTI-CORRUPTION and CONFLICT OF INTEREST',
+                'content': 'Party B shall not participate in any practice that is or could be construed as an illegal or corrupt practice in Cambodia.\nThe Party A is committed to fighting all types of corruption and expects this same commitment from the consultant it reserves the rights and believes based on the declaration of Party B that it is an independent social enterprise firm operating in Cambodia and it does not involve any conflict of interest with other parties that may be affected to the Party A.'
+            },
+            {
+                'number': 9,
+                'title': 'OBLIGATION TO COMPLY WITH THE NGOF’S POLICIES AND CODE OF CONDUCT',
+                'content': 'By signing this agreement, Party B is obligated to comply with and respect all existing policies and code of conduct of Party A, such as Gender Mainstreaming, Child Protection, Disability policy, Environmental Mainstreaming, etc. and the Party B declared themselves that s/he will perform the assignment in the neutral position, professional manner, and not be involved in any political affiliation.'
+            },
+            {
+                'number': 10,
+                'title': 'ANTI-TERRORISM FINANCING AND FINANCIAL CRIME',
+                'content': 'NGOF is determined that all its funds and resources should only be used to further its mission and shall not be subject to illicit use by any third party nor used or abused for any illicit purpose.\nIn order to achieve this objective, NGOF will not knowingly or recklessly provide funds, economic goods, or material support to any entity or individual designated as a “terrorist” by the international community or affiliate domestic governments and will take all reasonable steps to safeguard and protect its assets from such illicit use and to comply with host government laws.\nNGOF respects its contracts with its donors and puts procedures in place for compliance with these contracts.\n“Illicit use” refers to terrorist financing, sanctions, money laundering, and export control regulations.'
+            },
+            {
+                'number': 11,
+                'title': 'INSURANCE',
+                'content': 'Party B is responsible for any health and life insurance of its team members. Party A will not be held responsible for any medical expenses or compensation incurred during or after this contract.'
+            },
+            {
+                'number': 12,
+                'title': 'ASSIGNMENT',
+                'content': 'Party B shall have the right to assign individuals within its organization to carry out the tasks herein named in the attached Technical Proposal.\nThe Party B shall not assign, or transfer any of its rights or obligations under this agreement hereunder without the prior written consent of Party A.\nAny attempt by Party B to assign or transfer any of its rights or obligations without the prior written consent of Party A shall render this agreement subject to immediate termination by Party A.'
+            },
+            {
+                'number': 13,
+                'title': 'RESOLUTION OF CONFLICTS/DISPUTES',
+                'content': 'Conflicts between any of these agreements shall be resolved by the following methods:\nIn the case of a disagreement arising between Party A and the Party B regarding the implementation of any part of, or any other substantive question arising under or relating to this agreement, the parties shall use their best efforts to arrive at an agreeable resolution by mutual consultation.\nUnresolved issues may, upon the option of either party and written notice to the other party, be referred to for arbitration.\nFailure by the Party B or Party A to dispute a decision arising from such arbitration in writing within thirty (30) calendar days of receipt of a final decision shall result in such final decision being deemed binding upon either the Party B and/or Party A.\nAll expenses related to arbitration will be shared equally between both parties.'
+            },
+            {
+                'number': 14,
+                'title': 'TERMINATION',
+                'content': 'The Party A or the Party B may, by notice in writing, terminate this agreement under the following conditions:\n1. Party A may terminate this agreement at any time with a week notice if Party B fails to comply with the terms and conditions of this agreement.\n2. For gross professional misconduct (as defined in the NGOF Human Resource Policy), Party A may terminate this agreement immediately without prior notice.\nParty A will notify Party B in a letter that will indicate the reason for termination as well as the effective date of termination.\n3. Party B may terminate this agreement at any time with a one-week notice if Party A fails to comply with the terms and conditions of this agreement.\nParty B will notify Party A in a letter that will indicate the reason for termination as well as the effective date of termination.\nBut if Party B intended to terminate this agreement by itself without any appropriate reason or fails of implementing the assignment, Party B has to refund the full amount of fees received to Party A.\n4. If for any reason either Party A or the Party B decides to terminate this agreement, Party B shall be paid pro-rata for the work already completed by Party A.\nThis payment will require the submission of a timesheet that demonstrates work completed as well as the handing over of any deliverables completed or partially completed.\nIn case Party B has received payment for services under the agreement which have not yet been performed; the appropriate portion of these fees would be refunded by Party B to Party A.'
+            },
+            {
+                'number': 15,
+                'title': 'MODIFICATION OR AMENDMENT',
+                'content': 'No modification or amendment of this agreement shall be valid unless in writing and signed by an authorized person of Party A and Party B.'
+            },
+            {
+                'number': 16,
+                'title': 'CONTROLLING OF LAW',
+                'content': 'This agreement shall be governed and construed following the law of the Kingdom of Cambodia.\nThe Simultaneous Interpretation Agreement is prepared in two original copies.'
+            }
+        ]
+
+        return render_template(
+            'contracts/view.html',
+            contract=contract_data,
+            total_fee=total_fee,
+            tax_percentage=tax_percentage,
+            tax_amount=tax_amount,
+            net_amount=net_amount,
+            total_fee_words=total_fee_words,
+            deliverables=deliverables,
+            installment_data=installment_data,
+            articles=articles,
+            standard_articles=standard_articles,
+            format_date=format_date
+        )
+
+    except Exception as e:
+        logger.error(f"Error viewing contract {contract_id}: {str(e)}")
+        flash(f"Error viewing contract: {str(e)}", 'danger')
+        return redirect(url_for('contracts.index'))
+
 # Update contract
 @contracts_bp.route('/update/<string:contract_id>', methods=['GET', 'POST'])
 @login_required
 def update(contract_id):
-    contract = Contract.query.get_or_404(contract_id)
-    form_data = {}
-    if request.method == 'POST':
-        try:
-            # Collect all form data for re-rendering on error
-            form_data = {
-                'id': contract_id,
-                'projectTitle': request.form.get('projectTitle', ''),
-                'contractNumber': request.form.get('contractNumber', ''),
-                'outputDescription': request.form.get('outputDescription', ''),
-                'taxPercentage': request.form.get('taxPercentage', ''),
-                'partyBSignatureName': request.form.get('partyBSignatureName', ''),
-                'partyBPosition': request.form.get('partyBPosition', ''),
-                'partyBPhone': request.form.get('partyBPhone', ''),
-                'partyBEmail': request.form.get('partyBEmail', ''),
-                'partyBAddress': request.form.get('partyBAddress', ''),
-                'focalPersonAName': request.form.get('focalPersonAName', ''),
-                'focalPersonAPosition': request.form.get('focalPersonAPosition', ''),
-                'focalPersonAPhone': request.form.get('focalPersonAPhone', ''),
-                'focalPersonAEmail': request.form.get('focalPersonAEmail', ''),
-                'agreementStartDate': request.form.get('agreementStartDate', ''),
-                'agreementEndDate': request.form.get('agreementEndDate', ''),
-                'totalFeeUSD': request.form.get('totalFeeUSD', ''),
-                'totalFeeWords': request.form.get('totalFeeWords', ''),
-                'paymentInstallmentDesc': request.form.getlist('paymentInstallmentDesc[]'),
-                'workshopDescription': request.form.get('workshopDescription', ''),
-                'deliverables': request.form.get('deliverables', ''),
-                'articles': [{'articleNumber': num, 'customSentence': sent} for num, sent in zip(request.form.getlist('articleNumber[]'), request.form.getlist('customSentence[]')) if sent.strip()],
-                'partyBSignatureNameConfirm': request.form.get('partyBSignatureNameConfirm', ''),
-                'title': request.form.get('title', '')
-            }
-
-            # Required field validation
-            if not form_data['projectTitle']:
-                flash('Project title is required.', 'danger')
-                return render_template('contracts/edit.html', form_data=form_data)
-            if not form_data['contractNumber']:
-                flash('Contract number is required.', 'danger')
-                return render_template('contracts/edit.html', form_data=form_data)
-            if not form_data['partyBSignatureName']:
-                flash('Party B signature name is required.', 'danger')
-                return render_template('contracts/edit.html', form_data=form_data)
-            if not form_data['outputDescription']:
-                flash('Output description is required.', 'danger')
-                return render_template('contracts/edit.html', form_data=form_data)
-            if not form_data['agreementStartDate']:
-                flash('Agreement start date is required.', 'danger')
-                return render_template('contracts/edit.html', form_data=form_data)
-            if not form_data['agreementEndDate']:
-                flash('Agreement end date is required.', 'danger')
-                return render_template('contracts/edit.html', form_data=form_data)
-            if not form_data['totalFeeUSD']:
-                flash('Total fee USD is required.', 'danger')
-                return render_template('contracts/edit.html', form_data=form_data)
-            if not form_data['deliverables']:
-                flash('Deliverables are required.', 'danger')
-                return render_template('contracts/edit.html', form_data=form_data)
-            if not form_data['partyBSignatureNameConfirm']:
-                flash('Party B signature name confirmation is required.', 'danger')
-                return render_template('contracts/edit.html', form_data=form_data)
-
-            # Signature confirmation validation
-            if form_data['partyBSignatureName'] != form_data['partyBSignatureNameConfirm']:
-                flash('Party B Signature Name and Confirmation do not match.', 'danger')
-                return render_template('contracts/edit.html', form_data=form_data)
-
-            # Unique contract number validation
-            existing_contract = Contract.query.filter_by(contract_number=form_data['contractNumber']).first()
-            if existing_contract and existing_contract.id != contract_id:
-                flash('Contract number already exists!', 'danger')
-                return render_template('contracts/edit.html', form_data=form_data)
-
-            # Date validation
-            start_date = form_data['agreementStartDate']
-            end_date = form_data['agreementEndDate']
-            if start_date and end_date:
-                try:
-                    if datetime.strptime(end_date, '%Y-%m-%d') < datetime.strptime(start_date, '%Y-%m-%d'):
-                        flash('End date cannot be before start date.', 'danger')
-                        return render_template('contracts/edit.html', form_data=form_data)
-                except ValueError as e:
-                    logger.error(f'Date parsing error: {str(e)}')
-                    flash('Invalid date format.', 'danger')
-                    return render_template('contracts/edit.html', form_data=form_data)
-
-            # Total fee validation
-            total_fee_usd = None
+    try:
+        contract = Contract.query.get_or_404(contract_id)
+        form_data = {}
+        if request.method == 'POST':
             try:
-                total_fee_usd = float(form_data['totalFeeUSD']) if form_data['totalFeeUSD'] else None
-                if total_fee_usd is not None and total_fee_usd < 0:
-                    flash('Total fee cannot be negative.', 'danger')
-                    return render_template('contracts/edit.html', form_data=form_data)
-            except ValueError:
-                flash('Invalid total fee amount.', 'danger')
-                return render_template('contracts/edit.html', form_data=form_data)
+                # Collect all form data for re-rendering on error
+                form_data = {
+                    'id': contract_id,
+                    'projectTitle': request.form.get('projectTitle', '').strip(),
+                    'contractNumber': request.form.get('contractNumber', '').strip(),
+                    'outputDescription': request.form.get('outputDescription', '').strip(),
+                    'taxPercentage': request.form.get('taxPercentage', '').strip(),
+                    'partyBSignatureName': request.form.get('partyBSignatureName', '').strip(),
+                    'partyBPosition': request.form.get('partyBPosition', '').strip(),
+                    'partyBPhone': request.form.get('partyBPhone', '').strip(),
+                    'partyBEmail': request.form.get('partyBEmail', '').strip(),
+                    'partyBAddress': request.form.get('partyBAddress', '').strip(),
+                    'focalPersonAName': request.form.get('focalPersonAName', '').strip(),
+                    'focalPersonAPosition': request.form.get('focalPersonAPosition', '').strip(),
+                    'focalPersonAPhone': request.form.get('focalPersonAPhone', '').strip(),
+                    'focalPersonAEmail': request.form.get('focalPersonAEmail', '').strip(),
+                    'agreementStartDate': request.form.get('agreementStartDate', '').strip(),
+                    'agreementEndDate': request.form.get('agreementEndDate', '').strip(),
+                    'totalFeeUSD': request.form.get('totalFeeUSD', '').strip(),
+                    'totalFeeWords': request.form.get('totalFeeWords', '').strip(),
+                    'paymentInstallmentDesc': request.form.getlist('paymentInstallmentDesc[]'),
+                    'workshopDescription': request.form.get('workshopDescription', '').strip(),
+                    'deliverables': request.form.get('deliverables', '').strip(),
+                    'articles': [{'article_number': num.strip(), 'custom_sentence': sent.strip()} for num, sent in zip(request.form.getlist('articleNumber[]'), request.form.getlist('customSentence[]')) if sent.strip()],
+                    'partyBSignatureNameConfirm': request.form.get('partyBSignatureNameConfirm', '').strip(),
+                    'title': request.form.get('title', '').strip()
+                }
 
-            # Payment installments validation
-            payment_installments = [desc.strip() for desc in form_data['paymentInstallmentDesc'] if desc.strip()]
-            total_percentage = 0
-            for desc in payment_installments:
-                try:
-                    if '(' in desc and desc.endswith('%)'):
-                        percentage = float(desc.split('(')[1].split('%')[0])
-                        total_percentage += percentage
-                    if total_percentage > 100:
-                        flash('Total payment installment percentages cannot exceed 100%.', 'danger')
-                        return render_template('contracts/edit.html', form_data=form_data)
-                except (IndexError, ValueError):
-                    flash(f'Invalid format for installment description: {desc}. Please use format like "Installment #1 (50%)".', 'danger')
-                    return render_template('contracts/edit.html', form_data=form_data)
+                # Required field validation
+                if not form_data['projectTitle']:
+                    flash('Project title is required.', 'danger')
+                    return render_template('contracts/update.html', form_data=form_data)
+                if not form_data['contractNumber']:
+                    flash('Contract number is required.', 'danger')
+                    return render_template('contracts/update.html', form_data=form_data)
+                if not form_data['partyBSignatureName']:
+                    flash('Party B signature name is required.', 'danger')
+                    return render_template('contracts/update.html', form_data=form_data)
+                if not form_data['outputDescription']:
+                    flash('Output description is required.', 'danger')
+                    return render_template('contracts/update.html', form_data=form_data)
+                if not form_data['agreementStartDate']:
+                    flash('Agreement start date is required.', 'danger')
+                    return render_template('contracts/update.html', form_data=form_data)
+                if not form_data['agreementEndDate']:
+                    flash('Agreement end date is required.', 'danger')
+                    return render_template('contracts/update.html', form_data=form_data)
+                if not form_data['totalFeeUSD']:
+                    flash('Total fee USD is required.', 'danger')
+                    return render_template('contracts/update.html', form_data=form_data)
+                if not form_data['deliverables']:
+                    flash('Deliverables are required.', 'danger')
+                    return render_template('contracts/update.html', form_data=form_data)
+                if not form_data['partyBSignatureNameConfirm']:
+                    flash('Party B signature name confirmation is required.', 'danger')
+                    return render_template('contracts/update.html', form_data=form_data)
 
-            # Article validation
-            articles = []
-            article_numbers = set()
-            for article in form_data['articles']:
+                # Signature confirmation validation
+                if form_data['partyBSignatureName'] != form_data['partyBSignatureNameConfirm']:
+                    flash('Party B Signature Name and Confirmation do not match.', 'danger')
+                    return render_template('contracts/update.html', form_data=form_data)
+
+                # Unique contract number validation
+                existing_contract = Contract.query.filter_by(contract_number=form_data['contractNumber']).first()
+                if existing_contract and existing_contract.id != contract_id:
+                    flash('Contract number already exists.', 'danger')
+                    return render_template('contracts/update.html', form_data=form_data)
+
+                # Date validation
+                start_date = form_data['agreementStartDate']
+                end_date = form_data['agreementEndDate']
+                if start_date and end_date:
+                    try:
+                        if datetime.strptime(end_date, '%Y-%m-%d') < datetime.strptime(start_date, '%Y-%m-%d'):
+                            flash('End date cannot be before start date.', 'danger')
+                            return render_template('contracts/update.html', form_data=form_data)
+                    except ValueError:
+                        flash('Invalid date format.', 'danger')
+                        return render_template('contracts/update.html', form_data=form_data)
+
+                # Total fee validation
                 try:
-                    article_num = int(article['articleNumber'])
-                    if article['customSentence'] and article_num not in article_numbers:
-                        articles.append(article)
-                        article_numbers.add(article_num)
-                    elif article['customSentence'] and article_num in article_numbers:
-                        flash(f'Duplicate article number {article_num} detected.', 'danger')
-                        return render_template('contracts/edit.html', form_data=form_data)
+                    total_fee_usd = float(form_data['totalFeeUSD'])
+                    if total_fee_usd < 0:
+                        flash('Total fee cannot be negative.', 'danger')
+                        return render_template('contracts/update.html', form_data=form_data)
                 except ValueError:
-                    flash(f'Invalid article number: {article["articleNumber"]}.', 'danger')
-                    return render_template('contracts/edit.html', form_data=form_data)
+                    flash('Invalid total fee amount.', 'danger')
+                    return render_template('contracts/update.html', form_data=form_data)
 
-            # Deliverables processing
-            deliverables = form_data['deliverables'].split('\n')
-            deliverables = [d.strip() for d in deliverables if d.strip()]
-            if not deliverables:
-                flash('At least one deliverable is required.', 'danger')
-                return render_template('contracts/edit.html', form_data=form_data)
+                # Tax percentage validation
+                try:
+                    tax_percentage = float(form_data['taxPercentage']) if form_data['taxPercentage'] else 15.0
+                    if tax_percentage < 0:
+                        flash('Tax percentage cannot be negative.', 'danger')
+                        return render_template('contracts/update.html', form_data=form_data)
+                except ValueError:
+                    flash('Invalid tax percentage.', 'danger')
+                    return render_template('contracts/update.html', form_data=form_data)
 
-            # Numeric fields
-            tax_percentage = float(form_data['taxPercentage']) if form_data['taxPercentage'] else None
+                # Payment installments validation
+                payment_installments = [desc.strip() for desc in form_data['paymentInstallmentDesc'] if desc.strip()]
+                total_percentage = 0
+                for desc in payment_installments:
+                    try:
+                        if '(' in desc and desc.endswith('%)'):
+                            percentage = float(desc.split('(')[1].split('%')[0])
+                            total_percentage += percentage
+                        if total_percentage > 100:
+                            flash('Total payment installment percentages cannot exceed 100%.', 'danger')
+                            return render_template('contracts/update.html', form_data=form_data)
+                    except (IndexError, ValueError):
+                        flash(f'Invalid format for installment description: {desc}. Please use format like "Installment #1 (50%)".', 'danger')
+                        return render_template('contracts/update.html', form_data=form_data)
 
-            # Update contract
-            contract.project_title = form_data['projectTitle']
-            contract.contract_number = form_data['contractNumber']
-            contract.organization_name = request.form.get('organizationName', contract.organization_name or 'The NGO Forum on Cambodia')
-            contract.party_a_name = request.form.get('partyAName', contract.party_a_name or 'Mr. Soeung Saroeun')
-            contract.party_a_position = request.form.get('partyAPosition', contract.party_a_position or 'Executive Director')
-            contract.party_a_address = request.form.get('partyAAddress', contract.party_a_address or '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia')
-            contract.party_b_full_name_with_title = form_data['partyBSignatureName']
-            contract.party_b_address = form_data['partyBAddress']
-            contract.party_b_phone = form_data['partyBPhone']
-            contract.party_b_email = form_data['partyBEmail']
-            contract.registration_number = request.form.get('registrationNumber', contract.registration_number or '#304 សជណ')
-            contract.registration_date = request.form.get('registrationDate', contract.registration_date or '07 March 2012')
-            contract.agreement_start_date = start_date
-            contract.agreement_end_date = end_date
-            contract.total_fee_usd = total_fee_usd
-            contract.gross_amount_usd = total_fee_usd
-            contract.tax_percentage = tax_percentage
-            contract.payment_installment_desc = '; '.join(payment_installments) if payment_installments else None
-            contract.payment_gross = f"USD {total_fee_usd:.2f}" if total_fee_usd else None
-            contract.payment_net = f"USD {total_fee_usd * (1 - tax_percentage / 100):.2f}" if total_fee_usd and tax_percentage is not None else None
-            contract.workshop_description = form_data['workshopDescription']
-            contract.focal_person_a_name = form_data['focalPersonAName']
-            contract.focal_person_a_position = form_data['focalPersonAPosition']
-            contract.focal_person_a_phone = form_data['focalPersonAPhone']
-            contract.focal_person_a_email = form_data['focalPersonAEmail']
-            contract.party_a_signature_name = request.form.get('partyASignatureName', contract.party_a_signature_name or 'Mr. SOEUNG Saroeun')
-            contract.party_b_signature_name = form_data['partyBSignatureName']
-            contract.party_b_position = form_data['partyBPosition']
-            contract.total_fee_words = form_data['totalFeeWords']
-            contract.title = form_data['title']
-            contract.deliverables = '; '.join(deliverables) if deliverables else None
-            contract.output_description = form_data['outputDescription']
-            contract.custom_article_sentences = json.dumps({article['articleNumber']: article['customSentence'] for article in articles}) if articles else '{}'
+                # Article validation
+                articles = []
+                article_numbers = set()
+                for article in form_data['articles']:
+                    try:
+                        article_num = int(article['article_number'])
+                        if article['custom_sentence'] and article_num not in article_numbers:
+                            articles.append(article)
+                            article_numbers.add(article_num)
+                        elif article['custom_sentence'] and article_num in article_numbers:
+                            flash(f'Duplicate article number {article_num} detected.', 'danger')
+                            return render_template('contracts/update.html', form_data=form_data)
+                    except ValueError:
+                        flash(f'Invalid article number: {article["article_number"]}.', 'danger')
+                        return render_template('contracts/update.html', form_data=form_data)
 
-            db.session.commit()
-            flash('Contract updated successfully!', 'success')
-            return redirect(url_for('contracts.index'))
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f'Error updating contract {contract_id}: {str(e)}')
-            flash(f'Error updating contract: {str(e)}', 'danger')
-            return render_template('contracts/edit.html', form_data=form_data)
+                # Deliverables processing
+                deliverables = form_data['deliverables'].split('\n')
+                deliverables = [d.strip() for d in deliverables if d.strip()]
+                if not deliverables:
+                    flash('At least one deliverable is required.', 'danger')
+                    return render_template('contracts/update.html', form_data=form_data)
 
-    # Prepare form_data for GET request
-    contract_data = contract.to_dict()
-    contract_data['agreement_start_date_display'] = format_date(contract_data['agreement_start_date'])
-    contract_data['agreement_end_date_display'] = format_date(contract_data['agreement_end_date'])
-    contract_data['articles'] = [{'articleNumber': k, 'customSentence': v} for k, v in contract_data['custom_article_sentences'].items()] if contract_data['custom_article_sentences'] else []
-    contract_data['paymentInstallmentDesc'] = contract_data['payment_installment_desc'].split('; ') if contract_data['payment_installment_desc'] else ['']
-    # Handle deliverables: expect a string, but account for possible list from to_dict
-    if isinstance(contract_data['deliverables'], list):
+                # Create total_fee_words if not provided
+                total_fee_words = form_data['totalFeeWords'] or number_to_words(total_fee_usd)
+
+                # Update contract
+                contract.project_title = form_data['projectTitle']
+                contract.contract_number = form_data['contractNumber']
+                contract.organization_name = request.form.get('organizationName', contract.organization_name or 'The NGO Forum on Cambodia')
+                contract.party_a_name = request.form.get('partyAName', contract.party_a_name or 'Mr. Soeung Saroeun')
+                contract.party_a_position = request.form.get('partyAPosition', contract.party_a_position or 'Executive Director')
+                contract.party_a_address = request.form.get('partyAAddress', contract.party_a_address or '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia')
+                contract.party_b_full_name_with_title = form_data['partyBSignatureName']
+                contract.party_b_address = form_data['partyBAddress']
+                contract.party_b_phone = form_data['partyBPhone']
+                contract.party_b_email = form_data['partyBEmail']
+                contract.registration_number = request.form.get('registrationNumber', contract.registration_number or '#304 សជណ')
+                contract.registration_date = request.form.get('registrationDate', contract.registration_date or '07 March 2012')
+                contract.agreement_start_date = start_date
+                contract.agreement_end_date = end_date
+                contract.total_fee_usd = total_fee_usd
+                contract.gross_amount_usd = total_fee_usd
+                contract.tax_percentage = tax_percentage
+                contract.payment_installment_desc = '; '.join(payment_installments) if payment_installments else ''
+                contract.payment_gross = f"USD {total_fee_usd:.2f}" if total_fee_usd else ''
+                contract.payment_net = f"USD {total_fee_usd * (1 - tax_percentage / 100):.2f}" if total_fee_usd and tax_percentage is not None else ''
+                contract.workshop_description = form_data['workshopDescription']
+                contract.focal_person_a_name = form_data['focalPersonAName']
+                contract.focal_person_a_position = form_data['focalPersonAPosition']
+                contract.focal_person_a_phone = form_data['focalPersonAPhone']
+                contract.focal_person_a_email = form_data['focalPersonAEmail']
+                contract.party_a_signature_name = request.form.get('partyASignatureName', contract.party_a_signature_name or 'Mr. SOEUNG Saroeun')
+                contract.party_b_signature_name = form_data['partyBSignatureName']
+                contract.party_b_position = form_data['partyBPosition']
+                contract.total_fee_words = total_fee_words
+                contract.title = form_data['title']
+                contract.deliverables = '; '.join(deliverables)
+                contract.output_description = form_data['outputDescription']
+                contract.custom_article_sentences = {article['article_number']: article['custom_sentence'] for article in articles}
+
+                db.session.commit()
+                flash('Contract updated successfully!', 'success')
+                return redirect(url_for('contracts.index'))
+            except Exception as e:
+                db.session.rollback()
+                logger.error(f'Error updating contract {contract_id}: {str(e)}')
+                flash(f'Error updating contract: {str(e)}', 'danger')
+                return render_template('contracts/update.html', form_data=form_data)
+
+        # Prepare form_data for GET request
+        contract_data = contract.to_dict()
+        contract_data['agreement_start_date_display'] = format_date(contract_data['agreement_start_date'])
+        contract_data['agreement_end_date_display'] = format_date(contract_data['agreement_end_date'])
+        contract_data['paymentInstallmentDesc'] = contract_data['payment_installment_desc'].split('; ') if contract_data['payment_installment_desc'] else ['']
         contract_data['deliverables'] = '\n'.join(contract_data['deliverables']) if contract_data['deliverables'] else ''
-    else:
-        contract_data['deliverables'] = '\n'.join(contract_data['deliverables'].split('; ')) if contract_data['deliverables'] else ''
-    contract_data['totalFeeUSD'] = contract_data['total_fee_usd']
-    contract_data['totalFeeWords'] = contract_data['total_fee_words'] or ''
-    contract_data['projectTitle'] = contract_data['project_title']
-    contract_data['contractNumber'] = contract_data['contract_number']
-    contract_data['outputDescription'] = contract_data['output_description']
-    contract_data['taxPercentage'] = str(contract_data['tax_percentage']) if contract_data['tax_percentage'] is not None else ''
-    contract_data['partyBSignatureName'] = contract_data['party_b_signature_name']
-    contract_data['partyBPosition'] = contract_data['party_b_position']
-    contract_data['partyBPhone'] = contract_data['party_b_phone']
-    contract_data['partyBEmail'] = contract_data['party_b_email']
-    contract_data['partyBAddress'] = contract_data['party_b_address']
-    contract_data['focalPersonAName'] = contract_data['focal_person_a_name']
-    contract_data['focalPersonAPosition'] = contract_data['focal_person_a_position']
-    contract_data['focalPersonAPhone'] = contract_data['focal_person_a_phone']
-    contract_data['focalPersonAEmail'] = contract_data['focal_person_a_email']
-    contract_data['agreementStartDate'] = contract_data['agreement_start_date']
-    contract_data['agreementEndDate'] = contract_data['agreement_end_date']
-    contract_data['workshopDescription'] = contract_data['workshop_description']
-    contract_data['partyBSignatureNameConfirm'] = contract_data['party_b_signature_name']
-    contract_data['title'] = contract_data['title']
-    logger.debug(f"form_data for GET: {contract_data}")
-    return render_template('contracts/edit.html', form_data=contract_data)
+        contract_data['totalFeeUSD'] = f"{contract_data['total_fee_usd']:.2f}" if contract_data['total_fee_usd'] is not None else ''
+        contract_data['totalFeeWords'] = contract_data['total_fee_words'] or ''
+        contract_data['projectTitle'] = contract_data['project_title']
+        contract_data['contractNumber'] = contract_data['contract_number']
+        contract_data['outputDescription'] = contract_data['output_description']
+        contract_data['taxPercentage'] = f"{contract_data['tax_percentage']:.2f}" if contract_data['tax_percentage'] is not None else ''
+        contract_data['partyBSignatureName'] = contract_data['party_b_signature_name']
+        contract_data['partyBPosition'] = contract_data['party_b_position']
+        contract_data['partyBPhone'] = contract_data['party_b_phone']
+        contract_data['partyBEmail'] = contract_data['party_b_email']
+        contract_data['partyBAddress'] = contract_data['party_b_address']
+        contract_data['focalPersonAName'] = contract_data['focal_person_a_name']
+        contract_data['focalPersonAPosition'] = contract_data['focal_person_a_position']
+        contract_data['focalPersonAPhone'] = contract_data['focal_person_a_phone']
+        contract_data['focalPersonAEmail'] = contract_data['focal_person_a_email']
+        contract_data['agreementStartDate'] = contract_data['agreement_start_date']
+        contract_data['agreementEndDate'] = contract_data['agreement_end_date']
+        contract_data['workshopDescription'] = contract_data['workshop_description']
+        contract_data['partyBSignatureNameConfirm'] = contract_data['party_b_signature_name']
+        contract_data['title'] = contract_data['title']
+        return render_template('contracts/update.html', form_data=contract_data)
+
+    except Exception as e:
+        logger.error(f"Error loading update form for contract {contract_id}: {str(e)}")
+        flash(f"Error loading contract: {str(e)}", 'danger')
+        return redirect(url_for('contracts.index'))
 
 # Delete contract
 @contracts_bp.route('/delete/<string:contract_id>', methods=['POST'])
 @login_required
 def delete(contract_id):
-    contract = Contract.query.get_or_404(contract_id)
     try:
+        contract = Contract.query.get_or_404(contract_id)
         db.session.delete(contract)
         db.session.commit()
         flash('Contract deleted successfully!', 'success')
@@ -472,18 +671,7 @@ def delete(contract_id):
         flash(f'Error deleting contract: {str(e)}', 'danger')
     return redirect(url_for('contracts.index'))
 
-# View contract
-@contracts_bp.route('/view/<string:contract_id>')
-@login_required
-def view(contract_id):
-    contract = Contract.query.get_or_404(contract_id)
-    contract_data = contract.to_dict()
-    contract_data['agreement_start_date_display'] = format_date(contract_data['agreement_start_date'])
-    contract_data['agreement_end_date_display'] = format_date(contract_data['agreement_end_date'])
-    contract_data['articles'] = [{'articleNumber': k, 'customSentence': v} for k, v in contract_data['custom_article_sentences'].items()]
-    return render_template('contracts/view.html', contract=contract_data)
-
-# Export contracts to Excel/CSV
+# Export contracts
 @contracts_bp.route('/export/<string:format>')
 @login_required
 def export(format):
@@ -497,7 +685,7 @@ def export(format):
         for contract in contracts:
             contract['agreement_start_date'] = format_date(contract['agreement_start_date'])
             contract['agreement_end_date'] = format_date(contract['agreement_end_date'])
-            contract['articles'] = '; '.join([f"Article {a['articleNumber']}: {a['customSentence']}" for a in contract['articles']]) if contract['articles'] else 'N/A'
+            contract['articles'] = '; '.join([f"Article {a['article_number']}: {a['custom_sentence']}" for a in contract['articles']]) if contract['articles'] else 'N/A'
 
         data = [{
             'ID': c['id'],
@@ -520,7 +708,7 @@ def export(format):
             'Total Fee in Words': c['total_fee_words'],
             'Payment Installments': c['payment_installment_desc'],
             'Workshop Description': c['workshop_description'],
-            'Deliverables': c['deliverables'],
+            'Deliverables': '; '.join(c['deliverables']) if isinstance(c['deliverables'], list) else c['deliverables'],
             'Articles': c['articles'],
             'Title': c['title']
         } for c in contracts]
