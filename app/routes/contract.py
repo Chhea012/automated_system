@@ -334,7 +334,7 @@ def view(contract_id):
             {
                 'number': 1,
                 'title': 'TERMS OF REFERENCE',
-                'content': 'Party B shall perform tasks as stated in the attached TOR (annex-1) to Party A, and deliver each milestone as stipulated in article 4.\nThe work shall be of good quality and well performed with the acceptance by Party A.'
+                'content': '"Party B" shall perform tasks as stated in the attached TOR (annex-1) to "Party A", and deliver each milestone as stipulated in article 4.\nThe work shall be of good quality and well performed with the acceptance by "Party A".'
             },
             {
                 'number': 2,
@@ -344,7 +344,7 @@ def view(contract_id):
             {
                 'number': 3,
                 'title': 'PROFESSIONAL FEE',
-                'content': f'The professional fee is the total amount of USD {total_fee:.2f} ({total_fee_words}) including tax for the whole assignment period.\nTotal Service Fee: USD {total_fee:.2f}\nWithholding Tax {tax_percentage}%: USD {tax_amount:.2f}\nNet amount: USD {net_amount:.2f}\nParty B is responsible to issue the Invoice (net amount) and receipt (when receiving the payment) with the total amount as stipulated in each instalment as in the Article 4 after having done the agreed deliverable tasks, for payment request.\nThe payment will be processed after the satisfaction from Party A as of the required deliverable tasks as stated in Article 4.\nParty B is responsible for all related taxes payable to the government department.'
+                'content': f'The professional fee is the total amount of USD {total_fee:.2f} ({total_fee_words}) including tax for the whole assignment period.\nTotal Service Fee: USD {total_fee:.2f}\nWithholding Tax {tax_percentage}%: USD {tax_amount:.2f}\nNet amount: USD {net_amount:.2f}\n"Party B" is responsible to issue the Invoice (net amount) and receipt (when receiving the payment) with the total amount as stipulated in each instalment as in the Article 4 after having done the agreed deliverable tasks, for payment request.\nThe payment will be processed after the satisfaction from "Party A" as of the required deliverable tasks as stated in Article 4.\n"Party B" is responsible for all related taxes payable to the government department.'
             },
             {
                 'number': 4,
@@ -368,22 +368,22 @@ def view(contract_id):
             {
                 'number': 6,
                 'title': 'MONITORING and COORDINATION',
-                'content': f'{contract_data["focal_person_a_name"] or "N/A"}, {contract_data["focal_person_a_position"] or "N/A"} (Telephone {contract_data["focal_person_a_phone"] or "N/A"} Email: {contract_data["focal_person_a_email"] or "N/A"}) is the focal contact person of Party A and {contract_data["party_b_signature_name"] or "N/A"} (HP. {contract_data["party_b_phone"] or "N/A"}, E-mail: {contract_data["party_b_email"] or "N/A"}) the focal contact person of Party B.\nThe focal contact person of Party A and Party B will work together for overall coordination including reviewing and meeting discussions during the assignment process.'
+                'content': f'{contract_data["focal_person_a_name"] or "N/A"}, {contract_data["focal_person_a_position"] or "N/A"} (Telephone {contract_data["focal_person_a_phone"] or "N/A"} Email: {contract_data["focal_person_a_email"] or "N/A"}) is the focal contact person of "Party A" and {contract_data["party_b_signature_name"] or "N/A"} (HP. {contract_data["party_b_phone"] or "N/A"}, E-mail: {contract_data["party_b_email"] or "N/A"}) the focal contact person of "Party B".\nThe focal contact person of "Party A" and "Party B" will work together for overall coordination including reviewing and meeting discussions during the assignment process.'
             },
             {
                 'number': 7,
                 'title': 'CONFIDENTIALITY',
-                'content': f'All outputs produced, with the exception of the “{contract_data["output_description"] or "N/A"}”, which is a contribution from, and to be claimed as a public document by the main author and co-author in associated, and/or under this agreement, shall be the property of Party A.\nThe Party B agrees to not disclose any confidential information, of which he/she may take cognizance in the performance under this contract, except with the prior written approval of the Party A.'
+                'content': f'All outputs produced, with the exception of the “{contract_data["output_description"] or "N/A"}”, which is a contribution from, and to be claimed as a public document by the main author and co-author in associated, and/or under this agreement, shall be the property of "Party A".\nThe "Party B" agrees to not disclose any confidential information, of which he/she may take cognizance in the performance under this contract, except with the prior written approval of the "Party A".'
             },
             {
                 'number': 8,
                 'title': 'ANTI-CORRUPTION and CONFLICT OF INTEREST',
-                'content': 'Party B shall not participate in any practice that is or could be construed as an illegal or corrupt practice in Cambodia.\nThe Party A is committed to fighting all types of corruption and expects this same commitment from the consultant it reserves the rights and believes based on the declaration of Party B that it is an independent social enterprise firm operating in Cambodia and it does not involve any conflict of interest with other parties that may be affected to the Party A.'
+                'content': '"Party B" shall not participate in any practice that is or could be construed as an illegal or corrupt practice in Cambodia.\nThe "Party A" is committed to fighting all types of corruption and expects this same commitment from the consultant it reserves the rights and believes based on the declaration of "Party B" that it is an independent social enterprise firm operating in Cambodia and it does not involve any conflict of interest with other parties that may be affected to the "Party A".'
             },
             {
                 'number': 9,
                 'title': 'OBLIGATION TO COMPLY WITH THE NGOF’S POLICIES AND CODE OF CONDUCT',
-                'content': 'By signing this agreement, Party B is obligated to comply with and respect all existing policies and code of conduct of Party A, such as Gender Mainstreaming, Child Protection, Disability policy, Environmental Mainstreaming, etc. and the Party B declared themselves that s/he will perform the assignment in the neutral position, professional manner, and not be involved in any political affiliation.'
+                'content': 'By signing this agreement, "Party B" is obligated to comply with and respect all existing policies and code of conduct of "Party A", such as Gender Mainstreaming, Child Protection, Disability policy, Environmental Mainstreaming, etc. and the "Party B" declared themselves that s/he will perform the assignment in the neutral position, professional manner, and not be involved in any political affiliation.'
             },
             {
                 'number': 10,
@@ -393,27 +393,27 @@ def view(contract_id):
             {
                 'number': 11,
                 'title': 'INSURANCE',
-                'content': 'Party B is responsible for any health and life insurance of its team members. Party A will not be held responsible for any medical expenses or compensation incurred during or after this contract.'
+                'content': '"Party B" is responsible for any health and life insurance of its team members. "Party A" will not be held responsible for any medical expenses or compensation incurred during or after this contract.'
             },
             {
                 'number': 12,
                 'title': 'ASSIGNMENT',
-                'content': 'Party B shall have the right to assign individuals within its organization to carry out the tasks herein named in the attached Technical Proposal.\nThe Party B shall not assign, or transfer any of its rights or obligations under this agreement hereunder without the prior written consent of Party A.\nAny attempt by Party B to assign or transfer any of its rights and obligations without the prior written consent of Party A shall render this agreement subject to immediate termination by Party A.'
+                'content': '"Party B" shall have the right to assign individuals within its organization to carry out the tasks herein named in the attached Technical Proposal.\nThe "Party B" shall not assign, or transfer any of its rights or obligations under this agreement hereunder without the prior written consent of "Party A".\nAny attempt by "Party B" to assign or transfer any of its rights and obligations without the prior written consent of "Party A" shall render this agreement subject to immediate termination by "Party A".'
             },
             {
                 'number': 13,
                 'title': 'RESOLUTION OF CONFLICTS/DISPUTES',
-                'content': 'Conflicts between any of these agreements shall be resolved by the following methods:\nIn the case of a disagreement arising between Party A and the Party B regarding the implementation of any part of, or any other substantive question arising under or relating to this agreement, the parties shall use their best efforts to arrive at an agreeable resolution by mutual consultation.\nUnresolved issues may, upon the option of either party and written notice to the other party, be referred to for arbitration.\nFailure by the Party B or Party A to dispute a decision arising from such arbitration in writing within thirty (30) calendar days of receipt of a final decision shall result in such final decision being deemed binding upon either the Party B and/or Party A.\nAll expenses related to arbitration will be shared equally between both parties.'
+                'content': 'Conflicts between any of these agreements shall be resolved by the following methods:\nIn the case of a disagreement arising between "Party A" and the "Party B" regarding the implementation of any part of, or any other substantive question arising under or relating to this agreement, the parties shall use their best efforts to arrive at an agreeable resolution by mutual consultation.\nUnresolved issues may, upon the option of either "party a"nd written notice to the other party, be referred to for arbitration.\nFailure by the "Party B" or "Party A" to dispute a decision arising from such arbitration in writing within thirty (30) calendar days of receipt of a final decision shall result in such final decision being deemed binding upon either the "Party B" and/or "Party A".\nAll expenses related to arbitration will be shared equally between both parties.'
             },
             {
                 'number': 14,
                 'title': 'TERMINATION',
-                'content': 'The Party A or the Party B may, by notice in writing, terminate this agreement under the following conditions:\n1. Party A may terminate this agreement at any time with a week notice if Party B fails to comply with the terms and conditions of this agreement.\n2. For gross professional misconduct (as defined in the NGOF Human Resource Policy), Party A may terminate this agreement immediately without prior notice.\nParty A will notify Party B in a letter that will indicate the reason for termination as well as the effective date of termination.\n3. Party B may terminate this agreement at any time with a one-week notice if Party A fails to comply with the terms and conditions of this agreement.\nParty B will notify Party A in a letter that will indicate the reason for termination as well as the effective date of termination.\nBut if Party B intended to terminate this agreement by itself without any appropriate reason or fails of implementing the assignment, Party B has to refund the full amount of fees received to Party A.\n4. If for any reason either Party A or the Party B decides to terminate this agreement, Party B shall be paid pro-rata for the work already completed by Party A.\nThis payment will require the submission of a timesheet that demonstrates work completed as well as the handing over of any deliverables completed or partially completed.\nIn case Party B has received payment for services under the agreement which have not yet been performed; the appropriate portion of these fees would be refunded by Party B to Party A.'
+                'content': 'The "Party A" or the "Party B" may, by notice in writing, terminate this agreement under the following conditions:\n1. "Party A" may terminate this agreement at any time with a week notice if "Party B" fails to comply with the terms and conditions of this agreement.\n2. For gross professional misconduct (as defined in the NGOF Human Resource Policy), "Party A" may terminate this agreement immediately without prior notice.\n"Party A" will notify "Party B" in a letter that will indicate the reason for termination as well as the effective date of termination.\n3. "Party B" may terminate this agreement at any time with a one-week notice if "Party A" fails to comply with the terms and conditions of this agreement.\n"Party B" will notify "Party A" in a letter that will indicate the reason for termination as well as the effective date of termination.\nBut if "Party B" intended to terminate this agreement by itself without any appropriate reason or fails of implementing the assignment, "Party B" has to refund the full amount of fees received to "Party A".\n4. If for any reason either "Party A" or the "Party B" decides to terminate this agreement, "Party B" shall be paid pro-rata for the work already completed by "Party A".\nThis payment will require the submission of a timesheet that demonstrates work completed as well as the handing over of any deliverables completed or partially completed.\nIn case "Party B" has received payment for services under the agreement which have not yet been performed; the appropriate portion of these fees would be refunded by "Party B" to "Party A".'
             },
             {
                 'number': 15,
                 'title': 'MODIFICATION OR AMENDMENT',
-                'content': 'No modification or amendment of this agreement shall be valid unless in writing and signed by an authorized person of Party A and Party B.'
+                'content': 'No modification or amendment of this agreement shall be valid unless in writing and signed by an authorized person of "Party A" and "Party B".'
             },
             {
                 'number': 16,
@@ -906,7 +906,7 @@ def export_docx(contract_id):
             {
                 'number': 2,
                 'title': 'TERM OF AGREEMENT',
-                'content': (f'This agreement is effective from {format_date(contract_data["agreement_start_date"])} – '
+                'content': (f'The agreement is effective from {format_date(contract_data["agreement_start_date"])} – '
                             f'{format_date(contract_data["agreement_end_date"])}.\n'
                             'This Agreement is terminated automatically after the due date of the Agreement Term unless otherwise, '
                             'both Parties agree to extend the Term with a written agreement.')
