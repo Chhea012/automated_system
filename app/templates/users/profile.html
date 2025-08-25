@@ -15,23 +15,28 @@
   }
   .profile-card {
     background: #ffffff;
-    border-radius: 1.5rem;
+    border-radius: 0.5rem;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     overflow: hidden;
     position: relative;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
-  /* .profile-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
-  } */
   .profile-header {
-    background: linear-gradient(135deg, #1e3a8a, #7c3aed);
+    position: relative;
     color: white;
     padding: 1rem 2rem;
     text-align: center;
-    position: relative;
     overflow: hidden;
+    height: 340px; /* Adjust height for video */
+  }
+  .profile-header video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ensure video covers the header */
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
   }
   .profile-header::before {
     content: '';
@@ -40,14 +45,14 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.2), transparent 70%);
-    opacity: 0.3;
-    z-index: 0;
+    background: rgba(0, 0, 0, 0.3); /* Optional overlay for better text visibility */
+    z-index: 1;
   }
   .profile-pic-container {
     position: relative;
     display: inline-block;
     transition: transform 0.3s ease;
+    z-index: 2; /* Ensure profile pic is above video */
   }
   .profile-pic-container:hover {
     transform: scale(1.1);
@@ -59,7 +64,7 @@
     object-fit: cover;
     border: 5px solid #ffffff;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 1;
+    z-index: 2;
   }
   .profile-body {
     padding: 2.5rem;
@@ -264,6 +269,18 @@
   .remove-image-btn:hover {
     background-color: #dc2626;
   }
+  .video-modal .modal-content {
+    background: #ffffff;
+    border-radius: 10px;
+  }
+  .video-modal .modal-body {
+    padding: 0;
+  }
+  .video-modal video {
+    width: 100%;
+    height: auto;
+    border-radius: 10px 10px 0 0;
+  }
   @media (max-width: 640px) {
     .profile-container {
       margin: 1.5rem auto;
@@ -274,6 +291,7 @@
     }
     .profile-header {
       padding: 2rem 1.5rem;
+      height: 200px; /* Adjust for smaller screens */
     }
     .profile-pic {
       width: 100px;
@@ -301,11 +319,15 @@
 <div class="profile-container">
   <div class="profile-card">
     <div class="profile-header">
+      <video autoplay muted loop playsinline>
+        <source src="{{ url_for('static', filename='video/cover.mp4') }}" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
       <div class="profile-pic-container">
         <img src="{{ user.get_image_url()|default('https://via.placeholder.com/140') }}" alt="Profile Picture" class="profile-pic">
       </div>
-      <h2 class="mt-4 text-3xl font-extrabold tracking-tight">{{ user.username|default('N/A') }}</h2>
-      <div class="role-badge">{{ user.role.name if user.role else 'No Role Assigned' }}</div>
+      <h2 class="mt-4 text-3xl font-extrabold tracking-tight" style="position: relative; z-index: 2;">{{ user.username|default('N/A') }}</h2>
+      <div class="role-badge" style="position: relative; z-index: 2;">{{ user.role.name if user.role else 'No Role Assigned' }}</div>
     </div>
     <div class="profile-body">
       <!-- Profile Completion Indicator -->
@@ -346,6 +368,9 @@
         </button>
         <button class="action-btn bg-red-600 text-white hover:bg-red-700" data-bs-toggle="modal" data-bs-target="#deleteUserModal{{ user.id|default('') }}">
           <i class="bx bx-trash"></i> Delete User
+        </button>
+        <button class="action-btn bg-green-600 text-white hover:bg-green-700" data-bs-toggle="modal" data-bs-target="#viewCoverModal{{ user.id|default('') }}">
+          <i class="bx bx-video"></i> View Cover Video
         </button>
       </div>
     </div>
@@ -460,12 +485,35 @@
       </div>
     </div>
   </div>
+
+  <!-- View Cover Video Modal -->
+  <div class="modal fade video-modal" id="viewCoverModal{{ user.id|default('') }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Cover Video</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <video controls autoplay muted>
+            <source src="{{ url_for('static', filename='video/cover.mp4') }}" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- jQuery CDN (required for modals and image preview) -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Bootstrap JS CDN (required for modals) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- JavaScript for image preview and drag-and-drop -->
+<!-- JavaScript for image preview, drag-and-drop, and auto-open modal -->
 <script>
   function handleImagePreview(inputId, previewId) {
     const input = document.getElementById(inputId);
@@ -538,5 +586,16 @@
 
   // Initialize image preview for Edit User modal
   handleImagePreview('imageInput{{ user.id|default('') }}', 'imagePreview{{ user.id|default('') }}');
+
+  // Auto-open video modal after 5 seconds
+  $(document).ready(function () {
+    setTimeout(function () {
+      const videoModal = new bootstrap.Modal(document.getElementById('viewCoverModal{{ user.id|default('') }}'), {
+        keyboard: true,
+        backdrop: 'static'
+      });
+      videoModal.show();
+    }, 5000); // 5000ms = 5 seconds
+  });
 </script>
 {% endblock %}
