@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, jsonify
 from flask_login import login_required
 from werkzeug.utils import secure_filename
 from app import db
@@ -18,10 +18,93 @@ def allowed_file(filename):
 @login_required
 def index():
     page = request.args.get('page', 1, type=int)
-    pagination = User.query.order_by(User.created_at.desc()).paginate(page=page, per_page=7, error_out=False)
+    search = request.args.get('search', '', type=str)
+    role_id = request.args.get('role_id', '', type=str)
+    sort = request.args.get('sort', 'asc', type=str)
+
+    # Base query
+    query = User.query
+
+    # Apply search filter
+    if search:
+        query = query.filter(User.username.ilike(f'%{search}%'))
+
+    # Apply role filter
+    if role_id:
+        query = query.filter(User.role_id == role_id)
+
+    # Apply sorting
+    if sort == 'desc':
+        query = query.order_by(User.username.desc())
+    else:
+        query = query.order_by(User.username.asc())
+
+    # Paginate the results
+    pagination = query.paginate(page=page, per_page=7, error_out=False)
+
+    # Calculate metrics for the cards
+    total_users = User.query.count()
+    total_hr_admin = User.query.join(Role).filter(Role.name.in_(['HR', 'Admin'])).count()
+    total_managers = User.query.join(Role).filter(Role.name == 'Manager').count()
+    total_employees = User.query.join(Role).filter(Role.name == 'Employee').count()
+
     roles = Role.query.all()
     departments = Department.query.all()
-    return render_template("users/index.html", users=pagination.items, pagination=pagination, roles=roles, departments=departments)
+
+    # Handle AJAX request
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'users': [
+                {
+                    'id': user.id,
+                    'username': user.username or 'N/A',
+                    'email': user.email or 'N/A',
+                    'phone_number': user.phone_number or 'N/A',
+                    'role_name': user.role.name if user.role else 'N/A',
+                    'department_name': user.department.name if user.department else 'N/A',
+                    'address': user.address or 'N/A',
+                    'image_url': user.get_image_url()
+                } for user in pagination.items
+            ],
+            'pagination': {
+                'has_prev': pagination.has_prev,
+                'has_next': pagination.has_next,
+                'prev_num': pagination.prev_num,
+                'next_num': pagination.next_num,
+                'page': pagination.page,
+                'pages': pagination.pages,
+                'iter_pages': list(pagination.iter_pages())
+            }
+        })
+
+    return render_template(
+        "users/index.html",
+        users=pagination.items,
+        pagination=pagination,
+        roles=roles,
+        departments=departments,
+        total_users=total_users,
+        total_hr_admin=total_hr_admin,
+        total_managers=total_managers,
+        total_employees=total_employees,
+        search=search,
+        role_id=role_id,
+        sort=sort
+    )
+
+@users_bp.route("/profile/<int:user_id>")
+@login_required
+def profile(user_id):
+    user = User.query.get_or_404(user_id)
+    roles = Role.query.all()
+    departments = Department.query.all()
+    return render_template(
+        "users/profile.html",
+        user=user,
+        roles=roles,
+        departments=departments,
+        page=request.args.get('page', 1, type=int)
+    )
 
 @users_bp.route("/create", methods=["POST"])
 @login_required

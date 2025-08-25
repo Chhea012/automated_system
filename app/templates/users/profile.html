@@ -1,0 +1,542 @@
+{% extends "base.html" %}
+{% block title %}User Profile - {{ user.username|default('N/A') }}{% endblock %}
+
+{% block content %}
+<!-- Tailwind CSS CDN -->
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<!-- Boxicons CDN -->
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+<style>
+  .profile-container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+  }
+  .profile-card {
+    background: #ffffff;
+    border-radius: 1.5rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  /* .profile-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+  } */
+  .profile-header {
+    background: linear-gradient(135deg, #1e3a8a, #7c3aed);
+    color: white;
+    padding: 1rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .profile-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.2), transparent 70%);
+    opacity: 0.3;
+    z-index: 0;
+  }
+  .profile-pic-container {
+    position: relative;
+    display: inline-block;
+    transition: transform 0.3s ease;
+  }
+  .profile-pic-container:hover {
+    transform: scale(1.1);
+  }
+  .profile-pic {
+    width: 190px;
+    height: 190px;
+    border-radius: 2%;
+    object-fit: cover;
+    border: 5px solid #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+  }
+  .profile-body {
+    padding: 2.5rem;
+  }
+  .profile-info {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+  }
+  .profile-info dt {
+    font-weight: 700;
+    color: #2d3748;
+    display: flex;
+    align-items: center;
+  }
+  .profile-info dt i {
+    margin-right: 0.5rem;
+    color: #0d6efd;
+  }
+  .profile-info dd {
+    color: #4a5568;
+  }
+  .action-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  .action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  .role-badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    background: #e2e8f0;
+    color: #2d3748;
+    margin-top: 1rem;
+  }
+  .profile-completion {
+    margin: 2rem 0;
+    text-align: center;
+  }
+  .progress-circle {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto;
+  }
+  .progress-circle svg {
+    transform: rotate(-90deg);
+  }
+  .progress-circle .circle-bg {
+    fill: none;
+    stroke: #e2e8f0;
+    stroke-width: 8;
+  }
+  .progress-circle .circle-fg {
+    fill: none;
+    stroke: #0d6efd;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.5s ease;
+  }
+  .progress-circle .percentage {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: 600;
+    color: #2d3748;
+  }
+  .modal-left .modal-dialog {
+    margin: 0;
+    height: 100vh;
+    max-width: 400px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+  }
+  .modal-left .modal-dialog.show {
+    transform: translateX(0);
+  }
+  .modal-left .modal-content {
+    border-radius: 0 10px 10px 0;
+    box-shadow: 4px 0 6px rgba(0, 0, 0, 0.1);
+    height: 100%;
+    overflow-y: auto;
+  }
+  .modal-left .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #dee2e6;
+    background: #0d6efd;
+    color: #ffffff;
+  }
+  .modal-left .modal-body {
+    padding: 20px;
+  }
+  .modal-left .modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #dee2e6;
+  }
+  .modal-left .form-label {
+    font-weight: 500;
+    color: #333;
+  }
+  .modal-left .form-control,
+  .modal-left .form-select {
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    transition: border-color 0.2s ease;
+  }
+  .modal-left .form-control:focus,
+  .modal-left .form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  }
+  .modal-left .btn {
+    border-radius: 6px;
+    padding: 8px 16px;
+  }
+  .image-upload-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 2px dashed #cbd5e0;
+    border-radius: 8px;
+    background: #f8fafc;
+    transition: all 0.3s ease;
+  }
+  .image-upload-container.dragover {
+    border-color: #0d6efd;
+    background-color: rgba(13, 110, 253, 0.1);
+  }
+  .image-preview {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 2px solid #e2e8f0;
+    background-color: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+  }
+  .image-preview:hover {
+    transform: scale(1.05);
+  }
+  .image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .image-preview-placeholder::before {
+    content: "\e030";
+    font-family: 'boxicons';
+    font-size: 48px;
+    color: #6b7280;
+  }
+  .custom-file-label {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    background-color: #0d6efd;
+    color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  .custom-file-label:hover {
+    background-color: #1e40af;
+  }
+  .custom-file-label i {
+    margin-right: 8px;
+  }
+  .remove-image-btn {
+    background-color: #ef4444;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  .remove-image-btn:hover {
+    background-color: #dc2626;
+  }
+  @media (max-width: 640px) {
+    .profile-container {
+      margin: 1.5rem auto;
+      padding: 0 1rem;
+    }
+    .profile-card {
+      border-radius: 1rem;
+    }
+    .profile-header {
+      padding: 2rem 1.5rem;
+    }
+    .profile-pic {
+      width: 100px;
+      height: 100px;
+    }
+    .profile-info {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    .action-buttons {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .action-btn {
+      width: 100%;
+      justify-content: center;
+    }
+    .progress-circle {
+      width: 60px;
+      height: 60px;
+    }
+  }
+</style>
+
+<div class="profile-container">
+  <div class="profile-card">
+    <div class="profile-header">
+      <div class="profile-pic-container">
+        <img src="{{ user.get_image_url()|default('https://via.placeholder.com/140') }}" alt="Profile Picture" class="profile-pic">
+      </div>
+      <h2 class="mt-4 text-3xl font-extrabold tracking-tight">{{ user.username|default('N/A') }}</h2>
+      <div class="role-badge">{{ user.role.name if user.role else 'No Role Assigned' }}</div>
+    </div>
+    <div class="profile-body">
+      <!-- Profile Completion Indicator -->
+      {% set completion = 0 %}
+      {% if user.username %} {% set completion = completion + 20 %} {% endif %}
+      {% if user.email %} {% set completion = completion + 20 %} {% endif %}
+      {% if user.phone_number %} {% set completion = completion + 20 %} {% endif %}
+      {% if user.department %} {% set completion = completion + 20 %} {% endif %}
+      {% if user.address %} {% set completion = completion + 20 %} {% endif %}
+      <div class="profile-completion">
+        <p class="text-sm font-medium text-gray-600">Profile Completion</p>
+        <div class="progress-circle">
+          <svg width="80" height="80">
+            <circle class="circle-bg" cx="40" cy="40" r="36"></circle>
+            <circle class="circle-fg" cx="40" cy="40" r="36" stroke-dasharray="226.2" stroke-dashoffset="{{ (1 - completion / 100) * 226.2 }}"></circle>
+          </svg>
+          <div class="percentage">{{ completion }}%</div>
+        </div>
+      </div>
+      <!-- User Information -->
+      <dl class="profile-info">
+        <dt><i class="bx bx-envelope"></i> Email:</dt>
+        <dd>{{ user.email|default('N/A') }}</dd>
+        <dt><i class="bx bx-phone"></i> Phone Number:</dt>
+        <dd>{{ user.phone_number|default('N/A') }}</dd>
+        <dt><i class="bx bx-briefcase"></i> Department:</dt>
+        <dd>{{ user.department.name if user.department else 'N/A' }}</dd>
+        <dt><i class="bx bx-map"></i> Address:</dt>
+        <dd>{{ user.address|default('N/A') }}</dd>
+      </dl>
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <a href="{{ url_for('users.index', page=page|default(1)) }}" class="action-btn bg-gray-600 text-white hover:bg-gray-700">
+          <i class="bx bx-arrow-back"></i> Back to Users
+        </a>
+        <button class="action-btn bg-blue-600 text-white hover:bg-blue-700" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id|default('') }}">
+          <i class="bx bx-edit"></i> Edit Profile
+        </button>
+        <button class="action-btn bg-red-600 text-white hover:bg-red-700" data-bs-toggle="modal" data-bs-target="#deleteUserModal{{ user.id|default('') }}">
+          <i class="bx bx-trash"></i> Delete User
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div class="modal fade modal-center" id="editUserModal{{ user.id|default('') }}" tabindex="-1">
+    <div class="modal-dialog">
+      <form method="POST" action="{{ url_for('users.update', user_id=user.id|default(''), page=page|default(1)) }}" enctype="multipart/form-data">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Edit User</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Username</label>
+              <input type="text" class="form-control" name="username" value="{{ user.username|default('') }}" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" name="email" value="{{ user.email|default('') }}" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Password (leave blank to keep unchanged)</label>
+              <input type="password" class="form-control" name="password">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Phone Number</label>
+              <input type="text" class="form-control" name="phone_number" value="{{ user.phone_number|default('') }}">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Role</label>
+              <select class="form-select" name="role_id">
+                <option value="">None</option>
+                {% for role in roles|default([]) %}
+                <option value="{{ role.id }}" {% if user.role_id|default(None) == role.id %}selected{% endif %}>
+                  {{ role.name|default('N/A') }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Department</label>
+              <select class="form-select" name="department_id">
+                <option value="">None</option>
+                {% for department in departments|default([]) %}
+                <option value="{{ department.id }}" {% if user.department_id|default(None) == department.id %}selected{% endif %}>
+                  {{ department.name|default('N/A') }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Address</label>
+              <textarea class="form-label" name="address" rows="3">{{ user.address|default('') }}</textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Profile Picture</label>
+              <div class="image-upload-container"
+                ondragover="event.preventDefault(); this.classList.add('dragover');"
+                ondragleave="this.classList.remove('dragover');"
+                ondrop="event.preventDefault(); this.classList.remove('dragover'); handleImageDrop(event, 'imageInput{{ user.id|default('') }}', 'imagePreview{{ user.id|default('') }}');">
+                <div
+                  class="image-preview {% if not user.get_image_url()|default(None) %}image-preview-placeholder{% endif %}"
+                  id="imagePreview{{ user.id|default('') }}">
+                  {% if user.get_image_url()|default(None) %}
+                  <img src="{{ user.get_image_url() }}" alt="Profile Picture">
+                  {% endif %}
+                </div>
+                <label class="custom-file-label" for="imageInput{{ user.id|default('') }}">
+                  <i class="bx bx-upload"></i> Choose or Drop Image
+                </label>
+                <input type="file" class="custom-file-input" id="imageInput{{ user.id|default('') }}"
+                  name="image" accept="image/*">
+                {% if user.get_image_url()|default(None) %}
+                <button type="button" class="remove-image-btn"
+                  onclick="removeImage('imageInput{{ user.id|default('') }}', 'imagePreview{{ user.id|default('') }}')">Remove
+                  Image</button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Update</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete User Modal -->
+  <div class="modal fade" id="deleteUserModal{{ user.id|default('') }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title"><i class="bx bx-trash"></i> Confirm Delete</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to delete user <strong>{{ user.username|default('N/A') }}</strong>?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <form
+            action="{{ url_for('users.delete', user_id=user.id|default(''), page=page|default(1)) }}"
+            method="POST" class="d-inline">
+            <button type="submit" class="btn btn-danger">Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- jQuery CDN (required for modals and image preview) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- JavaScript for image preview and drag-and-drop -->
+<script>
+  function handleImagePreview(inputId, previewId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+
+    if (!input || !preview) return;
+
+    input.addEventListener('change', function () {
+      const file = this.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          preview.innerHTML = `<img src="${e.target.result}" alt="Profile Picture">`;
+          preview.classList.remove('image-preview-placeholder');
+          addRemoveButton(inputId, previewId);
+        };
+        reader.onerror = function () {
+          console.error('Error reading file');
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  function handleImageDrop(event, inputId, previewId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    const file = event.dataTransfer.files[0];
+
+    if (file && file.type.startsWith('image/')) {
+      input.files = event.dataTransfer.files;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        preview.innerHTML = `<img src="${e.target.result}" alt="Profile Picture">`;
+        preview.classList.remove('image-preview-placeholder');
+        addRemoveButton(inputId, previewId);
+      };
+      reader.onerror = function () {
+        console.error('Error reading dropped file');
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function addRemoveButton(inputId, previewId) {
+    const preview = document.getElementById(previewId);
+    const container = preview.parentElement;
+    let removeBtn = container.querySelector('.remove-image-btn');
+    if (!removeBtn) {
+      removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-image-btn';
+      removeBtn.textContent = 'Remove Image';
+      removeBtn.type = 'button';
+      removeBtn.onclick = () => removeImage(inputId, previewId);
+      container.appendChild(removeBtn);
+    }
+  }
+
+  function removeImage(inputId, previewId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    input.value = '';
+    preview.innerHTML = '';
+    preview.classList.add('image-preview-placeholder');
+    const removeBtn = preview.parentElement.querySelector('.remove-image-btn');
+    if (removeBtn) {
+      removeBtn.remove();
+    }
+  }
+
+  // Initialize image preview for Edit User modal
+  handleImagePreview('imageInput{{ user.id|default('') }}', 'imagePreview{{ user.id|default('') }}');
+</script>
+{% endblock %}
