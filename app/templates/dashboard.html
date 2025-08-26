@@ -33,11 +33,25 @@
   .dashboard-container {
     padding: 20px 30px;
   }
+  .department-details {
+    margin-top: 20px;
+  }
+  .department-details h6 {
+    font-weight: bold;
+    color: #333;
+  }
+  .department-details ul {
+    list-style: none;
+    padding: 0;
+  }
+  .department-details ul li {
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+  }
 </style>
 
 <div class="dashboard-container">
-
-  <!-- <h1 class="mb-4">Welcome, {{ user.email }}!</h1> -->
+  <!-- Welcome message -->
 
   <!-- Stat Cards Row -->
   <div class="row g-4 mb-4">
@@ -94,7 +108,7 @@
       <div class="card weather-card h-100 shadow-sm">
         <div class="card-body d-flex justify-content-between align-items-center">
           <div class="d-flex align-items-center">
-            <img src="{{ url_for('static', filename='img/sunny.png') }}" alt="Weather Icon" height="50" class="me-3">
+            <img src="{{ url_for('static', filename='img/sunny.png') }}" alt="Weather Icon" height="50" class="me-3" onerror="this.src='https://via.placeholder.com/50';">
             <div>
               <h6 class="fw-bold mb-1">New York City</h6>
               <small>☀️ Sunny</small><br>
@@ -164,18 +178,21 @@
   });
 
   // Department Programs Pie Chart
+  const departmentData = {{ department_data|tojson|default([]) }};
   const ctxPie = document.getElementById('departmentPieChart').getContext('2d');
   new Chart(ctxPie, {
     type: 'pie',
     data: {
-      labels: ["PALI Program", "SACHAS Program", "RITI Program", "MACOR Program"],
+      labels: {{ pie_labels|tojson|default(['"No Departments"']) }},
       datasets: [{
-        data: [35, 25, 20, 20],
+        data: {{ pie_data|tojson|default([0]) }},
         backgroundColor: [
           "rgba(54, 162, 235, 0.7)",
           "rgba(255, 206, 86, 0.7)",
           "rgba(153, 102, 255, 0.7)",
-          "rgba(255, 99, 132, 0.7)"
+          "rgba(255, 99, 132, 0.7)",
+          "rgba(75, 192, 192, 0.7)",
+          "rgba(255, 159, 64, 0.7)"
         ],
         borderWidth: 2,
         borderColor: "#fff"
@@ -184,7 +201,25 @@
     options: {
       responsive: true,
       plugins: {
-        legend: { position: 'bottom', labels: { usePointStyle: true } }
+        legend: { position: 'bottom', labels: { usePointStyle: true } },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const index = context.dataIndex;
+              const dept = departmentData[index] || {};
+              const name = dept.name || 'No Departments';
+              const userCount = dept.user_count || 0;
+              const managers = dept.managers && dept.managers.length ? dept.managers.join(', ') : 'None';
+              const employees = dept.employees && dept.employees.length ? dept.employees.join(', ') : 'None';
+              return [
+                `${name}`,
+                `${name}: ${userCount} members`,
+                `Managers: ${managers}`,
+                `Employees: ${employees}`
+              ];
+            }
+          }
+        }
       }
     }
   });

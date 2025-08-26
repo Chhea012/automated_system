@@ -5,26 +5,16 @@ from app.models.user import User
 from app.models.role import Role
 from app.models.department import Department
 
-main_bp = Blueprint("main", __name__)
+dashboard_bp = Blueprint("dashboard", __name__)
 
-@main_bp.route("/")
-def index():
-    return render_template("index.html")
-
-@main_bp.route("/dashboard")
+@dashboard_bp.route("/dashboard")
 @login_required
-def dashboard():
-    # Fetch all departments
+def index():
     departments = Department.query.all()
-
-    # Prepare data for the pie chart and department details
     department_data = []
     for dept in departments:
-        # Get users in this department
         users = User.query.filter_by(department_id=dept.id).all()
         user_count = len(users)
-        
-        # Get managers and employees
         managers = [
             user.username for user in users 
             if user.role and user.role.name == 'Manager'
@@ -33,23 +23,17 @@ def dashboard():
             user.username for user in users 
             if user.role and user.role.name == 'Employee'
         ]
-
         department_data.append({
             'name': dept.name or 'N/A',
             'user_count': user_count,
             'managers': managers,
             'employees': employees
         })
-
-    # Prepare data for the pie chart
     pie_labels = [dept['name'] for dept in department_data]
     pie_data = [dept['user_count'] for dept in department_data]
-
-    # Handle case where no departments exist
     if not department_data:
         pie_labels = ['No Departments']
         pie_data = [0]
-
     return render_template(
         "dashboard.html",
         user=current_user,
