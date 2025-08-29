@@ -3,10 +3,10 @@
 {% block content %}
 <div class="container mt-4">
     
-    <!-- New Card for Total Contracts and Last Contract Number -->
+    <!-- Card for Total Contracts and Last Contract Number -->
     <div class="row mb-4">
         <div class="col-sm-6 col-xl-3">
-            <div class="card card-1 h-100 ">
+            <div class="card card-1 h-100">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
@@ -34,10 +34,13 @@
                     <div id="searchSpinner" class="spinner-border spinner-border-sm position-absolute" style="right: 80px; top: 50%; transform: translateY(-50%); display: none;" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
+                    <input type="hidden" name="sort" value="{{ sort_order }}">
+                    <input type="hidden" name="entries" value="{{ entries_per_page }}">
                 </form>
                 <div class="input-group w-auto">
                     <label class="input-group-text" for="sortSelect">Sort</label>
                     <select id="sortSelect" name="sort" class="form-select" onchange="this.form.submit()">
+                        <option value="created_at_desc" {% if sort_order == 'created_at_desc' %}selected{% endif %}>Newest First</option>
                         <option value="project_title_asc" {% if sort_order == 'project_title_asc' %}selected{% endif %}>Project Title (ASC)</option>
                         <option value="project_title_desc" {% if sort_order == 'project_title_desc' %}selected{% endif %}>Project Title (DESC)</option>
                         <option value="start_date_asc" {% if sort_order == 'start_date_asc' %}selected{% endif %}>Start Date (ASC)</option>
@@ -87,7 +90,7 @@
                     <td>{{ contract.agreement_start_date_display or 'N/A' }}</td>
                     <td>{{ contract.agreement_end_date_display or 'N/A' }}</td>
                     <td>${{ contract.total_fee_usd or '0.00' }}</td>
-                    <td>{{ contract.articles|length }} {{ 'article' if contract.articles|length == 1 else 'articles' }}</td>
+                    <td>{{ contract.custom_article_sentences|length }} {{ 'article' if contract.custom_article_sentences|length == 1 else 'articles' }}</td>
                     <td>
                         <div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -122,7 +125,7 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
                             <div class="modal-body">
-                                Are you sure you want to delete the contract "{{ contract.contract_number }}"? This action cannot be undone.
+                                Are you sure you want to delete the contract "{{ contract.contract_number }}"? This action will mark the contract as deleted.
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

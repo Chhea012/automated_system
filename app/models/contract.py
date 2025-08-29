@@ -1,4 +1,5 @@
 from app import db
+from datetime import datetime
 import uuid
 
 class Contract(db.Model):
@@ -39,7 +40,8 @@ class Contract(db.Model):
     output_description = db.Column(db.Text, default='')
     custom_article_sentences = db.Column(db.JSON, default=lambda: {})
     payment_installments = db.Column(db.JSON, default=lambda: [])
-
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    deleted_at = db.Column(db.DateTime, nullable=True)
     def __repr__(self):
         return f"<Contract {self.contract_number}>"
 
@@ -81,5 +83,7 @@ class Contract(db.Model):
             'deliverables': self.deliverables.split('; ') if self.deliverables else [],
             'output_description': self.output_description or '',
             'custom_article_sentences': custom_sentences,
-            'articles': [{'article_number': str(k), 'custom_sentence': v} for k, v in custom_sentences.items()] if custom_sentences else []
+            'articles': [{'article_number': str(k), 'custom_sentence': v} for k, v in custom_sentences.items()] if custom_sentences else [],
+            'created_at': self.created_at,
+            'deleted_at': self.deleted_at  # Include in to_dict for potential future use
         }
