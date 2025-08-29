@@ -45,28 +45,28 @@
             <div class="section-header">Project & Contract Details</div>
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label for="projectTitle" class="form-label">Project Title</label>
-                    <input type="text" class="form-control" id="projectTitle" name="projectTitle" value="{{ form_data.projectTitle | default('') }}" placeholder="e.g., Consultant for Budget Analysis" required>
+                    <label for="project_title" class="form-label">Project Title</label>
+                    <input type="text" class="form-control" id="project_title" name="project_title" value="{{ form_data.project_title | default('') }}" placeholder="e.g., Consultant for Budget Analysis" required>
                     <div class="invalid-feedback">Please enter the project title.</div>
                 </div>
                 <div class="col-md-6">
-                    <label for="outputDescription" class="form-label">Output Description</label>
-                    <input type="text" class="form-control" id="outputDescription" name="outputDescription" value="{{ form_data.outputDescription | default('') }}" placeholder="e.g., Budget Analysis on MAFF’s Budget Allocation" required>
+                    <label for="output_description" class="form-label">Output Description</label>
+                    <input type="text" class="form-control" id="output_description" name="output_description" value="{{ form_data.output_description | default('') }}" placeholder="e.g., Budget Analysis on MAFF’s Budget Allocation" required>
                     <div class="invalid-feedback">Please enter the output description.</div>
                 </div>
                 <div class="col-md-6">
-                    <label for="contractNumber" class="form-label">Contract Number</label>
-                    <input type="text" class="form-control" id="contractNumber" name="contractNumber" value="{{ form_data.contractNumber | default('') }}" placeholder="e.g., NGOF/2025-002" required>
+                    <label for="contract_number" class="form-label">Contract Number</label>
+                    <input type="text" class="form-control" id="contract_number" name="contract_number" value="{{ form_data.contract_number | default(default_contract_number) }}" placeholder="e.g., NGOF/2025-005" required>
                     <div class="invalid-feedback">Please enter the contract number.</div>
                 </div>
                 <div class="col-md-6">
-                    <label for="taxPercentage" class="form-label">Tax Percentage (%)</label>
-                    <select class="form-select" id="taxPercentage" name="taxPercentage" required>
-                        <option value="0" {{ 'selected' if form_data.taxPercentage | default('15') == '0' }}>0</option>
-                        <option value="5" {{ 'selected' if form_data.taxPercentage | default('15') == '5' }}>5</option>
-                        <option value="10" {{ 'selected' if form_data.taxPercentage | default('15') == '10' }}>10</option>
-                        <option value="15" {{ 'selected' if form_data.taxPercentage | default('15') == '15' }}>15</option>
-                        <option value="20" {{ 'selected' if form_data.taxPercentage | default('15') == '20' }}>20</option>
+                    <label for="tax_percentage" class="form-label">Tax Percentage (%)</label>
+                    <select class="form-select" id="tax_percentage" name="tax_percentage" required>
+                        <option value="0" {{ 'selected' if form_data.tax_percentage | default('15') == '0' }}>0</option>
+                        <option value="5" {{ 'selected' if form_data.tax_percentage | default('15') == '5' }}>5</option>
+                        <option value="10" {{ 'selected' if form_data.tax_percentage | default('15') == '10' }}>10</option>
+                        <option value="15" {{ 'selected' if form_data.tax_percentage | default('15') == '15' }}>15</option>
+                        <option value="20" {{ 'selected' if form_data.tax_percentage | default('15') == '20' }}>20</option>
                     </select>
                     <div class="invalid-feedback">Please select a tax percentage.</div>
                 </div>
@@ -76,23 +76,23 @@
             <div class="section-header">Party A Information</div>
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label for="organizationName" class="form-label">Organization Name</label>
-                    <input type="text" class="form-control" id="organizationName" name="organizationName" value="{{ form_data.organizationName | default('The NGO Forum on Cambodia') }}" placeholder="e.g., The NGO Forum on Cambodia" required>
+                    <label for="organization_name" class="form-label">Organization Name</label>
+                    <input type="text" class="form-control" id="organization_name" name="organization_name" value="{{ form_data.organization_name | default('The NGO Forum on Cambodia') }}" placeholder="e.g., The NGO Forum on Cambodia" required>
                     <div class="invalid-feedback">Please enter the organization name.</div>
                 </div>
                 <div class="col-md-6">
-                    <label for="partyAName" class="form-label">Party A Name</label>
-                    <input type="text" class="form-control" id="partyAName" name="partyAName" value="{{ form_data.partyAName | default('Mr. SOEUNG Saroeun') }}" placeholder="e.g., Mr. SOEUNG Saroeun" required>
+                    <label for="party_a_name" class="form-label">Party A Name</label>
+                    <input type="text" class="form-control" id="party_a_name" name="party_a_name" value="{{ form_data.party_a_name | default('Mr. SOEUNG Saroeun') }}" placeholder="e.g., Mr. SOEUNG Saroeun" required>
                     <div class="invalid-feedback">Please enter Party A name.</div>
                 </div>
                 <div class="col-md-6">
-                    <label for="partyAPosition" class="form-label">Party A Position</label>
-                    <input type="text" class="form-control" id="partyAPosition" name="partyAPosition" value="{{ form_data.partyAPosition | default('Executive Director') }}" placeholder="e.g., Executive Director" required>
+                    <label for="party_a_position" class="form-label">Party A Position</label>
+                    <input type="text" class="form-control" id="party_a_position" name="party_a_position" value="{{ form_data.party_a_position | default('Executive Director') }}" placeholder="e.g., Executive Director" required>
                     <div class="invalid-feedback">Please enter Party A position.</div>
                 </div>
                 <div class="col-md-6">
-                    <label for="partyAAddress" class="form-label">Party A Address</label>
-                    <input type="text" class="form-control" id="partyAAddress" name="partyAAddress" value="{{ form_data.partyAAddress | default('#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia') }}" placeholder="e.g., #9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia" required>
+                    <label for="party_a_address" class="form-label">Party A Address</label>
+                    <input type="text" class="form-control" id="party_a_address" name="party_a_address" value="{{ form_data.party_a_address | default('#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia') }}" placeholder="e.g., #9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia" required>
                     <div class="invalid-feedback">Please enter Party A address.</div>
                 </div>
             </div>
@@ -101,41 +101,41 @@
             <div class="section-header">Party B Information</div>
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label for="partyBSignatureName" class="form-label">Party B Signature Name</label>
-                    <input type="text" class="form-control" id="partyBSignatureName" name="partyBSignatureName" value="{{ form_data.partyBSignatureName | default('') }}" placeholder="e.g., Mr. SEAN Bunrith" required>
+                    <label for="party_b_signature_name" class="form-label">Party B Signature Name</label>
+                    <input type="text" class="form-control" id="party_b_signature_name" name="party_b_signature_name" value="{{ form_data.party_b_signature_name | default('') }}" placeholder="e.g., Mr. SEAN Bunrith" required>
                     <div class="invalid-feedback">Please enter Party B signature name.</div>
                 </div>
                 <div class="col-md-6">
-                    <label for="partyBPosition" class="form-label">Party B Position</label>
-                    <input type="text" class="form-control" id="partyBPosition" name="partyBPosition" value="{{ form_data.partyBPosition | default('Freelance Consultant') }}">
+                    <label for="party_b_position" class="form-label">Party B Position</label>
+                    <input type="text" class="form-control" id="party_b_position" name="party_b_position" value="{{ form_data.party_b_position | default('Freelance Consultant') }}">
                 </div>
                 <div class="col-md-6">
-                    <label for="partyBPhone" class="form-label">Party B Phone</label>
-                    <input type="tel" class="form-control" id="partyBPhone" name="partyBPhone" value="{{ form_data.partyBPhone | default('') }}" placeholder="e.g., (+855) 11 535 354">
+                    <label for="party_b_phone" class="form-label">Party B Phone</label>
+                    <input type="tel" class="form-control" id="party_b_phone" name="party_b_phone" value="{{ form_data.party_b_phone | default('') }}" placeholder="e.g., (+855) 11 535 354">
                 </div>
                 <div class="col-md-6">
-                    <label for="partyBEmail" class="form-label">Party B Email</label>
-                    <input type="email" class="form-control" id="partyBEmail" name="partyBEmail" value="{{ form_data.partyBEmail | default('') }}" placeholder="e.g., Seanbunrith@gmail.com">
+                    <label for="party_b_email" class="form-label">Party B Email</label>
+                    <input type="email" class="form-control" id="party_b_email" name="party_b_email" value="{{ form_data.party_b_email | default('') }}" placeholder="e.g., Seanbunrith@gmail.com">
                 </div>
                 <div class="col-12">
-                    <label for="partyBAddress" class="form-label">Party B Address</label>
-                    <textarea class="form-control" id="partyBAddress" name="partyBAddress" rows="3" placeholder="e.g., # F22 st. 113 Trapaeng Krosang, Porsenchey, Phnom Penh">{{ form_data.partyBAddress | default('') }}</textarea>
+                    <label for="party_b_address" class="form-label">Party B Address</label>
+                    <textarea class="form-control" id="party_b_address" name="party_b_address" rows="3" placeholder="e.g., # F22 st. 113 Trapaeng Krosang, Porsenchey, Phnom Penh">{{ form_data.party_b_address | default('') }}</textarea>
                 </div>
                 <div class="col-md-6">
-                    <label for="focalPersonAName" class="form-label">Focal Person A Name</label>
-                    <input type="text" class="form-control" id="focalPersonAName" name="focalPersonAName" value="{{ form_data.focalPersonAName | default('') }}" placeholder="e.g., Mr. Mar Sophal">
+                    <label for="focal_person_a_name" class="form-label">Focal Person A Name</label>
+                    <input type="text" class="form-control" id="focal_person_a_name" name="focal_person_a_name" value="{{ form_data.focal_person_a_name | default('') }}" placeholder="e.g., Mr. Mar Sophal">
                 </div>
                 <div class="col-md-6">
-                    <label for="focalPersonAPosition" class="form-label">Focal Person A Position</label>
-                    <input type="text" class="form-control" id="focalPersonAPosition" name="focalPersonAPosition" value="{{ form_data.focalPersonAPosition | default('') }}" placeholder="e.g., PALI Program Manager">
+                    <label for="focal_person_a_position" class="form-label">Focal Person A Position</label>
+                    <input type="text" class="form-control" id="focal_person_a_position" name="focal_person_a_position" value="{{ form_data.focal_person_a_position | default('') }}" placeholder="e.g., PALI Program Manager">
                 </div>
                 <div class="col-md-6">
-                    <label for="focalPersonAPhone" class="form-label">Focal Person A Phone</label>
-                    <input type="tel" class="form-control" id="focalPersonAPhone" name="focalPersonAPhone" value="{{ form_data.focalPersonAPhone | default('') }}" placeholder="e.g., 012 845 091">
+                    <label for="focal_person_a_phone" class="form-label">Focal Person A Phone</label>
+                    <input type="tel" class="form-control" id="focal_person_a_phone" name="focal_person_a_phone" value="{{ form_data.focal_person_a_phone | default('') }}" placeholder="e.g., 012 845 091">
                 </div>
                 <div class="col-md-6">
-                    <label for="focalPersonAEmail" class="form-label">Focal Person A Email</label>
-                    <input type="email" class="form-control" id="focalPersonAEmail" name="focalPersonAEmail" value="{{ form_data.focalPersonAEmail | default('') }}" placeholder="e.g., sophal@ngoforum.org.kh">
+                    <label for="focal_person_a_email" class="form-label">Focal Person A Email</label>
+                    <input type="email" class="form-control" id="focal_person_a_email" name="focal_person_a_email" value="{{ form_data.focal_person_a_email | default('') }}" placeholder="e.g., sophal@ngoforum.org.kh">
                 </div>
             </div>
 
@@ -143,38 +143,38 @@
             <div class="section-header">Agreement Details</div>
             <div class="row g-3">
                 <div class="col-md-4">
-                    <label for="agreementStartDate" class="form-label">Agreement Start Date</label>
+                    <label for="agreement_start_date" class="form-label">Agreement Start Date</label>
                     <div class="input-group">
-                        <input type="date" class="form-control" id="agreementStartDate" name="agreementStartDate" value="{{ form_data.agreementStartDate | default('') }}" required aria-describedby="agreementStartDateIcon">
-                        <span class="input-group-text" id="agreementStartDateIcon">
+                        <input type="date" class="form-control" id="agreement_start_date" name="agreement_start_date" value="{{ form_data.agreement_start_date | default('') }}" required aria-describedby="agreement_start_date_icon">
+                        <span class="input-group-text" id="agreement_start_date_icon">
                             <i class="bi bi-calendar"></i>
                         </span>
                         <div class="invalid-feedback">Please select a start date.</div>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <label for="agreementEndDate" class="form-label">Agreement End Date</label>
+                    <label for="agreement_end_date" class="form-label">Agreement End Date</label>
                     <div class="input-group">
-                        <input type="date" class="form-control" id="agreementEndDate" name="agreementEndDate" value="{{ form_data.agreementEndDate | default('') }}" required aria-describedby="agreementEndDateIcon">
-                        <span class="input-group-text" id="agreementEndDateIcon">
+                        <input type="date" class="form-control" id="agreement_end_date" name="agreement_end_date" value="{{ form_data.agreement_end_date | default('') }}" required aria-describedby="agreement_end_date_icon">
+                        <span class="input-group-text" id="agreement_end_date_icon">
                             <i class="bi bi-calendar"></i>
                         </span>
                         <div class="invalid-feedback">Please select an end date.</div>
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <label for="totalFeeUSD" class="form-label">Total Fee USD (Gross)</label>
-                    <input type="number" class="form-control" id="totalFeeUSD" name="totalFeeUSD" value="{{ form_data.totalFeeUSD | default('') }}" min="0" step="0.01" required>
+                    <label for="total_fee_usd" class="form-label">Total Fee USD (Gross)</label>
+                    <input type="number" class="form-control" id="total_fee_usd" name="total_fee_usd" value="{{ form_data.total_fee_usd | default('') }}" min="0" step="0.01" required>
                     <div class="invalid-feedback">Please enter a valid total fee.</div>
                 </div>
                 <div class="col-md-12">
-                    <label for="totalFeeWords" class="form-label">Total Fee in Words</label>
-                    <input type="text" class="form-control" id="totalFeeWords" name="totalFeeWords" value="{{ form_data.totalFeeWords | default('') }}" readonly>
+                    <label for="total_fee_words" class="form-label">Total Fee in Words</label>
+                    <input type="text" class="form-control" id="total_fee_words" name="total_fee_words" value="{{ form_data.total_fee_words | default('') }}" readonly>
                     <div class="invalid-feedback">Total fee in words will be auto-generated.</div>
                 </div>
                 <div class="col-12" id="installmentContainer">
                     <label class="form-label">Payment Installments</label>
-                    {% for installment in form_data.paymentInstallments | default([{'description': '', 'deliverables': '', 'dueDate': ''}]) %}
+                    {% for installment in form_data.payment_installments | default([{'description': '', 'deliverables': '', 'dueDate': ''}]) %}
                     <div class="installment-container mb-3 border p-3 rounded">
                         <div class="row g-3">
                             <div class="col-12">
@@ -208,8 +208,8 @@
                     <button type="button" class="btn btn-primary btn-add-installment" onclick="addInstallmentField()">Add Payment Installment</button>
                 </div>
                 <div class="col-12">
-                    <label for="workshopDescription" class="form-label">Workshop Description</label>
-                    <input type="text" class="form-control" id="workshopDescription" name="workshopDescription" value="{{ form_data.workshopDescription | default('') }}" placeholder="e.g., Multi-stakeholder workshop">
+                    <label for="workshop_description" class="form-label">Workshop Description</label>
+                    <input type="text" class="form-control" id="workshop_description" name="workshop_description" value="{{ form_data.workshop_description | default('') }}" placeholder="e.g., Multi-stakeholder workshop">
                 </div>
             </div>
 
@@ -261,8 +261,8 @@
             <div class="section-header">Signatures</div>
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label for="partyBSignatureNameConfirm" class="form-label">Party B Signature Name (Confirm)</label>
-                    <input type="text" class="form-control" id="partyBSignatureNameConfirm" name="partyBSignatureNameConfirm" value="{{ form_data.partyBSignatureNameConfirm | default('') }}" required>
+                    <label for="party_b_signature_name_confirm" class="form-label">Party B Signature Name (Confirm)</label>
+                    <input type="text" class="form-control" id="party_b_signature_name_confirm" name="party_b_signature_name_confirm" value="{{ form_data.party_b_signature_name_confirm | default('') }}" required>
                     <div class="invalid-feedback">Please confirm Party B signature name.</div>
                 </div>
                 <div class="col-md-6">
@@ -335,17 +335,17 @@
         return words ? words + ' US Dollars only' : 'Zero US Dollars only';
     }
 
-    // Update totalFeeWords on input
-    document.getElementById('totalFeeUSD').addEventListener('input', function () {
+    // Update total_fee_words on input
+    document.getElementById('total_fee_usd').addEventListener('input', function () {
         const totalFeeUSD = parseFloat(this.value);
-        const totalFeeWordsInput = document.getElementById('totalFeeWords');
+        const totalFeeWordsInput = document.getElementById('total_fee_words');
         totalFeeWordsInput.value = numberToWords(totalFeeUSD);
     });
 
-    // Auto-update Party B Signature Name (Confirm) on input
-    document.getElementById('partyBSignatureName').addEventListener('input', function () {
+    // Auto-update party_b_signature_name_confirm on input
+    document.getElementById('party_b_signature_name').addEventListener('input', function () {
         const partyBSignatureName = this.value;
-        const partyBSignatureNameConfirm = document.getElementById('partyBSignatureNameConfirm');
+        const partyBSignatureNameConfirm = document.getElementById('party_b_signature_name_confirm');
         partyBSignatureNameConfirm.value = partyBSignatureName;
     });
 
@@ -448,7 +448,7 @@
         container.appendChild(newArticle);
     }
 
-    // Initialize Date Pickers, Remove Buttons, and totalFeeWords
+    // Initialize Date Pickers, Remove Buttons, and total_fee_words
     document.addEventListener('DOMContentLoaded', function () {
         // Initialize date pickers
         const dateInputs = document.querySelectorAll('input[type="date"]');
@@ -479,16 +479,16 @@
             });
         });
 
-        // Initialize totalFeeWords if totalFeeUSD has a value
-        const totalFeeUSD = document.getElementById('totalFeeUSD').value;
+        // Initialize total_fee_words if total_fee_usd has a value
+        const totalFeeUSD = document.getElementById('total_fee_usd').value;
         if (totalFeeUSD) {
-            document.getElementById('totalFeeWords').value = numberToWords(parseFloat(totalFeeUSD));
+            document.getElementById('total_fee_words').value = numberToWords(parseFloat(totalFeeUSD));
         }
 
-        // Initialize Party B Signature Name (Confirm) if Party B Signature Name has a value
-        const partyBSignatureName = document.getElementById('partyBSignatureName').value;
+        // Initialize party_b_signature_name_confirm if party_b_signature_name has a value
+        const partyBSignatureName = document.getElementById('party_b_signature_name').value;
         if (partyBSignatureName) {
-            document.getElementById('partyBSignatureNameConfirm').value = partyBSignatureName;
+            document.getElementById('party_b_signature_name_confirm').value = partyBSignatureName;
         }
     });
 </script>
