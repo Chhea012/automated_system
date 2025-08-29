@@ -9,16 +9,24 @@
         <div class="d-flex flex-wrap gap-3 mb-4 align-items-center justify-content-between">
             <a href="{{ url_for('contracts.create') }}" class="btn btn-primary btn-create"><i class='bx bx-plus-circle'></i> Create New Contract</a>
             <div class="d-flex flex-wrap gap-3 align-items-center">
-                <form action="{{ url_for('contracts.index') }}" method="get" class="input-group w-auto">
+                <form id="searchForm" action="{{ url_for('contracts.index') }}" method="get" class="input-group w-auto position-relative">
                     <span class="input-group-text"><i class='bx bx-search'></i></span>
-                    <input type="text" name="search" class="form-control" placeholder="Search by Project Title" value="{{ search_query }}">
-                    <button type="submit" class="btn btn-primary">Search</button>
+                    <input type="text" name="search" id="searchInput" class="form-control" placeholder="Search by Contract Number, Project Title, or Party B" value="{{ search_query }}" aria-label="Search contracts">
+                    <button type="button" id="clearSearch" class="btn btn-outline-secondary d-none" title="Clear search"><i class='bx bx-x'></i></button>
+                    <button type="submit" class="btn btn-primary" id="searchButton">Search</button>
+                    <div id="searchSpinner" class="spinner-border spinner-border-sm position-absolute" style="right: 80px; top: 50%; transform: translateY(-50%); display: none;" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
                 </form>
                 <div class="input-group w-auto">
                     <label class="input-group-text" for="sortSelect">Sort</label>
                     <select id="sortSelect" name="sort" class="form-select" onchange="this.form.submit()">
-                        <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Project Title (ASC)</option>
-                        <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>Project Title (DESC)</option>
+                        <option value="project_title_asc" {% if sort_order == 'project_title_asc' %}selected{% endif %}>Project Title (ASC)</option>
+                        <option value="project_title_desc" {% if sort_order == 'project_title_desc' %}selected{% endif %}>Project Title (DESC)</option>
+                        <option value="start_date_asc" {% if sort_order == 'start_date_asc' %}selected{% endif %}>Start Date (ASC)</option>
+                        <option value="start_date_desc" {% if sort_order == 'start_date_desc' %}selected{% endif %}>Start Date (DESC)</option>
+                        <option value="total_fee_asc" {% if sort_order == 'total_fee_asc' %}selected{% endif %}>Total Fee (ASC)</option>
+                        <option value="total_fee_desc" {% if sort_order == 'total_fee_desc' %}selected{% endif %}>Total Fee (DESC)</option>
                     </select>
                 </div>
                 <div class="input-group w-auto">
@@ -141,4 +149,61 @@
         </div>
     </div>
 </div>
+
+<!-- JavaScript for Debouncing and Clear Search -->
+<script>
+    // Debounce function to limit search requests
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Handle search input
+    const searchForm = document.getElementById('searchForm');
+    const searchInput = document.getElementById('searchInput');
+    const clearSearch = document.getElementById('clearSearch');
+    const searchButton = document.getElementById('searchButton');
+    const searchSpinner = document.getElementById('searchSpinner');
+
+    // Show/hide clear button based on input
+    searchInput.addEventListener('input', () => {
+        clearSearch.classList.toggle('d-none', searchInput.value.length === 0);
+    });
+
+    // Clear search input
+    clearSearch.addEventListener('click', () => {
+        searchInput.value = '';
+        clearSearch.classList.add('d-none');
+        searchForm.submit();
+    });
+
+    // Debounced search on input
+    const debouncedSearch = debounce(() => {
+        searchSpinner.style.display = 'block';
+        searchButton.disabled = true;
+        searchForm.submit();
+    }, 500);
+
+    searchInput.addEventListener('input', debouncedSearch);
+
+    // Hide spinner and enable button after form submission
+    searchForm.addEventListener('submit', () => {
+        searchSpinner.style.display = 'block';
+        searchButton.disabled = true;
+    });
+
+    // Ensure spinner is hidden on page load
+    window.addEventListener('load', () => {
+        searchSpinner.style.display = 'none';
+        searchButton.disabled = false;
+        clearSearch.classList.toggle('d-none', searchInput.value.length === 0);
+    });
+</script>
 {% endblock %}

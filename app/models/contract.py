@@ -1,5 +1,4 @@
 from app import db
-import json
 import uuid
 
 class Contract(db.Model):
@@ -24,7 +23,6 @@ class Contract(db.Model):
     total_fee_usd = db.Column(db.Numeric(10, 2), default=0.0)
     gross_amount_usd = db.Column(db.Numeric(10, 2), default=0.0)
     tax_percentage = db.Column(db.Numeric(5, 2), default=15.0)
-    payment_installment_desc = db.Column(db.String(255), default='')
     payment_gross = db.Column(db.String(50), default='')
     payment_net = db.Column(db.String(50), default='')
     workshop_description = db.Column(db.String(255), default='')
@@ -40,12 +38,14 @@ class Contract(db.Model):
     deliverables = db.Column(db.Text, default='')
     output_description = db.Column(db.Text, default='')
     custom_article_sentences = db.Column(db.JSON, default=lambda: {})
+    payment_installments = db.Column(db.JSON, default=lambda: [])
 
     def __repr__(self):
         return f"<Contract {self.contract_number}>"
 
     def to_dict(self):
         custom_sentences = self.custom_article_sentences if isinstance(self.custom_article_sentences, dict) else {}
+        payment_installments = self.payment_installments if isinstance(self.payment_installments, list) else []
         return {
             'id': self.id or '',
             'project_title': self.project_title or '',
@@ -65,7 +65,7 @@ class Contract(db.Model):
             'total_fee_usd': float(self.total_fee_usd) if self.total_fee_usd is not None else 0.0,
             'gross_amount_usd': float(self.gross_amount_usd) if self.gross_amount_usd is not None else 0.0,
             'tax_percentage': float(self.tax_percentage) if self.tax_percentage is not None else 15.0,
-            'payment_installment_desc': self.payment_installment_desc or '',
+            'payment_installments': payment_installments,
             'payment_gross': self.payment_gross or '',
             'payment_net': self.payment_net or '',
             'workshop_description': self.workshop_description or '',
