@@ -42,7 +42,7 @@
                         <i class='bx bx-download'></i> Export
                     </button>
                     <ul class="dropdown-menu" aria-labelledby="exportDropdown">
-                        <li><a class="dropdown-item" href="#">Export to Excel</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('contracts.export_excel', search=search_query, sort=sort_order) }}">Export to Excel</a></li>
                         <li><a class="dropdown-item" href="#">Export to CSV</a></li>
                     </ul>
                 </div>

@@ -9,6 +9,9 @@ from io import BytesIO
 import logging
 from num2words import num2words
 import re
+from openpyxl import Workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -19,6 +22,11 @@ contracts_bp = Blueprint('contracts', __name__)
 # Helper function to format date
 def format_date(iso_date):
     try:
+        if not iso_date or iso_date.lower() in ['n/a', '']:
+            return ''
+        # Handle non-standard date formats like "3rd Week Oct 2024"
+        if 'week' in iso_date.lower():
+            return iso_date
         date = datetime.strptime(iso_date, '%Y-%m-%d')
         day = date.day
         month = date.strftime('%B')
@@ -26,7 +34,7 @@ def format_date(iso_date):
         suffix = 'th' if 11 <= day % 100 <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
         return f"{day}{suffix} {month} {year}"
     except (ValueError, TypeError):
-        return iso_date or 'N/A'
+        return iso_date or ''
 
 # Helper function to convert number to words
 def number_to_words(num):
@@ -48,10 +56,21 @@ def normalize_to_list(field):
     if isinstance(field, list):
         return [str(item).strip() for item in field if str(item).strip()]
     elif isinstance(field, str):
-        return [item.strip() for item in field.split('; ') if item.strip()]
+        return [item.strip() for item in field.split('\n') if item.strip()]
     return []
 
-# Helper function to calculate payment gross and net
+# Helper function to calculate payment gross and net for a single installment
+def calculate_installment_payments(total_fee_usd, tax_percentage, percentage):
+    try:
+        gross_amount = (total_fee_usd * percentage) / 100
+        tax_amount = gross_amount * (tax_percentage / 100)
+        net_amount = gross_amount - tax_amount
+        return gross_amount, tax_amount, net_amount
+    except Exception as e:
+        logger.error(f"Error calculating installment payments: {str(e)}")
+        return 0.0, 0.0, 0.0
+
+# Helper function to calculate total payment gross and net
 def calculate_payments(total_fee_usd, tax_percentage, payment_installments):
     try:
         total_gross = 0.0
@@ -59,7 +78,7 @@ def calculate_payments(total_fee_usd, tax_percentage, payment_installments):
         for installment in payment_installments:
             match = re.search(r'\((\d+\.?\d*)\%\)', installment['description'])
             if not match:
-                raise ValueError(f"Invalid percentage format in installment: {installment['description']}")
+                continue
             percentage = float(match.group(1))
             gross_amount = (total_fee_usd * percentage) / 100
             net_amount = gross_amount * (1 - tax_percentage / 100)
@@ -68,7 +87,7 @@ def calculate_payments(total_fee_usd, tax_percentage, payment_installments):
         return f"${total_gross:.2f} USD", f"${total_net:.2f} USD"
     except Exception as e:
         logger.error(f"Error calculating payments: {str(e)}")
-        raise
+        return "$0.00 USD", "$0.00 USD"
 
 # List contracts with pagination, search, and sorting
 @contracts_bp.route('/')
@@ -115,6 +134,160 @@ def index():
         flash(f"Error loading contracts: {str(e)}", 'danger')
         return render_template('contracts/index.html', contracts=[], pagination=None,
                               search_query='', sort_order='project_title_asc', entries_per_page=10)
+
+# Export contracts to Excel
+@contracts_bp.route('/export_excel')
+@login_required
+def export_excel():
+    try:
+        search_query = request.args.get('search', '', type=str)
+        sort_order = request.args.get('sort', 'project_title_asc', type=str)
+
+        # Build query based on search and sort parameters
+        query = Contract.query
+        if search_query:
+            query = query.filter(
+                (Contract.project_title.ilike(f'%{search_query}%')) |
+                (Contract.contract_number.ilike(f'%{search_query}%')) |
+                (Contract.party_b_signature_name.ilike(f'%{search_query}%'))
+            )
+
+        if sort_order == 'project_title_asc':
+            query = query.order_by(Contract.project_title.asc())
+        elif sort_order == 'project_title_desc':
+            query = query.order_by(Contract.project_title.desc())
+        elif sort_order == 'start_date_asc':
+            query = query.order_by(Contract.agreement_start_date.asc())
+        elif sort_order == 'start_date_desc':
+            query = query.order_by(Contract.agreement_start_date.desc())
+        elif sort_order == 'total_fee_asc':
+            query = query.order_by(Contract.total_fee_usd.asc())
+        elif sort_order == 'total_fee_desc':
+            query = query.order_by(Contract.total_fee_usd.desc())
+
+        contracts = [contract.to_dict() for contract in query.all()]
+        data = []
+
+        # Prepare data for Excel, matching provided layout
+        for contract in contracts:
+            total_fee_usd = float(contract['total_fee_usd']) if contract['total_fee_usd'] else 0.0
+            tax_percentage = float(contract.get('tax_percentage', 15.0))
+            if contract.get('project_title') == 'REJECTED':
+                continue
+            payment_installments = contract.get('payment_installments', [])
+            for idx, installment in enumerate(payment_installments, 1):
+                match = re.search(r'\((\d+\.?\d*)\%\)', installment['description'])
+                percentage = float(match.group(1)) if match else 0.0
+                due_date = format_date(installment.get('dueDate', ''))
+                gross, tax, net = calculate_installment_payments(total_fee_usd, tax_percentage, percentage) if match else (0.0, 0.0, 0.0)
+                payment_details = (
+                    f"Gross: {gross:.2f} USD\n"
+                    f"Tax({tax_percentage:.1f}%): {tax:.2f} USD\n"
+                    f"Net: {net:.2f} USD"
+                )
+                attached = normalize_to_list(contract.get('attached', ''))
+                attached_str = '\n'.join(attached) if attached else ''
+                data.append({
+                    'Contract No.': contract['contract_number'] or '',
+                    'Consultant': contract['party_b_signature_name'] or '',
+                    'Agreement Name': contract['project_title'] or '',
+                    'Term of Payment': f"Installment #{idx} ({percentage:.1f}%)" if percentage else installment['description'],
+                    'Date': due_date,
+                    '': payment_details,
+                    'Attached': attached_str
+                })
+            # Add blank row after each contract
+            data.append({
+                'Contract No.': '',
+                'Consultant': '',
+                'Agreement Name': '',
+                'Term of Payment': '',
+                'Date': '',
+                '': '',
+                'Attached': ''
+            })
+
+        # Create DataFrame
+        df = pd.DataFrame(data)
+
+        # Initialize workbook and worksheet
+        output = BytesIO()
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'List'
+
+        # Define headers
+        headers = ['Contract No.', 'Consultant', 'Agreement Name', 'Term of Payment', '', '', 'Attached']
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_num, value=header)
+            cell.fill = PatternFill(start_color="90EE90", end_color="90EE90", fill_type="solid")
+            cell.font = Font(bold=True, size=12)
+            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+            cell.border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin')
+            )
+
+        # Write data to Excel
+        for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=False), 2):
+            for c_idx, value in enumerate(row, 1):
+                cell = ws.cell(row=r_idx, column=c_idx, value=value)
+                cell.alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
+                cell.border = Border(
+                    left=Side(style='thin'),
+                    right=Side(style='thin'),
+                    top=Side(style='thin'),
+                    bottom=Side(style='thin')
+                )
+                # Set row height for payment details and attached columns
+                if c_idx in [6, 7]:
+                    ws.row_dimensions[r_idx].height = 60
+
+        # Merge cells for Contract No., Consultant, and Agreement Name
+        current_contract = None
+        start_row = 2
+        for idx, row in enumerate(data, 2):
+            if row['Contract No.'] == '' and current_contract is not None:
+                if idx - 1 > start_row:  # Only merge if there are multiple rows
+                    ws.merge_cells(start_row=start_row, start_column=1, end_row=idx-1, end_column=1)
+                    ws.merge_cells(start_row=start_row, start_column=2, end_row=idx-1, end_column=2)
+                    ws.merge_cells(start_row=start_row, start_column=3, end_row=idx-1, end_column=3)
+                    for col in [1, 2, 3]:
+                        ws.cell(row=start_row, column=col).alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+                current_contract = None
+                start_row = idx + 1
+            elif row['Contract No.'] and current_contract != row['Contract No.']:
+                current_contract = row['Contract No.']
+                start_row = idx
+        # Merge cells for the last contract
+        if current_contract is not None and len(data) > start_row:
+            ws.merge_cells(start_row=start_row, start_column=1, end_row=len(data), end_column=1)
+            ws.merge_cells(start_row=start_row, start_column=2, end_row=len(data), end_column=2)
+            ws.merge_cells(start_row=start_row, start_column=3, end_row=len(data), end_column=3)
+            for col in [1, 2, 3]:
+                ws.cell(row=start_row, column=col).alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+        # Adjust column widths
+        column_widths = [15, 20, 50, 20, 15, 25, 20]
+        for i, width in enumerate(column_widths, 1):
+            ws.column_dimensions[chr(64 + i)].width = width
+
+        # Save to BytesIO
+        wb.save(output)
+        output.seek(0)
+
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name='Consultancy_Agreement_List.xlsx'
+        )
+    except Exception as e:
+        logger.error(f"Error exporting to Excel: {str(e)}")
+        flash(f"Error exporting to Excel: {str(e)}", 'danger')
+        return redirect(url_for('contracts.index'))
 
 # Create contract
 @contracts_bp.route('/create', methods=['GET', 'POST'])
