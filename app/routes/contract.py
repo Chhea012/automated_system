@@ -735,8 +735,8 @@ def view(contract_id):
         )
         contract_data['total_gross_amount'] = total_gross_amount
         contract_data['total_net_amount'] = total_net_amount
-        contract_data['total_gross'] = f"${total_gross_amount:.2f} USD"
-        contract_data['total_net'] = f"${total_net_amount:.2f} USD"
+        contract_data['total_gross'] = f"USD{total_gross_amount:.2f} "
+        contract_data['total_net'] = f"USD{total_net_amount:.2f} "
 
         # Process payment installments
         for installment in contract_data.get('payment_installments', []):
@@ -754,7 +754,7 @@ def view(contract_id):
                 'number': 1,
                 'title': 'TERMS OF REFERENCE',
                 'content': (
-                    '“Party B” shall perform tasks as stated in the attached TOR (annex-1) to “Party A”, '
+                    '“Party B” shall perform tasks as stated in the attached TOR <strong> (annex-1)</strong> to “Party A”, '
                     'and deliver each milestone as stipulated in article 4.\n\n'
                     'The work shall be of good quality and well performed with the acceptance by “Party A.”'
                 ),
@@ -775,17 +775,16 @@ def view(contract_id):
                 'number': 3,
                 'title': 'PROFESSIONAL FEE',
                 'content': (
-                    f'The professional fee is the total amount of {contract_data["total_gross"]} '
-                    f'({contract_data["total_fee_words"]}) including tax for the whole assignment period.\n\n'
-                    f'Total Service Fee: {contract_data["total_gross"]}\n'
-                    f'Withholding Tax {tax_percentage}%: ${contract_data["total_gross_amount"]:.2f} * {tax_percentage/100:.2f} = '
-                    f'${contract_data["total_gross_amount"] * (tax_percentage/100):.2f}\n'
-                    f'Net amount: {contract_data["total_net"]}\n\n'
-                    '“Party B” is responsible to issue the Invoice (net amount) and receipt (when receiving the payment) '
-                    'with the total amount as stipulated in each instalment as in the Article 4 after having done the '
-                    'agreed deliverable tasks, for payment request. The payment will be processed after the satisfaction '
-                    'from “Party A” as of the required deliverable tasks as stated in Article 4.\n\n'
-                    '“Party B” is responsible for all related taxes payable to the government department.'
+                    f'The professional fee is the total amount of<span style="font-size: 16px;"> <strong> {contract_data["total_gross"]} </strong></span>'
+                    f'<span style="font-size: 16px; "><strong> ({contract_data["total_fee_words"]} only)</strong></span> including tax for the whole assignment period.\n\n'
+                    f'<span style="font-size: 16px; margin-left:40px;"><strong>Total Service Fee: {contract_data["total_gross"]}</strong></span>\n'
+                    f'<span style="font-size: 16px; margin-left:40px;"><strong>Withholding Tax {tax_percentage}%: USD{contract_data["total_gross_amount"] * (tax_percentage/100):.2f}</strong></span>\n'
+                    f'<span style="font-size: 16px; margin-left:40px;"><strong>Net amount: {contract_data["total_net"]}</strong></span>\n\n'
+                    f'“Party B” is responsible to issue the Invoice (net amount) and receipt (when receiving the payment) '
+                    f'with the total amount as stipulated in each instalment as in the Article 4 after having done the '
+                    f'agreed deliverable tasks, for payment request. The payment will be processed after the satisfaction '
+                    f'from “Party A” as of the required deliverable tasks as stated in <strong>Article 4.</strong>\n\n'
+                    f'“Party B” is responsible for all related taxes payable to the government department.'
                 ),
                 'table': None
             },
@@ -799,9 +798,9 @@ def view(contract_id):
                         {
                             'Installment': installment['description'],
                             'Total Amount (USD)': (
-                                f'· Gross: ${installment["gross_amount"]:.2f} USD\n'
-                                f'· Tax {tax_percentage}%: ${installment["tax_amount"]:.2f} USD\n'
-                                f'· Net pay: ${installment["net_amount"]:.2f} USD'
+                                f'· Gross: ${installment["gross_amount"]:.2f} \n'
+                                f'· Tax {tax_percentage}%: ${installment["tax_amount"]:.2f} \n'
+                                f'· Net pay: ${installment["net_amount"]:.2f} '
                             ),
                             'Deliverable': installment['deliverables'].replace('; ', '\n· '),
                             'Due date': installment['dueDate_display']
@@ -824,10 +823,10 @@ def view(contract_id):
                 'title': 'MONITORING and COORDINATION',
                 'content': (
                     f'“Party A” shall monitor and evaluate the progress of the agreement toward its objective, '
-                    f'including the activities implemented. {contract_data.get("focal_person_a_name", "N/A")}, '
-                    f'{contract_data.get("focal_person_a_position", "N/A")} (Telephone {contract_data.get("focal_person_a_phone", "N/A")} '
+                    f'including the activities implemented. <strong>{contract_data.get("focal_person_a_name", "N/A")}</strong>, '
+                    f'<strong>{contract_data.get("focal_person_a_position", "N/A")}</strong> (Telephone {contract_data.get("focal_person_a_phone", "N/A")} '
                     f'Email: <span style="color: blue; text-decoration: underline;">{contract_data.get("focal_person_a_email", "N/A")}</span>) is the focal contact person of “Party A” and '
-                    f'{contract_data.get("party_b_signature_name", "N/A")}, Freelance Consultant '
+                    f'<strong>{contract_data.get("party_b_signature_name", "N/A")}</strong>, <strong>Freelance Consultant</strong> '
                     f'(HP. {contract_data.get("party_b_phone", "N/A")}, E-mail: <span style="color: blue; text-decoration: underline;">{contract_data.get("party_b_email", "N/A")}</span>) '
                     f'the focal contact person of the “Party B”. The focal contact person of “Party A” and “Party B” will work together '
                     f'for overall coordination including reviewing and meeting discussions during the assignment process.'
@@ -838,7 +837,7 @@ def view(contract_id):
                 'number': 7,
                 'title': 'CONFIDENTIALITY',
                 'content': (
-                    f'All outputs produced, with the exception of the “{contract_data.get("project_title", "N/A")}”, '
+                    f'All outputs produced, with the exception of the <strong> “{contract_data.get("project_title", "N/A")}” </strong>, '
                     f'which is a contribution from, and to be claimed as a public document by the main author and co-author '
                     f'in associated, and/or under this agreement, shall be the property of “Party A”. The “Party B” agrees '
                     f'to not disclose any confidential information, of which he/she may take cognizance in the performance '
@@ -916,31 +915,35 @@ def view(contract_id):
                     'Unresolved issues may, upon the option of either party and written notice to the other party, be referred to '
                     'for arbitration. Failure by the “Party B” or “Party A” to dispute a decision arising from such arbitration in '
                     'writing within thirty (30) calendar days of receipt of a final decision shall result in such final decision '
-                    'being deemed binding upon either the “Party B” and/or “Party A”. All expenses related to arbitration will be '
-                    'shared equally between both parties.'
+                    'being deemed binding upon either the “Party B” and/or “Party A”.<strong> All expenses related to arbitration will be </strong> '
+                    '<strong>shared equally between both parties.</strong>'
                 ),
                 'table': None
             },
-            {
+             {
                 'number': 14,
                 'title': 'TERMINATION',
                 'content': (
-                    'The “Party A” or the “Party B” may, by notice in writing, terminate this agreement under the following conditions:\n\n'
-                    '1. “Party A” may terminate this agreement at any time with a week notice if “Party B” fails to comply with the '
-                    'terms and conditions of this agreement.\n\n'
-                    '2. For gross professional misconduct (as defined in the NGOF Human Resource Policy), “Party A” may terminate '
-                    'this agreement immediately without prior notice. “Party A” will notify “Party B” in a letter that will indicate '
-                    'the reason for termination as well as the effective date of termination.\n\n'
-                    '3. “Party B” may terminate this agreement at any time with a one-week notice if “Party A” fails to comply with '
-                    'the terms and conditions of this agreement. “Party B” will notify “Party A” in a letter that will indicate the '
-                    'reason for termination as well as the effective date of termination. But if “Party B” intended to terminate this '
-                    'agreement by itself without any appropriate reason or fails of implementing the assignment, “Party B” has to '
-                    'refund the full amount of fees received to “Party A”.\n\n'
-                    '4. If for any reason either “Party A” or the “Party B” decides to terminate this agreement, “Party B” shall be '
-                    'paid pro-rata for the work already completed by “Party A”. This payment will require the submission of a timesheet '
-                    'that demonstrates work completed as well as the handing over of any deliverables completed or partially completed. '
-                    'In case “Party B” has received payment for services under the agreement which have not yet been performed; the '
-                    'appropriate portion of these fees would be refunded by “Party B” to “Party A”.'
+                    f'<span style="font-size: 14px;">'
+                    f'The “Party A” or the “Party B” may, by notice in writing, terminate this agreement under the following conditions:\n\n'
+                    f'<ol>\n'
+                    f'<li><span style="font-size: 14px;">“Party A” may terminate this agreement at any time with a week notice if “Party B” fails to comply with the '
+                    f'terms and conditions of this agreement.</span></li>\n\n'
+                    f'<li><span style="font-size: 14px;">For gross professional misconduct (as defined in the NGOF Human Resource Policy), “Party A” may terminate '
+                    f'this agreement immediately without prior notice. “Party A” will notify “Party B” in a letter that will indicate '
+                    f'the reason for termination as well as the effective date of termination.</span></li>\n\n'
+                    f'<li><span style="font-size: 14px;">“Party B” may terminate this agreement at any time with a one-week notice if “Party A” fails to comply with '
+                    f'the terms and conditions of this agreement. “Party B” will notify “Party A” in a letter that will indicate the '
+                    f'reason for termination as well as the effective date of termination. But if “Party B” intended to terminate this '
+                    f'agreement by itself without any appropriate reason or fails of implementing the assignment, “Party B” has to '
+                    f'refund the full amount of fees received to “Party A”.</span></li>\n\n'
+                    f'<li><span style="font-size: 14px;">If for any reason either “Party A” or the “Party B” decides to terminate this agreement, “Party B” shall be '
+                    f'paid pro-rata for the work already completed by “Party A”. This payment will require the submission of a timesheet '
+                    f'that demonstrates work completed as well as the handing over of any deliverables completed or partially completed. '
+                    f'In case “Party B” has received payment for services under the agreement which have not yet been performed; the '
+                    f'appropriate portion of these fees would be refunded by “Party B” to “Party A”.</span></li>\n'
+                    f'</ol>'
+                    f'</span>'
                 ),
                 'table': None
             },
@@ -981,7 +984,6 @@ def view(contract_id):
         logger.error(f"Error viewing contract {contract_id}: {str(e)}")
         flash(f"Error viewing contract: {str(e)}", 'danger')
         return redirect(url_for('contracts.index'))
-
 # Delete contract
 @contracts_bp.route('/delete/<contract_id>', methods=['POST'])
 @login_required

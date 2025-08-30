@@ -9,23 +9,23 @@
 <div class="container d-flex justify-content-center mt-3">
     <div class="container-card shadow-sm p-5 mb-3" style="font-family: Calibri, sans-serif; max-width: 800px;">
         <!-- Header -->
-        <h1 class="text-center mt-5" style="font-size: 24px; font-weight: bold;">The Service Agreement</h1>
-        <p class="text-center" style="font-weight: bold;">ON</p>
-        <h2 class="text-center" style="font-size: 18px;">{{ contract.project_title or 'N/A' }}</h2>
-        <p class="text-center" style="font-weight: bold;">No.: {{ contract.contract_number or 'N/A' }}</p>
-        <p class="text-center">BETWEEN</p>
+        <h1 class="text-center mt-5" style="font-size: 18px; font-weight: bold;">The Service Agreement</h1>
+        <p class="text-center" style="font-weight: bold; font-size: 14px;">ON</p>
+        <h2 class="text-center" style="font-size: 18px;"><strong>{{ contract.project_title or 'N/A' }}</strong></h2>
+        <p class="text-center" style="font-weight: bold; font-size: 18px;">No.: {{ contract.contract_number or 'N/A' }}</p>
+        <p class="text-center" style="font-size: 16px;">BETWEEN</p>
 
         <!-- Party A -->
-        <p class="text-center">
+        <p class="text-center" style="font-size: 16px;">
             <strong>The NGO Forum on Cambodia</strong>, represented by <strong>{{ contract.party_a_signature_name or 'Mr. Soeung Saroeun' }}</strong>, {{ contract.party_a_position or 'Executive Director' }}.<br>
-            Address: {{ contract.party_a_address or '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia' }}.<br>
+            Address: {{ contract.party_a_address or '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia' }}..<br>
             hereinafter called the “<strong>Party A</strong>”
         </p>
 
-        <p class="text-center">AND</p>
+        <p class="text-center" style="font-size: 16px;">AND</p>
 
         <!-- Party B -->
-        <p class="text-center">
+        <p class="text-center" style="font-size: 16px;">
             <strong>{{ contract.party_b_position or 'Freelance Consultant' }} {{ contract.party_b_signature_name or 'N/A' }}</strong>,<br>
             Address: {{ contract.party_b_address or 'N/A' }}<br>
             H/P: {{ contract.party_b_phone or 'N/A' }}, E-mail: <span style="color: blue; text-decoration: underline;">{{ contract.party_b_email or 'N/A' }}</span><br>
@@ -33,20 +33,20 @@
         </p>
 
         <!-- Whereas Clauses -->
-        <p>
+        <p style="font-size: 14px;">
             Whereas NGOF is a legal entity registered with the Ministry of Interior (MOI) {{ contract.registration_number or '#304 សជណ' }} dated {{ contract.registration_date or '07 March 2012' }}.
         </p>
-        <p>
+        <p style="font-size: 14px;">
             Whereas NGOF will engage the services of “<strong>Party B</strong>” which accepts the engagement under the following terms and conditions.
         </p>
-        <p class="text-center" style="font-weight: bold;">Both Parties Agreed as follows:</p>
+        <p class="text-center" style="font-weight: bold; font-size: 14px;">Both Parties Agreed as follows:</p>
 
         <!-- Articles -->
         {% for article in standard_articles %}
         <h6 class="mb-1" style="font-weight: bold;">
             <span style="text-decoration: underline;">ARTICLE {{ article.number }}:</span> {{ article.title }}
         </h6>
-        <p style="white-space: pre-line;">
+        <p style="white-space: pre-line; font-size: 14px;">
             {{ article.content | replace('Party A', '<strong>Party A</strong>') | replace('Party B', '<strong>Party B</strong>') | safe }}
         </p>
         {% if article.table %}
@@ -70,21 +70,19 @@
                 {% endfor %}
             </tbody>
         </table>
-        
-        
         {% endif %}
         {% for custom in articles %}
         {% if custom.article_number | string == article.number | string %}
-        <p style="white-space: pre-line;">{{ custom.custom_sentence }}</p>
+        <p style="white-space: pre-line; font-size: 14px;">{{ custom.custom_sentence }}</p>
         {% endif %}
         {% endfor %}
         {% endfor %}
 
         <!-- Signatures -->
-        <p class="text-center mt-3 mb-2" style="font-weight: bold;">
+        <p class="text-center mt-3 mb-2" style="font-weight: bold; font-size: 15px;">
             Date: {{ contract.agreement_start_date_display or 'N/A' }}
         </p>
-        <table class="table table-borderless" style="margin-left: 17%;">
+        <table class="table table-borderless" style="margin-left: 17%; font-size: 15px;">
             <tr>
                 <td class="text-start" style="width: 40%;">
                     <div style="margin-bottom: 40px;">

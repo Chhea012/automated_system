@@ -249,6 +249,20 @@
     font-size: 1.5rem;
   }
 
+  /* Button icon styles */
+  .btn-sort {
+    transform: scale(1);
+    transition: transform 0.2s ease;
+  }
+
+  .btn-sort:hover {
+    transform: scale(1.05);
+  }
+
+  .btn-sort i {
+    font-size: 1.2rem;
+  }
+
   @media (max-width: 576px) {
     .modal-left .modal-dialog {
       max-width: 100%;
@@ -382,8 +396,12 @@
           </select>
         </div>
         <div class="col-md-5">
-          <button class="btn btn-outline-primary me-2" id="sortAscBtn">Sort ASC</button>
-          <button class="btn btn-outline-primary" id="sortDescBtn">Sort DESC</button>
+          <button class="btn btn-sort me-2 {% if sort|default('asc') == 'asc' %}btn-primary active{% else %}btn-outline-primary{% endif %}" id="sortAscBtn" title="Sort Ascending">
+            <i class="bx bx-sort-up"></i>
+          </button>
+          <button class="btn btn-sort {% if sort|default('asc') == 'desc' %}btn-primary active{% else %}btn-outline-primary{% endif %}" id="sortDescBtn" title="Sort Descending">
+            <i class="bx bx-sort-down"></i>
+          </button>
         </div>
       </div>
     </div>
