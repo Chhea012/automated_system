@@ -42,6 +42,7 @@ class Contract(db.Model):
     payment_installments = db.Column(db.JSON, default=lambda: [])
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     deleted_at = db.Column(db.DateTime, nullable=True)
+    
     def __repr__(self):
         return f"<Contract {self.contract_number}>"
 
@@ -85,5 +86,5 @@ class Contract(db.Model):
             'custom_article_sentences': custom_sentences,
             'articles': [{'article_number': str(k), 'custom_sentence': v} for k, v in custom_sentences.items()] if custom_sentences else [],
             'created_at': self.created_at,
-            'deleted_at': self.deleted_at  # Include in to_dict for potential future use
+            'deleted_at': self.deleted_at
         }
