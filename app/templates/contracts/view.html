@@ -4,6 +4,7 @@
 <!-- Navigation Buttons -->
 <div class="d-flex justify-content-center mt-3 mb-2 gap-2">
     <a href="{{ url_for('contracts.index') }}" class="btn btn-secondary">Back to List</a>
+    <a href="{{ url_for('contracts.export_docx', contract_id=contract.id) }}" class="btn btn-primary">Export to DOCX</a>
 </div>
 
 <div class="container d-flex justify-content-center mt-3">
