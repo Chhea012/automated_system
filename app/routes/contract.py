@@ -783,7 +783,7 @@ def view(contract_id):
                 'title': 'PROFESSIONAL FEE',
                 'content': (
                     f'The professional fee is the total amount of<span style="font-size: 16px;"> <strong> {contract_data["total_gross"]} </strong></span>'
-                    f'<span style="font-size: 16px; "><strong> ({contract_data["total_fee_words"]} only)</strong></span> including tax for the whole assignment period.\n\n'
+                    f'<span style="font-size: 16px; "><strong> ({contract_data["total_fee_words"]})</strong></span> including tax for the whole assignment period.\n\n'
                     f'<span style="font-size: 16px; margin-left:40px;"><strong>Total Service Fee: {contract_data["total_gross"]}</strong></span>\n'
                     f'<span style="font-size: 16px; margin-left:40px;"><strong>Withholding Tax {tax_percentage}%: USD{contract_data["total_gross_amount"] * (tax_percentage/100):.2f}</strong></span>\n'
                     f'<span style="font-size: 16px; margin-left:40px;"><strong>Net amount: {contract_data["total_net"]}</strong></span>\n\n'
@@ -1071,7 +1071,7 @@ def export_docx(contract_id):
                     f'The professional fee is the total amount of ',
                     contract_data["total_gross"],
                     f' (',
-                    f'{contract_data["total_fee_words"]} only',
+                    f'{contract_data["total_fee_words"]} ',
                     f') including tax for the whole assignment period.\n\n',
                     f'Total Service Fee: ',
                     contract_data["total_gross"],
@@ -1090,7 +1090,7 @@ def export_docx(contract_id):
                 ],
                 'bold_parts': [
                     contract_data["total_gross"],
-                    f'{contract_data["total_fee_words"]}',
+                    f'{contract_data["total_fee_words"]} ',
                     f'Total Service Fee: ',
                     contract_data["total_gross"],
                     f'Withholding Tax {tax_percentage}%: ',
@@ -1298,17 +1298,24 @@ def export_docx(contract_id):
         doc.styles['Normal'].font.name = 'Calibri'
         doc.styles['Normal'].font.size = Pt(11)
 
-        # Helper function to add paragraph with selective bolding for Party A and Party B
-        def add_paragraph(text, alignment=WD_ALIGN_PARAGRAPH.LEFT, bold=False, size=11, underline=False):
+        # Helper function to add paragraph with selective bolding, email formatting, and custom bold segments
+        def add_paragraph(text, alignment=WD_ALIGN_PARAGRAPH.LEFT, bold=False, size=11, underline=False, email_addresses=None, bold_segments=None):
             p = doc.add_paragraph()
             p.alignment = alignment
-            # Split text by “Party A” and “Party B” to apply bold formatting
-            parts = re.split(r'(“Party A”|“Party B”)', text)
+            email_addresses = email_addresses or []
+            bold_segments = bold_segments or []
+            # Create pattern to split by “Party A”, “Party B”, email addresses, and bold segments
+            pattern_parts = [re.escape(segment) for segment in email_addresses + bold_segments + ['“Party A”', '“Party B”']]
+            pattern = r'(' + '|'.join(pattern_parts) + r')' if pattern_parts else r'(“Party A”|“Party B”)'
+            parts = re.split(pattern, text)
             for part in parts:
                 run = p.add_run(part)
                 run.font.size = Pt(size)
-                run.bold = bold or part in ['“Party A”', '“Party B”']
-                if underline:
+                run.bold = bold or part in bold_segments or part in ['“Party A”', '“Party B”']
+                if part in email_addresses:
+                    run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
+                    run.underline = WD_UNDERLINE.SINGLE
+                elif underline:
                     run.underline = WD_UNDERLINE.SINGLE
             return p
 
@@ -1317,12 +1324,33 @@ def export_docx(contract_id):
             p = doc.add_paragraph()
             p.alignment = alignment
             for part in text_parts:
-                # Split each part by “Party A” and “Party B” to apply bold formatting
-                sub_parts = re.split(r'(“Party A”|“Party B”)', part)
+                # Split each part by “Party A”, “Party B”, and bold_parts to apply bold formatting and size
+                pattern_parts = [re.escape(bp) for bp in bold_parts] + ['“Party A”', '“Party B”']
+                pattern = r'(' + '|'.join(pattern_parts) + r')'
+                sub_parts = re.split(pattern, part)
                 for sub_part in sub_parts:
                     run = p.add_run(sub_part)
                     run.bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
                     run.font.size = Pt(bold_size if sub_part in bold_parts else default_size)
+            return p
+
+        # Helper function to add paragraph with selective formatting for Party B email
+        def add_paragraph_with_email_formatting(text_parts, bold_parts, email_text, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12):
+            p = doc.add_paragraph()
+            p.alignment = alignment
+            for part in text_parts:
+                if part == email_text:
+                    run = p.add_run(part)
+                    run.font.size = Pt(default_size)
+                    run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
+                    run.underline = WD_UNDERLINE.SINGLE
+                else:
+                    # Split each part by “Party A” and “Party B” to apply bold formatting
+                    sub_parts = re.split(r'(“Party A”|“Party B”)', part)
+                    for sub_part in sub_parts:
+                        run = p.add_run(sub_part)
+                        run.bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
+                        run.font.size = Pt(bold_size if sub_part in bold_parts else default_size)
             return p
 
         # Helper function to add heading with selective underlining
@@ -1395,7 +1423,7 @@ def export_docx(contract_id):
             "“Party B”"
         ]
         party_b_bold_parts = [party_b_position + " " + party_b_name, "“Party B”"]
-        add_paragraph_with_bold(party_b_text_parts, party_b_bold_parts, WD_ALIGN_PARAGRAPH.CENTER, default_size=12, bold_size=12)
+        add_paragraph_with_email_formatting(party_b_text_parts, party_b_bold_parts, party_b_email, WD_ALIGN_PARAGRAPH.CENTER, default_size=12, bold_size=12)
 
         # Whereas Clauses
         add_paragraph(
@@ -1422,6 +1450,26 @@ def export_docx(contract_id):
                     default_size=11,
                     bold_size=12
                 )
+            elif article['number'] == 6:
+                # For Article 6, pass email addresses and bold segments
+                email_addresses = [
+                    contract_data.get("focal_person_a_email", "N/A"),
+                    contract_data.get("party_b_email", "N/A")
+                ]
+                bold_segments = [
+                    contract_data.get("focal_person_a_name", "N/A"),
+                    contract_data.get("focal_person_a_position", "N/A"),
+                    f"Telephone {contract_data.get('focal_person_a_phone', 'N/A')}",
+                    f"{contract_data.get('party_b_signature_name', 'N/A')}, Freelance Consultant",
+                    f"HP. {contract_data.get('party_b_phone', 'N/A')}"
+                ]
+                add_paragraph(article['content'], size=11, email_addresses=email_addresses, bold_segments=bold_segments)
+            elif article['number'] == 7:
+                # For Article 7, pass bold segments for project_title
+                bold_segments = [
+                    f"“{contract_data.get('project_title', 'N/A')}”"
+                ]
+                add_paragraph(article['content'], size=11, bold_segments=bold_segments)
             else:
                 add_paragraph(article['content'], size=11)
 
