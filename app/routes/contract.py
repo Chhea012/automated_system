@@ -18,6 +18,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_UNDERLINE
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
+from docx.shared import Inches, Pt, RGBColor
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -1048,7 +1049,7 @@ def export_docx(contract_id):
                 'content': (
                     '“Party B” shall perform tasks as stated in the attached TOR (annex-1) to “Party A”, '
                     'and deliver each milestone as stipulated in article 4.\n\n'
-                    'The work shall be of good quality and well performed with the acceptance by “Party A.”'
+                    'The work shall be of good quality and well performed with the acceptance by “Party A”.'
                 ),
                 'table': None
             },
@@ -1066,18 +1067,39 @@ def export_docx(contract_id):
             {
                 'number': 3,
                 'title': 'PROFESSIONAL FEE',
-                'content': (
-                    f'The professional fee is the total amount of {contract_data["total_gross"]} '
-                    f'({contract_data["total_fee_words"]} only) including tax for the whole assignment period.\n\n'
-                    f'Total Service Fee: {contract_data["total_gross"]}\n'
-                    f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}\n'
-                    f'Net amount: {contract_data["total_net"]}\n\n'
+                'content': [
+                    f'The professional fee is the total amount of ',
+                    contract_data["total_gross"],
+                    f' (',
+                    f'{contract_data["total_fee_words"]} only',
+                    f') including tax for the whole assignment period.\n\n',
+                    f'Total Service Fee: ',
+                    contract_data["total_gross"],
+                    f'\n',
+                    f'Withholding Tax {tax_percentage}%: ',
+                    f'USD{total_gross_amount * (tax_percentage/100):.2f}',
+                    f'\n',
+                    f'Net amount: ',
+                    contract_data["total_net"],
+                    f'\n\n',
                     f'“Party B” is responsible to issue the Invoice (net amount) and receipt (when receiving the payment) '
                     f'with the total amount as stipulated in each instalment as in the Article 4 after having done the '
                     f'agreed deliverable tasks, for payment request. The payment will be processed after the satisfaction '
                     f'from “Party A” as of the required deliverable tasks as stated in Article 4.\n\n'
                     f'“Party B” is responsible for all related taxes payable to the government department.'
-                ),
+                ],
+                'bold_parts': [
+                    contract_data["total_gross"],
+                    f'{contract_data["total_fee_words"]}',
+                    f'Total Service Fee: ',
+                    contract_data["total_gross"],
+                    f'Withholding Tax {tax_percentage}%: ',
+                    f'USD{total_gross_amount * (tax_percentage/100):.2f}',
+                    f'Net amount: ',
+                    contract_data["total_net"],
+                    '“Party A”',
+                    '“Party B”'
+                ],
                 'table': None
             },
             {
@@ -1276,52 +1298,104 @@ def export_docx(contract_id):
         doc.styles['Normal'].font.name = 'Calibri'
         doc.styles['Normal'].font.size = Pt(11)
 
-        # Helper function to add paragraph
+        # Helper function to add paragraph with selective bolding for Party A and Party B
         def add_paragraph(text, alignment=WD_ALIGN_PARAGRAPH.LEFT, bold=False, size=11, underline=False):
             p = doc.add_paragraph()
             p.alignment = alignment
-            run = p.add_run(text)
-            run.bold = bold
-            run.font.size = Pt(size)
-            if underline:
-                run.underline = WD_UNDERLINE.SINGLE
+            # Split text by “Party A” and “Party B” to apply bold formatting
+            parts = re.split(r'(“Party A”|“Party B”)', text)
+            for part in parts:
+                run = p.add_run(part)
+                run.font.size = Pt(size)
+                run.bold = bold or part in ['“Party A”', '“Party B”']
+                if underline:
+                    run.underline = WD_UNDERLINE.SINGLE
             return p
 
-        # Helper function to add heading
-        def add_heading(text, level, size=14):
-            p = doc.add_heading(text, level=level)
+        # Helper function to add paragraph with selective bold and size
+        def add_paragraph_with_bold(text_parts, bold_parts, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12):
+            p = doc.add_paragraph()
+            p.alignment = alignment
+            for part in text_parts:
+                # Split each part by “Party A” and “Party B” to apply bold formatting
+                sub_parts = re.split(r'(“Party A”|“Party B”)', part)
+                for sub_part in sub_parts:
+                    run = p.add_run(sub_part)
+                    run.bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
+                    run.font.size = Pt(bold_size if sub_part in bold_parts else default_size)
+            return p
+
+        # Helper function to add heading with selective underlining
+        def add_heading(number, title, level, size=12):
+            p = doc.add_paragraph()
             p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-            for run in p.runs:
-                run.font.name = 'Calibri'
-                run.font.size = Pt(size)
+            # Add "ARTICLE {number}" with underline, bold, and black color
+            run1 = p.add_run(f"ARTICLE {number}")
+            run1.font.name = 'Calibri'
+            run1.font.size = Pt(size)
+            run1.bold = True
+            run1.underline = WD_UNDERLINE.SINGLE
+            run1.font.color.rgb = RGBColor(0, 0, 0)
+            # Add ": " with bold and black color (no underline)
+            run2 = p.add_run(": ")
+            run2.font.name = 'Calibri'
+            run2.font.size = Pt(size)
+            run2.bold = True
+            run2.font.color.rgb = RGBColor(0, 0, 0)
+            # Add title with bold and black color (no underline)
+            run3 = p.add_run(title)
+            run3.font.name = 'Calibri'
+            run3.font.size = Pt(size)
+            run3.bold = True
+            run3.font.color.rgb = RGBColor(0, 0, 0)
             return p
 
         # Header
         add_paragraph('The Service Agreement', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
-        add_paragraph('ON', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=11)
+        add_paragraph('ON', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)
         add_paragraph(contract_data.get('project_title', 'N/A'), WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
         add_paragraph(f"No.: {contract_data.get('contract_number', 'N/A')}", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
         add_paragraph('BETWEEN', WD_ALIGN_PARAGRAPH.CENTER, size=12)
 
         # Party A
-        party_a_text = (
-            f"The NGO Forum on Cambodia, represented by {contract_data.get('party_a_signature_name', 'Mr. Soeung Saroeun')}, "
-            f"{contract_data.get('party_a_position', 'Executive Director')}.\n"
-            f"Address: {contract_data.get('party_a_address', '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia')}.\n"
-            f"hereinafter called the “Party A”"
-        )
-        add_paragraph(party_a_text, WD_ALIGN_PARAGRAPH.CENTER, size=12)
+        party_a_name = contract_data.get('party_a_signature_name', 'Mr. Soeung Saroeun')
+        party_a_position = contract_data.get('party_a_position', 'Executive Director')
+        party_a_address = contract_data.get('party_a_address', '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia')
+        party_a_text_parts = [
+            "The NGO Forum on Cambodia",
+            ", represented by ",
+            party_a_name,
+            ", ",
+            party_a_position,
+            ".\nAddress: ",
+            party_a_address,
+            ".\nhereinafter called the ",
+            "“Party A”"
+        ]
+        party_a_bold_parts = ["The NGO Forum on Cambodia", party_a_name, "“Party A”"]
+        add_paragraph_with_bold(party_a_text_parts, party_a_bold_parts, WD_ALIGN_PARAGRAPH.CENTER, default_size=12, bold_size=12)
 
         add_paragraph('AND', WD_ALIGN_PARAGRAPH.CENTER, size=12)
 
         # Party B
-        party_b_text = (
-            f"{contract_data.get('party_b_position', 'Freelance Consultant')} {contract_data.get('party_b_signature_name', 'N/A')},\n"
-            f"Address: {contract_data.get('party_b_address', 'N/A')}\n"
-            f"H/P: {contract_data.get('party_b_phone', 'N/A')}, E-mail: {contract_data.get('party_b_email', 'N/A')}\n"
-            f"hereinafter called the “Party B”"
-        )
-        add_paragraph(party_b_text, WD_ALIGN_PARAGRAPH.CENTER, size=12)
+        party_b_position = contract_data.get('party_b_position', 'Freelance Consultant')
+        party_b_name = contract_data.get('party_b_signature_name', 'N/A')
+        party_b_address = contract_data.get('party_b_address', 'N/A')
+        party_b_phone = contract_data.get('party_b_phone', 'N/A')
+        party_b_email = contract_data.get('party_b_email', 'N/A')
+        party_b_text_parts = [
+            party_b_position + " " + party_b_name,
+            ",\nAddress: ",
+            party_b_address,
+            "\nH/P: ",
+            party_b_phone,
+            ", E-mail: ",
+            party_b_email,
+            "\nhereinafter called the ",
+            "“Party B”"
+        ]
+        party_b_bold_parts = [party_b_position + " " + party_b_name, "“Party B”"]
+        add_paragraph_with_bold(party_b_text_parts, party_b_bold_parts, WD_ALIGN_PARAGRAPH.CENTER, default_size=12, bold_size=12)
 
         # Whereas Clauses
         add_paragraph(
@@ -1333,19 +1407,23 @@ def export_docx(contract_id):
             f"Whereas NGOF will engage the services of “Party B” which accepts the engagement under the following terms and conditions.",
             size=11
         )
-        add_paragraph("Both Parties Agreed as follows:", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=11)
+        add_paragraph("Both Parties Agreed as follows:", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)
 
         # Articles
         for article in standard_articles:
-            # Add article title
-            title_text = f"ARTICLE {article['number']}: {article['title']}"
-            p = add_heading(title_text, level=3, size=12)
-            for run in p.runs:
-                run.underline = WD_UNDERLINE.SINGLE
+            # Add article title with selective underlining
+            add_heading(article['number'], article['title'], level=3, size=12)
 
             # Add article content
-            content = article['content'].replace('Party A', '“Party A”').replace('Party B', '“Party B”')
-            add_paragraph(content, size=11)
+            if article['number'] == 3:
+                add_paragraph_with_bold(
+                    article['content'],
+                    article['bold_parts'],
+                    default_size=11,
+                    bold_size=12
+                )
+            else:
+                add_paragraph(article['content'], size=11)
 
             # Add table if present
             if article['table']:
@@ -1392,7 +1470,7 @@ def export_docx(contract_id):
             f"Date: {contract_data.get('agreement_start_date_display', 'N/A')}",
             WD_ALIGN_PARAGRAPH.CENTER,
             bold=True,
-            size=12
+            size=11
         )
 
         # Signature table
@@ -1407,50 +1485,52 @@ def export_docx(contract_id):
         # Party A
         cell1 = table.cell(0, 0)
         p = cell1.add_paragraph("For “Party A”")
-        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        p.runs[0].bold = True
-        p.runs[0].font.size = Pt(12)
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for run in p.runs:
+            run.bold = True
+            run.font.size = Pt(11)
         
         cell2 = table.cell(1, 0)
         p = cell2.add_paragraph("_________________")
-        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        p.runs[0].font.size = Pt(12)
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.runs[0].font.size = Pt(11)
         
         cell3 = table.cell(2, 0)
         p = cell3.add_paragraph(f"{contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun')}")
-        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.runs[0].bold = True
-        p.runs[0].font.size = Pt(12)
+        p.runs[0].font.size = Pt(11)
         
         cell4 = table.cell(3, 0)
         p = cell4.add_paragraph(f"{contract_data.get('party_a_position', 'Executive Director')}")
-        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.runs[0].bold = True
-        p.runs[0].font.size = Pt(12)
+        p.runs[0].font.size = Pt(11)
 
         # Party B
         cell5 = table.cell(0, 1)
         p = cell5.add_paragraph("For “Party B”")
-        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        p.runs[0].bold = True
-        p.runs[0].font.size = Pt(12)
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for run in p.runs:
+            run.bold = True
+            run.font.size = Pt(11)
         
         cell6 = table.cell(1, 1)
         p = cell6.add_paragraph("_________________")
-        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        p.runs[0].font.size = Pt(12)
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.runs[0].font.size = Pt(11)
         
         cell7 = table.cell(2, 1)
         p = cell7.add_paragraph(f"{contract_data.get('party_b_signature_name', 'N/A')}")
-        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.runs[0].bold = True
-        p.runs[0].font.size = Pt(12)
+        p.runs[0].font.size = Pt(11)
         
         cell8 = table.cell(3, 1)
         p = cell8.add_paragraph(f"{contract_data.get('party_b_position', 'N/A')}")
-        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.runs[0].bold = True
-        p.runs[0].font.size = Pt(12)
+        p.runs[0].font.size = Pt(11)
 
         # Save to BytesIO
         output = BytesIO()
