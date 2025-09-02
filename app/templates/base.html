@@ -143,7 +143,7 @@
       display: block;
       padding: 10px 20px;
       color: #fff;
-      background-color: #28a745; /* Restored green background */
+      background-color: #28a745;
       overflow: hidden;
       box-shadow: inset 0px 0px 0px 1px transparent;
     }
@@ -156,7 +156,7 @@
       left: 0;
       width: 2px;
       height: 2px;
-      background-color: #28a745; /* Match green background */
+      background-color: #28a745;
     }
 
     .button_lg::after {
@@ -167,7 +167,7 @@
       bottom: 0;
       width: 4px;
       height: 4px;
-      background-color: #28a745; /* Match green background */
+      background-color: #28a745;
       transition: all .2s ease;
     }
 
@@ -178,7 +178,7 @@
       bottom: -1px;
       left: -8px;
       width: 0;
-      background-color: #f6a401; /* Orange hover color */
+      background-color: #f6a401;
       transform: skew(-15deg);
       transition: all .2s ease;
     }
@@ -234,12 +234,47 @@
       border-radius: 50%;
     }
 
-    .profile-dropdown .dropdown-item:hover {
-      background-color: #f8f9fa;
-    }
-
     .profile-dropdown .dropdown-item.text-danger i {
       color: #dc3545;
+    }
+
+    /* ✅ Hover dropdown fix - only on desktop */
+    @media (min-width: 992px) {
+      .nav-item.dropdown:hover .dropdown-menu {
+        display: block;
+        margin-top: 0;
+      }
+    }
+
+    /* ✅ Remove border-radius from dropdown menus */
+    .dropdown-menu.card-1 {
+      border-radius: 0 !important;
+    }
+
+    /* ✅ Orange Hover Effect for Navbar Dropdowns */
+    .navbar .dropdown-menu .dropdown-item {
+      position: relative;
+      transition: color 0.3s ease;
+    }
+
+    .navbar .dropdown-menu .dropdown-item::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 0;
+      height: 3px;
+      background-color: #f6a401;
+      transition: width 0.3s ease;
+    }
+
+    .navbar .dropdown-menu .dropdown-item:hover {
+      color: #f6a401;
+      background-color: transparent !important;
+    }
+
+    .navbar .dropdown-menu .dropdown-item:hover::before {
+      width: 100%;
     }
   </style>
 </head>

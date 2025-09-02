@@ -20,6 +20,7 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 from docx.shared import Inches, Pt, RGBColor
 
+
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -177,7 +178,6 @@ def index():
                               total_contracts=0,
                               last_contract_number=None)
 
-# Export contracts to Excel
 @contracts_bp.route('/export_excel')
 @login_required
 def export_excel():
@@ -252,9 +252,11 @@ def export_excel():
         ws = wb.active
         ws.title = 'List'
 
-        headers = ['Contract No.', 'Consultant', 'Agreement Name', 'Term of Payment', '', '', 'Attached']
+        headers = ['Contract No.', 'Consultant', 'Agreement Name', 'Term of Payment', 'Attached']
         for col_num, header in enumerate(headers, 1):
-            cell = ws.cell(row=1, column=col_num, value=header)
+            # Map headers: 1-3 for first three, 4 for 'Term of Payment', 7 for 'Attached'
+            target_col = col_num if col_num <= 3 else 4 if col_num == 4 else 7
+            cell = ws.cell(row=1, column=target_col, value=header)
             cell.fill = PatternFill(start_color="90EE90", end_color="90EE90", fill_type="solid")
             cell.font = Font(bold=True, size=12)
             cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
@@ -264,6 +266,9 @@ def export_excel():
                 top=Side(style='thin'),
                 bottom=Side(style='thin')
             )
+        # Merge 'Term of Payment' header across columns 4, 5, and 6
+        ws.merge_cells(start_row=1, start_column=4, end_row=1, end_column=6)
+        ws.cell(row=1, column=4).alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
         for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=False), 2):
             for c_idx, value in enumerate(row, 1):
@@ -275,7 +280,7 @@ def export_excel():
                     top=Side(style='thin'),
                     bottom=Side(style='thin')
                 )
-                if c_idx in [6, 7]:
+                if c_idx in [6, 7]:  # Payment details and Attached columns
                     ws.row_dimensions[r_idx].height = 60
 
         current_contract = None
