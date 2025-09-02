@@ -183,6 +183,7 @@ def index():
                               total_contracts=0,
                               last_contract_number=None)
 
+# Export contract to excel
 @contracts_bp.route('/export_excel')
 @login_required
 def export_excel():
@@ -230,8 +231,6 @@ def export_excel():
                     f"Tax({tax_percentage:.1f}%): {tax:.2f} USD\n"
                     f"Net: {net:.2f} USD"
                 )
-                attached = normalize_to_list(contract.get('deliverables', ''))
-                attached_str = '\n'.join(attached) if attached else ''
                 data.append({
                     'Contract No.': contract['contract_number'] or '',
                     'Consultant': contract['party_b_signature_name'] or '',
@@ -239,8 +238,9 @@ def export_excel():
                     'Term of Payment': f"Installment #{idx} ({percentage:.1f}%)" if percentage else installment['description'],
                     'Date': due_date,
                     '': payment_details,
-                    'Attached': attached_str
+                    'Attached': ''
                 })
+            # Empty separator row
             data.append({
                 'Contract No.': '',
                 'Consultant': '',
@@ -257,40 +257,73 @@ def export_excel():
         ws = wb.active
         ws.title = 'List'
 
+        # ===== Row 1: default (no fill) =====
+        ws.row_dimensions[1].height = 5
+
+        # ===== Header row (row 2) =====
         headers = ['Contract No.', 'Consultant', 'Agreement Name', 'Term of Payment', 'Attached']
         for col_num, header in enumerate(headers, 1):
-            # Map headers: 1-3 for first three, 4 for 'Term of Payment', 7 for 'Attached'
             target_col = col_num if col_num <= 3 else 4 if col_num == 4 else 7
-            cell = ws.cell(row=1, column=target_col, value=header)
-            cell.fill = PatternFill(start_color="90EE90", end_color="90EE90", fill_type="solid")
-            cell.font = Font(bold=True, size=12)
+            cell = ws.cell(row=2, column=target_col, value=header)
+            cell.fill = PatternFill(start_color="88B84D", end_color="88B84D", fill_type="solid")
+            cell.font = Font(name="Times New Roman", bold=True, size=16)
             cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
             cell.border = Border(
                 left=Side(style='thin'),
                 right=Side(style='thin'),
                 top=Side(style='thin'),
-                bottom=Side(style='thin')
+                bottom=Side(style='thin', color='000000')
             )
-        # Merge 'Term of Payment' header across columns 4, 5, and 6
-        ws.merge_cells(start_row=1, start_column=4, end_row=1, end_column=6)
-        ws.cell(row=1, column=4).alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        ws.merge_cells(start_row=2, start_column=4, end_row=2, end_column=6)
+        ws.cell(row=2, column=4).alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        ws.cell(row=2, column=4).border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin', color='000000')
+        )
+        ws.cell(row=2, column=4).fill = PatternFill(start_color="88B84D", end_color="88B84D", fill_type="solid")
 
-        for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=False), 2):
+        # ===== Empty teal row UNDER headers (row 3) =====
+        for col in range(1, 8):
+            cell = ws.cell(row=3, column=col, value="")
+            cell.fill = PatternFill(start_color="28677A", end_color="28677A", fill_type="solid")
+            cell.border = Border()
+        ws.row_dimensions[3].height = 5
+
+        # ===== Write data rows (start at row 4) =====
+        for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=False), 4):
+            is_separator_row = all(v == "" for v in row)
             for c_idx, value in enumerate(row, 1):
                 cell = ws.cell(row=r_idx, column=c_idx, value=value)
-                cell.alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
-                cell.border = Border(
-                    left=Side(style='thin'),
-                    right=Side(style='thin'),
-                    top=Side(style='thin'),
-                    bottom=Side(style='thin')
-                )
-                if c_idx in [6, 7]:  # Payment details and Attached columns
-                    ws.row_dimensions[r_idx].height = 60
 
+                if not is_separator_row:
+                    if c_idx in [4, 5, 6]:
+                        cell.font = Font(name="Times New Roman", size=14, bold=True, color='FF0000' if c_idx == 6 else '000000')
+                    else:
+                        cell.font = Font(name="Times New Roman", size=14)
+
+                    cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+                    cell.border = Border(
+                        left=Side(style='thin'),
+                        right=Side(style='thin'),
+                        top=Side(style='thin'),
+                        bottom=Side(style='thin')
+                    )
+
+                    if c_idx in [6, 7]:
+                        ws.row_dimensions[r_idx].height = 60
+                else:
+                    for col in range(1, 8):
+                        ws.cell(row=r_idx, column=col, value="")
+                        ws.cell(row=r_idx, column=col).fill = PatternFill(start_color="28677A", end_color="28677A", fill_type="solid")
+                        ws.cell(row=r_idx, column=col).border = Border()
+                    ws.row_dimensions[r_idx].height = 5
+
+        # ===== Merge contract info cells =====
         current_contract = None
-        start_row = 2
-        for idx, row in enumerate(data, 2):
+        start_row = 4
+        for idx, row in enumerate(data, 4):
             if row['Contract No.'] == '' and current_contract is not None:
                 if idx - 1 > start_row:
                     ws.merge_cells(start_row=start_row, start_column=1, end_row=idx-1, end_column=1)
@@ -303,14 +336,15 @@ def export_excel():
             elif row['Contract No.'] and current_contract != row['Contract No.']:
                 current_contract = row['Contract No.']
                 start_row = idx
-        if current_contract is not None and len(data) > start_row:
-            ws.merge_cells(start_row=start_row, start_column=1, end_row=len(data), end_column=1)
-            ws.merge_cells(start_row=start_row, start_column=2, end_row=len(data), end_column=2)
-            ws.merge_cells(start_row=start_row, start_column=3, end_row=len(data), end_column=3)
+        if current_contract is not None and len(data) + 3 > start_row:
+            ws.merge_cells(start_row=start_row, start_column=1, end_row=len(data)+3, end_column=1)
+            ws.merge_cells(start_row=start_row, start_column=2, end_row=len(data)+3, end_column=2)
+            ws.merge_cells(start_row=start_row, start_column=3, end_row=len(data)+3, end_column=3)
             for col in [1, 2, 3]:
                 ws.cell(row=start_row, column=col).alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
-        column_widths = [15, 20, 50, 20, 15, 25, 20]
+        # ===== Column widths (wider than before) =====
+        column_widths = [22, 22, 60, 23, 22, 30, 25]
         for i, width in enumerate(column_widths, 1):
             ws.column_dimensions[chr(64 + i)].width = width
 
@@ -323,10 +357,13 @@ def export_excel():
             as_attachment=True,
             download_name='Consultancy_Agreement_List.xlsx'
         )
+
     except Exception as e:
         logger.error(f"Error exporting to Excel: {str(e)}")
         flash(f"Error exporting to Excel: {str(e)}", 'danger')
         return redirect(url_for('contracts.index'))
+
+
 
 # Create contract
 @contracts_bp.route('/create', methods=['GET', 'POST'])
