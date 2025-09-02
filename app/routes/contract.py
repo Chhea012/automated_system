@@ -184,6 +184,7 @@ def index():
                               last_contract_number=None)
 
 # Export contract to excel
+# Export contract to excel
 @contracts_bp.route('/export_excel')
 @login_required
 def export_excel():
@@ -215,12 +216,18 @@ def export_excel():
         contracts = [contract.to_dict() for contract in query.all()]
         data = []
 
-        for contract in contracts:
+        # Sequential NGOF numbering
+        year = datetime.now().year
+        for contract_index, contract in enumerate(contracts, 1):
             total_fee_usd = float(contract['total_fee_usd']) if contract['total_fee_usd'] else 0.0
             tax_percentage = float(contract.get('tax_percentage', 15.0))
             if contract.get('project_title') == 'REJECTED':
                 continue
             payment_installments = contract.get('payment_installments', [])
+
+            # Format sequential contract number NGOF/YYYY-XXX
+            formatted_contract_no = f"NGOF/{year}-{contract_index:03d}"
+
             for idx, installment in enumerate(payment_installments, 1):
                 match = re.search(r'\((\d+\.?\d*)\%\)', installment['description'])
                 percentage = float(match.group(1)) if match else 0.0
@@ -232,7 +239,7 @@ def export_excel():
                     f"Net: {net:.2f} USD"
                 )
                 data.append({
-                    'Contract No.': contract['contract_number'] or '',
+                    'Contract No.': formatted_contract_no,
                     'Consultant': contract['party_b_signature_name'] or '',
                     'Agreement Name': contract['project_title'] or '',
                     'Term of Payment': f"Installment #{idx} ({percentage:.1f}%)" if percentage else installment['description'],
@@ -344,7 +351,7 @@ def export_excel():
                 ws.cell(row=start_row, column=col).alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
         # ===== Column widths (wider than before) =====
-        column_widths = [22, 22, 60, 23, 22, 30, 25]
+        column_widths = [22, 22, 60, 22, 22, 30, 25]
         for i, width in enumerate(column_widths, 1):
             ws.column_dimensions[chr(64 + i)].width = width
 
