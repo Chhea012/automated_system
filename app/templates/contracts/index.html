@@ -63,7 +63,7 @@
                     </button>
                     <ul class="dropdown-menu" aria-labelledby="exportDropdown">
                         <li><a class="dropdown-item" href="{{ url_for('contracts.export_excel', search=search_query, sort=sort_order) }}">Export to Excel</a></li>
-                        <li><a class="dropdown-item" href="#">Export to docx</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('contracts.export_all_docx') }}">Export All to DOCX</a></li>
                     </ul>
                 </div>
             </div>
@@ -105,6 +105,11 @@
                                 <li>
                                     <a class="dropdown-item" href="{{ url_for('contracts.update', contract_id=contract.id) }}">
                                         <i class="bx bx-edit"></i> Edit
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('contracts.export_docx', contract_id=contract.id) }}">
+                                        <i class="bx bx-download"></i> Generate Docx
                                     </a>
                                 </li>
                                 <li>
