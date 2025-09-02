@@ -78,6 +78,15 @@
       overflow: hidden;
     }
 
+    /* Dropdown Arrow Animation */
+    .dropdown-toggle::after {
+      transition: transform 0.3s ease;
+    }
+
+    .dropdown:hover>.dropdown-toggle::after {
+      transform: rotate(180deg);
+    }
+
     /* New Create Contract Button Styling */
     .button {
       -moz-appearance: none;
@@ -238,7 +247,7 @@
       color: #dc3545;
     }
 
-    /* ✅ Hover dropdown fix - only on desktop */
+    /* Hover dropdown fix - only on desktop */
     @media (min-width: 992px) {
       .nav-item.dropdown:hover .dropdown-menu {
         display: block;
@@ -246,12 +255,12 @@
       }
     }
 
-    /* ✅ Remove border-radius from dropdown menus */
+    /* Remove border-radius from dropdown menus */
     .dropdown-menu.card-1 {
       border-radius: 0 !important;
     }
 
-    /* ✅ Orange Hover Effect for Navbar Dropdowns */
+    /* Orange Hover Effect for Navbar Dropdowns */
     .navbar .dropdown-menu .dropdown-item {
       position: relative;
       transition: color 0.3s ease;
@@ -276,6 +285,14 @@
     .navbar .dropdown-menu .dropdown-item:hover::before {
       width: 100%;
     }
+    .dropdown-toggle::after {
+      transition: transform 0.3s ease;
+    }
+    
+    .dropdown:hover>.dropdown-toggle::after {
+      transform: rotate(180deg);
+    }
+    
   </style>
 </head>
 
