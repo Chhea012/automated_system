@@ -126,12 +126,15 @@ def calculate_payments(total_fee_usd, tax_percentage, payment_installments):
 @login_required
 def index():
     try:
+        # Get query parameters
         page = request.args.get('page', 1, type=int)
         search_query = request.args.get('search', '', type=str)
-        sort_order = request.args.get('sort', 'project_title_asc', type=str)
+        sort_order = request.args.get('sort', 'created_at_desc', type=str)
         entries_per_page = request.args.get('entries', 10, type=int)
 
         query = Contract.query
+
+        # Apply search filter
         if search_query:
             query = query.filter(
                 (Contract.project_title.ilike(f'%{search_query}%')) |
@@ -139,10 +142,11 @@ def index():
                 (Contract.party_b_signature_name.ilike(f'%{search_query}%'))
             )
 
-        if sort_order == 'project_title_asc':
-            query = query.order_by(Contract.project_title.asc())
-        elif sort_order == 'project_title_desc':
-            query = query.order_by(Contract.project_title.desc())
+        # Sorting
+        if sort_order == 'contract_number_asc':
+            query = query.order_by(Contract.contract_number.asc())
+        elif sort_order == 'contract_number_desc':
+            query = query.order_by(Contract.contract_number.desc())
         elif sort_order == 'start_date_asc':
             query = query.order_by(Contract.agreement_start_date.asc())
         elif sort_order == 'start_date_desc':
@@ -151,39 +155,55 @@ def index():
             query = query.order_by(Contract.total_fee_usd.asc())
         elif sort_order == 'total_fee_desc':
             query = query.order_by(Contract.total_fee_usd.desc())
+        elif sort_order == 'created_at_desc':
+            query = query.order_by(Contract.created_at.desc())
+        else:
+            query = query.order_by(Contract.contract_number.asc())
 
+
+        # Pagination
+        pagination = query.paginate(page=page, per_page=entries_per_page, error_out=False)
+        contracts = [contract.to_dict() for contract in pagination.items]
+
+        # Format dates and fees
+        for contract in contracts:
+            contract['agreement_start_date_display'] = format_date(contract.get('agreement_start_date'))
+            contract['agreement_end_date_display'] = format_date(contract.get('agreement_end_date'))
+            contract['total_fee_usd'] = f"{contract.get('total_fee_usd', 0.0):.2f}"
+            # Ensure articles exist
+            if 'custom_article_sentences' not in contract or contract['custom_article_sentences'] is None:
+                contract['custom_article_sentences'] = []
+
+        # Total contracts and last contract
         total_contracts = Contract.query.count()
         last_contract = Contract.query.order_by(Contract.contract_number.desc()).first()
         last_contract_number = last_contract.contract_number if last_contract else None
 
-        pagination = query.paginate(page=page, per_page=entries_per_page, error_out=False)
-        contracts = [contract.to_dict() for contract in pagination.items]
-        for contract in contracts:
-            contract['agreement_start_date_display'] = format_date(contract['agreement_start_date'])
-            contract['agreement_end_date_display'] = format_date(contract['agreement_end_date'])
-            contract['total_fee_usd'] = f"{contract['total_fee_usd']:.2f}" if contract['total_fee_usd'] is not None else '0.00'
+        return render_template(
+            'contracts/index.html',
+            contracts=contracts,
+            pagination=pagination,
+            search_query=search_query,
+            sort_order=sort_order,
+            entries_per_page=entries_per_page,
+            total_contracts=total_contracts,
+            last_contract_number=last_contract_number
+        )
 
-        return render_template('contracts/index.html', 
-                              contracts=contracts, 
-                              pagination=pagination,
-                              search_query=search_query, 
-                              sort_order=sort_order, 
-                              entries_per_page=entries_per_page,
-                              total_contracts=total_contracts,
-                              last_contract_number=last_contract_number)
     except Exception as e:
         logger.error(f"Error in index route: {str(e)}")
         flash(f"Error loading contracts: {str(e)}", 'danger')
-        return render_template('contracts/index.html', 
-                              contracts=[], 
-                              pagination=None,
-                              search_query='', 
-                              sort_order='project_title_asc', 
-                              entries_per_page=10,
-                              total_contracts=0,
-                              last_contract_number=None)
+        return render_template(
+            'contracts/index.html',
+            contracts=[],
+            pagination=None,
+            search_query='',
+            sort_order='created_at_desc',
+            entries_per_page=10,
+            total_contracts=0,
+            last_contract_number=None
+        )
 
-# Export contract to excel
 # Export contract to excel
 @contracts_bp.route('/export_excel')
 @login_required
