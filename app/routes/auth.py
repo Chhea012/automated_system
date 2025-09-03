@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
-from flask_login import login_user, logout_user, login_required
+from flask_login import login_user, logout_user, login_required, current_user
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
@@ -26,112 +26,122 @@ def verify_reset_token(token, expiration=3600):
 @auth_bp.route("/login", methods=["GET", "POST"])
 @limiter.limit("5 per minute")
 def login():
-    form = LoginForm()
-    if form.validate_on_submit():
-        identifier = form.identifier.data
-        print(f"Login attempt: identifier={identifier}")  # Debug
-        user = User.query.filter((User.email == identifier) | (User.username == identifier)).first()
-        if user:
-            print(f"User found: {user.username}, hash: {user.password_hash}")  # Debug
-            if user.check_password(form.password.data):
+    if current_user.is_authenticated:
+        return redirect(url_for("main.dashboard"))
+    try:
+        form = LoginForm()
+        if form.validate_on_submit():
+            identifier = form.identifier.data
+            print(f"Login attempt: identifier={identifier}")  # Debug
+            user = User.query.filter((User.email == identifier) | (User.username == identifier)).first()
+            if user and user.check_password(form.password.data):
                 print("Password check: SUCCESS")  # Debug
                 login_user(user, remember=form.remember.data)
                 flash("Login successful! Redirecting to dashboard.", "success")
                 return redirect(url_for("main.dashboard"))
-            else:
-                print("Password check: FAILED")  # Debug
-                flash("Invalid identifier or password. Please try again.", "danger")
-        else:
-            print("No user found for identifier")  # Debug
+            print("Login failed: Invalid identifier or password")  # Debug
             flash("Invalid identifier or password. Please try again.", "danger")
-    return render_template("auth/login.html", form=form)
+        return render_template("auth/login.html", form=form)
+    except Exception as e:
+        print(f"Login error: {str(e)}")  # Debug
+        flash("An error occurred during login. Please try again.", "danger")
+        return render_template("auth/login.html", form=LoginForm())
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
-    form = RegisterForm()
-    if form.is_submitted():
-        print("Form errors:", form.errors)  # Debug
-    if form.validate_on_submit():
-        username = form.username.data
-        email = form.email.data
-        print(f"Registering: username={username}, email={email}")  # Debug
-        if User.query.filter_by(email=email).first():
-            flash("Email already registered. Please use a different email.", "warning")
-            return redirect(url_for("auth.register"))
-        new_user = User(username=username, email=email)
-        new_user.set_password(form.password.data)
-        try:
+    if current_user.is_authenticated:
+        return redirect(url_for("main.dashboard"))
+    try:
+        form = RegisterForm()
+        if form.is_submitted():
+            print("Form errors:", form.errors)  # Debug
+        if form.validate_on_submit():
+            username = form.username.data
+            email = form.email.data
+            print(f"Registering: username={username}, email={email}")  # Debug
+            if User.query.filter_by(email=email).first():
+                flash("Email already registered. Please use a different email.", "warning")
+                return redirect(url_for("auth.register"))
+            new_user = User(username=username, email=email)
+            new_user.set_password(form.password.data)
             db.session.add(new_user)
             db.session.commit()
             print(f"User {username} saved with hash: {new_user.password_hash}")  # Debug
             login_user(new_user)
             flash("Registration successful! Redirecting to dashboard.", "success")
             return redirect(url_for("main.dashboard"))
-        except Exception as e:
-            db.session.rollback()
-            print(f"Registration error: {str(e)}")  # Debug
-            flash("Registration failed. Please try again later.", "danger")
-    return render_template("auth/register.html", form=form)
+        return render_template("auth/register.html", form=form)
+    except Exception as e:
+        db.session.rollback()
+        print(f"Registration error: {str(e)}")  # Debug
+        flash("Registration failed. Please try again later.", "danger")
+        return render_template("auth/register.html", form=RegisterForm())
 
 @auth_bp.route("/logout")
 @login_required
 def logout():
-    logout_user()
-    flash("You have been logged out.", "info")
-    return redirect(url_for("auth.login"))
+    try:
+        logout_user()
+        flash("You have been logged out.", "info")
+        return redirect(url_for("auth.login"))
+    except Exception as e:
+        print(f"Logout error: {str(e)}")  # Debug
+        flash("An error occurred during logout. Please try again.", "danger")
+        return redirect(url_for("main.dashboard"))
 
 @auth_bp.route("/reset_password_request", methods=["GET", "POST"])
 @limiter.limit("5 per hour")
 def reset_password_request():
-    form = PasswordResetRequestForm()
-    print(f"Request to /reset_password_request, method: {request.method}")  # Debug
-    if form.is_submitted():
-        print("Form submitted, errors:", form.errors)  # Debug
-    if form.validate_on_submit():
-        email = form.email.data
-        print(f"Reset request for email: {email}")  # Debug
-        user = User.query.filter_by(email=email).first()
-        if user:
-            token = generate_reset_token(email)
-            reset_url = url_for('auth.reset_password', token=token, _external=True)
-            msg = Message('Password Reset Request', recipients=[email])
-            msg.body = f'''To reset your password, click the following link: {reset_url}
+    if current_user.is_authenticated:
+        return redirect(url_for("main.dashboard"))
+    try:
+        form = PasswordResetRequestForm()
+        if form.validate_on_submit():
+            email = form.email.data
+            print(f"Reset request for email: {email}")  # Debug
+            user = User.query.filter_by(email=email).first()
+            if user:
+                token = generate_reset_token(email)
+                reset_url = url_for('auth.reset_password', token=token, _external=True)
+                msg = Message('Password Reset Request', recipients=[email])
+                msg.body = f'''To reset your password, click the following link: {reset_url}
 If you did not request this, please ignore this email.
 The link will expire in 1 hour.'''
-            try:
                 mail.send(msg)
                 print(f"Email sent to {email}")  # Debug
                 flash("A password reset link has been sent to your email.", "success")
-            except Exception as e:
-                print(f"Email sending error: {str(e)}")  # Debug
-                flash("Failed to send reset email. Please try again later.", "danger")
-        else:
-            print(f"No user found for email: {email}")  # Debug
-            flash("Email not found. Please check and try again.", "warning")
-        return redirect(url_for("auth.login"))
-    print("Rendering reset_password_request.html")  # Debug
-    return render_template("auth/reset_password_request.html", form=form)
+            else:
+                print(f"No user found for email: {email}")  # Debug
+                flash("Email not found. Please check and try again.", "warning")
+            return redirect(url_for("auth.login"))
+        return render_template("auth/reset_password_request.html", form=form)
+    except Exception as e:
+        print(f"Reset password request error: {str(e)}")  # Debug
+        flash("An error occurred. Please try again later.", "danger")
+        return render_template("auth/reset_password_request.html", form=PasswordResetRequestForm())
 
 @auth_bp.route("/reset_password/<token>", methods=["GET", "POST"])
 @limiter.limit("5 per hour")
 def reset_password(token):
-    email = verify_reset_token(token)
-    if not email:
-        flash("The reset link is invalid or has expired.", "danger")
-        return redirect(url_for("auth.login"))
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        flash("User not found.", "danger")
-        return redirect(url_for("auth.login"))
-    form = PasswordResetForm()
-    if form.validate_on_submit():
-        user.set_password(form.password.data)
-        try:
+    if current_user.is_authenticated:
+        return redirect(url_for("main.dashboard"))
+    try:
+        email = verify_reset_token(token)
+        if not email:
+            flash("The reset link is invalid or has expired.", "danger")
+            return redirect(url_for("auth.login"))
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            flash("User not found.", "danger")
+            return redirect(url_for("auth.login"))
+        form = PasswordResetForm()
+        if form.validate_on_submit():
+            user.set_password(form.password.data)
             db.session.commit()
             flash("Your password has been reset successfully. Please log in.", "success")
             return redirect(url_for("auth.login"))
-        except Exception as e:
-            db.session.rollback()
-            print(f"Password reset error: {str(e)}")  # Debug
-            flash("Failed to reset password. Please try again.", "danger")
-    return render_template("auth/reset_password.html", form=form)
+        return render_template("auth/reset_password.html", form=form)
+    except Exception as e:
+        print(f"Password reset error: {str(e)}")  # Debug
+        flash("An error occurred during password reset. Please try again.", "danger")
+        return redirect(url_for("auth.login"))
