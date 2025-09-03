@@ -68,7 +68,6 @@
     object-fit: cover;
   }
 
-  /* Styles for left-aligned modals */
   .modal-left {
     justify-content: flex-start;
   }
@@ -129,7 +128,6 @@
     padding: 8px 16px;
   }
 
-  /* Enhanced styles for image upload */
   .image-upload-container {
     display: flex;
     flex-direction: column;
@@ -209,7 +207,6 @@
     background-color: #bb2d3b;
   }
 
-  /* Loading indicator */
   .loading-overlay {
     display: none;
     position: absolute;
@@ -237,7 +234,6 @@
     100% { transform: rotate(360deg); }
   }
 
-  /* Custom styles for the consolidated card */
   .management-card .card-header {
     background-color: #f8f9fa;
     border-bottom: 1px solid #dee2e6;
@@ -249,7 +245,6 @@
     font-size: 1.5rem;
   }
 
-  /* Button icon styles */
   .btn-sort {
     transform: scale(1);
     transition: transform 0.2s ease;
@@ -292,7 +287,46 @@
       width: 100%;
     }
   }
+
+  /* Enhanced filter styles */
+  .filter-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+
+  .search-input {
+    position: relative;
+  }
+
+  .search-input input {
+    padding-left: 35px;
+  }
+
+  .search-input i {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+  }
+
+  .filter-container select,
+  .filter-container input {
+    height: 38px;
+  }
+
+  .filter-container .btn-clear {
+    background-color: #6c757d;
+    color: #fff;
+  }
+
+  .filter-container .btn-clear:hover {
+    background-color: #5c636a;
+  }
 </style>
+
 <div class="user-container mt-4">
   <div class="row g-4 mb-4">
     <!-- Total Users Card -->
@@ -306,7 +340,7 @@
               <small class="text-success">All registered users</small>
             </div>
             <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
-              style="width:50px; height:50px;">
+                 style="width:50px; height:50px;">
               <i class="bx bx-group fs-4"></i>
             </div>
           </div>
@@ -325,7 +359,7 @@
               <small class="text-success">HR and Admin roles</small>
             </div>
             <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center"
-              style="width:50px; height:50px;">
+                 style="width:50px; height:50px;">
               <i class="bx bx-user-plus fs-4"></i>
             </div>
           </div>
@@ -344,7 +378,7 @@
               <small class="text-success">Manager roles</small>
             </div>
             <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center"
-              style="width:50px; height:50px;">
+                 style="width:50px; height:50px;">
               <i class="bx bx-user-check fs-4"></i>
             </div>
           </div>
@@ -363,7 +397,7 @@
               <small class="text-success">Employee roles</small>
             </div>
             <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center"
-              style="width:50px; height:50px;">
+                 style="width:50px; height:50px;">
               <i class="bx bx-user-voice fs-4"></i>
             </div>
           </div>
@@ -381,9 +415,10 @@
       </button>
     </div>
     <div class="card-body">
-      <div class="row g-3 align-items-center">
-        <div class="col-md-4">
-          <input type="text" class="form-control" id="searchInput" placeholder="Search by username" value="{{ search|default('') }}">
+      <div class="filter-container">
+        <div class="search-input col-md-4">
+          <i class="bx bx-search"></i>
+          <input type="text" class="form-control" id="searchInput" placeholder="Search by username or email" value="{{ search|default('') }}">
         </div>
         <div class="col-md-3">
           <select class="form-select" id="roleFilter">
@@ -395,13 +430,16 @@
             {% endfor %}
           </select>
         </div>
-        <div class="col-md-5">
-          <button class="btn btn-sort me-2 {% if sort|default('asc') == 'asc' %}btn-primary active{% else %}btn-outline-primary{% endif %}" id="sortAscBtn" title="Sort Ascending">
-            <i class="bx bx-sort-up"></i>
-          </button>
-          <button class="btn btn-sort {% if sort|default('asc') == 'desc' %}btn-primary active{% else %}btn-outline-primary{% endif %}" id="sortDescBtn" title="Sort Descending">
-            <i class="bx bx-sort-down"></i>
-          </button>
+        <div class="col-md-3">
+          <select class="form-select" id="sortFilter">
+            <option value="username_asc" {% if sort|default('username_asc') == 'username_asc' %}selected{% endif %}>Username (A-Z)</option>
+            <option value="username_desc" {% if sort|default('username_asc') == 'username_desc' %}selected{% endif %}>Username (Z-A)</option>
+            <option value="email_asc" {% if sort|default('username_asc') == 'email_asc' %}selected{% endif %}>Email (A-Z)</option>
+            <option value="email_desc" {% if sort|default('username_asc') == 'email_desc' %}selected{% endif %}>Email (Z-A)</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button class="btn btn-clear" id="clearFilters">Clear Filters</button>
         </div>
       </div>
     </div>
@@ -429,7 +467,7 @@
         <tbody id="userTableBody">
           {% for user in users|default([]) %}
           <tr>
-            <td>{{ loop.index }}</td>
+            <td>{{ loop.index + (pagination.page - 1) * pagination.per_page }}</td>
             <td>
               {% if user.get_image_url()|default(None) %}
               <img src="{{ user.get_image_url() }}" alt="Profile Picture" class="profile-pic">
@@ -445,8 +483,7 @@
             <td>{{ user.address|default('N/A') }}</td>
             <td>
               <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown"
-                  aria-expanded="false">
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                   <i class="bx bx-dots-horizontal-rounded"></i>
                 </button>
                 <ul class="dropdown-menu card-1">
@@ -456,14 +493,12 @@
                     </a>
                   </li>
                   <li>
-                    <a class="dropdown-item" href="#" data-bs-toggle="modal"
-                      data-bs-target="#editUserModal{{ user.id|default('') }}">
+                    <a class="dropdown-item edit-link" href="#" data-user-id="{{ user.id }}">
                       <i class="bx bx-edit"></i> Edit
                     </a>
                   </li>
                   <li>
-                    <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal"
-                      data-bs-target="#deleteUserModal{{ user.id|default('') }}">
+                    <a class="dropdown-item text-danger delete-link" href="#" data-user-id="{{ user.id }}" data-username="{{ user.username|default('N/A') }}">
                       <i class="bx bx-trash"></i> Delete
                     </a>
                   </li>
@@ -476,12 +511,20 @@
       </table>
     </div>
     <!-- Pagination Controls -->
-    <div class="d-flex justify-content-center mt-3" id="paginationControls">
+    <div class="d-flex justify-content-between align-items-center mt-3" id="paginationControls">
+      <div class="col-md-4">
+        <select class="form-select" id="perPageFilter">
+          <option value="7" {% if pagination.per_page|default(7) == 7 %}selected{% endif %}>7 per page</option>
+          <option value="10" {% if pagination.per_page|default(7) == 10 %}selected{% endif %}>10 per page</option>
+          <option value="25" {% if pagination.per_page|default(7) == 25 %}selected{% endif %}>25 per page</option>
+          <option value="50" {% if pagination.per_page|default(7) == 50 %}selected{% endif %}>50 per page</option>
+        </select>
+      </div>
       <nav>
-        <ul class="pagination">
+        <ul class="pagination mb-0">
           {% if pagination.has_prev|default(False) %}
           <li class="page-item">
-            <a class="page-link" href="{{ url_for('users.index', page=pagination.prev_num|default(1), search=search|default(''), role_id=role_id|default(''), sort=sort|default('asc')) }}">Previous</a>
+            <a class="page-link" href="#" data-page="{{ pagination.prev_num|default(1) }}">Previous</a>
           </li>
           {% else %}
           <li class="page-item disabled">
@@ -491,7 +534,7 @@
           {% for page_num in pagination.iter_pages()|default([]) %}
           {% if page_num %}
           <li class="page-item {% if page_num == pagination.page|default(1) %}active{% endif %}">
-            <a class="page-link" href="{{ url_for('users.index', page=page_num, search=search|default(''), role_id=role_id|default(''), sort=sort|default('asc')) }}">{{ page_num }}</a>
+            <a class="page-link" href="#" data-page="{{ page_num }}">{{ page_num }}</a>
           </li>
           {% else %}
           <li class="page-item disabled">
@@ -501,7 +544,7 @@
           {% endfor %}
           {% if pagination.has_next|default(False) %}
           <li class="page-item">
-            <a class="page-link" href="{{ url_for('users.index', page=pagination.next_num|default(1), search=search|default(''), role_id=role_id|default(''), sort=sort|default('asc')) }}">Next</a>
+            <a class="page-link" href="#" data-page="{{ pagination.next_num|default(1) }}">Next</a>
           </li>
           {% else %}
           <li class="page-item disabled">
@@ -517,7 +560,7 @@
   <div class="modal fade modal-center" id="createUserModal" tabindex="-1">
     <div class="modal-dialog">
       <form method="POST" action="{{ url_for('users.create', page=pagination.page|default(1)) }}"
-        enctype="multipart/form-data">
+            enctype="multipart/form-data">
         <div class="modal-content">
           <div class="modal-header bg-primary">
             <h5 class="modal-title text-white">Add User</h5>
@@ -565,8 +608,8 @@
             <div class="mb-3">
               <label class="form-label">Profile Picture</label>
               <div class="image-upload-container" ondragover="event.preventDefault(); this.classList.add('dragover');"
-                ondragleave="this.classList.remove('dragover');"
-                ondrop="event.preventDefault(); this.classList.remove('dragover'); handleImageDrop(event, 'imageInputCreate', 'imagePreviewCreate');">
+                   ondragleave="this.classList.remove('dragover');"
+                   ondrop="event.preventDefault(); this.classList.remove('dragover'); handleImageDrop(event, 'imageInputCreate', 'imagePreviewCreate');">
                 <div class="image-preview image-preview-placeholder" id="imagePreviewCreate"></div>
                 <label class="custom-file-label" for="imageInputCreate">
                   <i class="bx bx-upload"></i> Choose or Drop Image
@@ -584,29 +627,24 @@
     </div>
   </div>
 
-  <!-- Edit User Modal -->
-  {% for user in users|default([]) %}
-  <div class="modal fade modal-center" id="editUserModal{{ user.id|default('') }}" tabindex="-1">
+  <!-- Edit User Modal (Single) -->
+  <div class="modal fade modal-center" id="editUserModal" tabindex="-1">
     <div class="modal-dialog">
-      <form method="POST"
-        action="{{ url_for('users.update', user_id=user.id|default(''), page=pagination.page|default(1)) }}"
-        enctype="multipart/form-data">
+      <form method="POST" action="" enctype="multipart/form-data" id="editForm">
+        <input type="hidden" name="remove_image" id="removeImageInput" value="0">
         <div class="modal-content">
           <div class="modal-header bg-primary">
             <h5 class="modal-title text-white">Edit User</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-              aria-label="Close"></button>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
             <div class="mb-3">
               <label class="form-label">Username</label>
-              <input type="text" class="form-control" name="username" value="{{ user.username|default('') }}"
-                required>
+              <input type="text" class="form-control" name="username" required>
             </div>
             <div class="mb-3">
               <label class="form-label">Email</label>
-              <input type="email" class="form-control" name="email" value="{{ user.email|default('') }}"
-                required>
+              <input type="email" class="form-control" name="email" required>
             </div>
             <div class="mb-3">
               <label class="form-label">Password (leave blank to keep unchanged)</label>
@@ -614,17 +652,14 @@
             </div>
             <div class="mb-3">
               <label class="form-label">Phone Number</label>
-              <input type="text" class="form-control" name="phone_number"
-                value="{{ user.phone_number|default('') }}">
+              <input type="text" class="form-control" name="phone_number">
             </div>
             <div class="mb-3">
               <label class="form-label">Role</label>
               <select class="form-select" name="role_id">
                 <option value="">None</option>
                 {% for role in roles|default([]) %}
-                <option value="{{ role.id }}" {% if user.role_id|default(None)==role.id %}selected{% endif %}>
-                  {{ role.name|default('N/A') }}
-                </option>
+                <option value="{{ role.id }}">{{ role.name|default('N/A') }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -633,38 +668,25 @@
               <select class="form-select" name="department_id">
                 <option value="">None</option>
                 {% for department in departments|default([]) %}
-                <option value="{{ department.id }}" {% if user.department_id|default(None)==department.id
-                  %}selected{% endif %}>{{ department.name|default('N/A') }}</option>
+                <option value="{{ department.id }}">{{ department.name|default('N/A') }}</option>
                 {% endfor %}
               </select>
             </div>
             <div class="mb-3">
               <label class="form-label">Address</label>
-              <textarea class="form-control" name="address" rows="3">{{ user.address|default('') }}</textarea>
+              <textarea class="form-control" name="address" rows="3"></textarea>
             </div>
             <div class="mb-3">
               <label class="form-label">Profile Picture</label>
               <div class="image-upload-container"
-                ondragover="event.preventDefault(); this.classList.add('dragover');"
-                ondragleave="this.classList.remove('dragover');"
-                ondrop="event.preventDefault(); this.classList.remove('dragover'); handleImageDrop(event, 'imageInput{{ user.id|default('') }}', 'imagePreview{{ user.id|default('') }}');">
-                <div
-                  class="image-preview {% if not user.get_image_url()|default(None) %}image-preview-placeholder{% endif %}"
-                  id="imagePreview{{ user.id|default('') }}">
-                  {% if user.get_image_url()|default(None) %}
-                  <img src="{{ user.get_image_url() }}" alt="Profile Picture">
-                  {% endif %}
-                </div>
-                <label class="custom-file-label" for="imageInput{{ user.id|default('') }}">
+                   ondragover="event.preventDefault(); this.classList.add('dragover');"
+                   ondragleave="this.classList.remove('dragover');"
+                   ondrop="event.preventDefault(); this.classList.remove('dragover'); handleImageDrop(event, 'imageInputEdit', 'imagePreviewEdit');">
+                <div class="image-preview image-preview-placeholder" id="imagePreviewEdit"></div>
+                <label class="custom-file-label" for="imageInputEdit">
                   <i class="bx bx-upload"></i> Choose or Drop Image
                 </label>
-                <input type="file" class="custom-file-input" id="imageInput{{ user.id|default('') }}"
-                  name="image" accept="image/*">
-                {% if user.get_image_url()|default(None) %}
-                <button type="button" class="remove-image-btn"
-                  onclick="removeImage('imageInput{{ user.id|default('') }}', 'imagePreview{{ user.id|default('') }}')">Remove
-                  Image</button>
-                {% endif %}
+                <input type="file" class="custom-file-input" id="imageInputEdit" name="image" accept="image/*">
               </div>
             </div>
           </div>
@@ -677,8 +699,8 @@
     </div>
   </div>
 
-  <!-- Delete User Modal -->
-  <div class="modal fade" id="deleteUserModal{{ user.id|default('') }}" tabindex="-1">
+  <!-- Delete User Modal (Single) -->
+  <div class="modal fade" id="deleteUserModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header bg-danger text-white">
@@ -686,35 +708,32 @@
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
-          Are you sure you want to delete user <strong>{{ user.username|default('N/A') }}</strong>?
+          Are you sure you want to delete user <strong id="deleteUsername"></strong>?
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <form
-            action="{{ url_for('users.delete', user_id=user.id|default(''), page=pagination.page|default(1)) }}"
-            method="POST" class="d-inline">
+          <form id="deleteForm" method="POST" class="d-inline">
             <button type="submit" class="btn btn-danger">Delete</button>
           </form>
         </div>
       </div>
     </div>
   </div>
-  {% endfor %}
 </div>
 
 <!-- Boxicons CDN -->
 <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 
-<!-- jQuery CDN (required for AJAX) -->
+<!-- jQuery CDN -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-<!-- JavaScript for image preview and drag-and-drop -->
+<!-- JavaScript for image preview, drag-and-drop, and filters -->
 <script>
   function handleImagePreview(inputId, previewId) {
     const input = document.getElementById(inputId);
     const preview = document.getElementById(previewId);
 
-    if (!input || !preview) return; // Prevent errors if elements are missing
+    if (!input || !preview) return;
 
     input.addEventListener('change', function () {
       const file = this.files[0];
@@ -724,6 +743,9 @@
           preview.innerHTML = `<img src="${e.target.result}" alt="Profile Picture">`;
           preview.classList.remove('image-preview-placeholder');
           addRemoveButton(inputId, previewId);
+          if (inputId === 'imageInputEdit') {
+            $('#removeImageInput').val('0');
+          }
         };
         reader.onerror = function () {
           console.error('Error reading file');
@@ -745,6 +767,9 @@
         preview.innerHTML = `<img src="${e.target.result}" alt="Profile Picture">`;
         preview.classList.remove('image-preview-placeholder');
         addRemoveButton(inputId, previewId);
+        if (inputId === 'imageInputEdit') {
+          $('#removeImageInput').val('0');
+        }
       };
       reader.onerror = function () {
         console.error('Error reading dropped file');
@@ -777,23 +802,36 @@
     if (removeBtn) {
       removeBtn.remove();
     }
+    if (inputId === 'imageInputEdit') {
+      $('#removeImageInput').val('1');
+    }
   }
 
-  // Initialize image preview for Create User modal
+  // Initialize image preview for Create and Edit modals
   handleImagePreview('imageInputCreate', 'imagePreviewCreate');
-
-  // Initialize image preview for each Edit User modal
-  {% for user in users |default ([]) %}
-  handleImagePreview('imageInput{{ user.id|default('') }}', 'imagePreview{{ user.id|default('') }}');
-  {% endfor %}
+  handleImagePreview('imageInputEdit', 'imagePreviewEdit');
 
   // AJAX for real-time table updates
   $(document).ready(function() {
-    function updateTable() {
-      const search = $('#searchInput').val();
+    let currentPage = {{ pagination.page|default(1) }};
+    let perPage = {{ pagination.per_page|default(7) }};
+    let debounceTimer;
+
+    function debounce(func, delay) {
+      return function() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(func, delay);
+      };
+    }
+
+    function updateTable(page) {
+      if (page) {
+        currentPage = page;
+      }
+      const search = $('#searchInput').val().trim();
       const role_id = $('#roleFilter').val();
-      const sort = $('#sortAscBtn').hasClass('active') ? 'asc' : 'desc';
-      const page = {{ pagination.page|default(1) }};
+      const sort = $('#sortFilter').val();
+      const per_page = $('#perPageFilter').val();
 
       $('#loadingOverlay').show();
 
@@ -801,7 +839,7 @@
         url: '{{ url_for("users.index") }}',
         type: 'GET',
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        data: { search: search, role_id: role_id, sort: sort, page: page },
+        data: { search: search, role_id: role_id, sort: sort, page: currentPage, per_page: per_page },
         success: function(data) {
           // Update table body
           const tbody = $('#userTableBody');
@@ -812,7 +850,7 @@
             data.users.forEach((user, index) => {
               const row = `
                 <tr>
-                  <td>${index + 1}</td>
+                  <td>${index + 1 + (data.pagination.page - 1) * data.pagination.per_page}</td>
                   <td>
                     ${user.image_url ? `<img src="${user.image_url}" alt="Profile Picture" class="profile-pic">` : 'N/A'}
                   </td>
@@ -834,12 +872,12 @@
                           </a>
                         </li>
                         <li>
-                          <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editUserModal${user.id}">
+                          <a class="dropdown-item edit-link" href="#" data-user-id="${user.id}">
                             <i class="bx bx-edit"></i> Edit
                           </a>
                         </li>
                         <li>
-                          <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteUserModal${user.id}">
+                          <a class="dropdown-item text-danger delete-link" href="#" data-user-id="${user.id}" data-username="${user.username}">
                             <i class="bx bx-trash"></i> Delete
                           </a>
                         </li>
@@ -854,7 +892,19 @@
           // Update pagination
           const pagination = $('#paginationControls');
           pagination.empty();
-          let paginationHtml = '<nav><ul class="pagination">';
+          let paginationHtml = `
+            <div class="d-flex justify-content-between align-items-center mt-3" id="paginationControls">
+              <div class="col-md-4">
+                <select class="form-select" id="perPageFilter">
+                  <option value="7" ${data.pagination.per_page === 7 ? 'selected' : ''}>7 per page</option>
+                  <option value="10" ${data.pagination.per_page === 10 ? 'selected' : ''}>10 per page</option>
+                  <option value="25" ${data.pagination.per_page === 25 ? 'selected' : ''}>25 per page</option>
+                  <option value="50" ${data.pagination.per_page === 50 ? 'selected' : ''}>50 per page</option>
+                </select>
+              </div>
+              <nav>
+                <ul class="pagination mb-0">
+          `;
           
           if (data.pagination.has_prev) {
             paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${data.pagination.prev_num}">Previous</a></li>`;
@@ -878,48 +928,102 @@
             paginationHtml += '<li class="page-item disabled"><span class="page-link">Next</span></li>';
           }
 
-          paginationHtml += '</ul></nav>';
+          paginationHtml += '</ul></nav></div>';
           pagination.html(paginationHtml);
 
           $('#loadingOverlay').hide();
         },
         error: function() {
           $('#loadingOverlay').hide();
-          alert('Error loading users');
+          alert('Error loading users. Please try again.');
         }
       });
     }
 
-    // Event listeners for search, role filter, and sort buttons
-    $('#searchInput').on('input', updateTable);
-    $('#roleFilter').on('change', updateTable);
-    $('#sortAscBtn').on('click', function() {
-      $(this).addClass('active').removeClass('btn-outline-primary').addClass('btn-primary');
-      $('#sortDescBtn').removeClass('active').removeClass('btn-primary').addClass('btn-outline-primary');
+    // Event listeners for filters and pagination
+    $('#searchInput').on('input', debounce(function() {
+      currentPage = 1;
       updateTable();
-    });
-    $('#sortDescBtn').on('click', function() {
-      $(this).addClass('active').removeClass('btn-outline-primary').addClass('btn-primary');
-      $('#sortAscBtn').removeClass('active').removeClass('btn-primary').addClass('btn-outline-primary');
+    }, 300));
+
+    $('#roleFilter').on('change', function() {
+      currentPage = 1;
       updateTable();
     });
 
-    // Event listener for pagination links
+    $('#sortFilter').on('change', function() {
+      currentPage = 1;
+      updateTable();
+    });
+
+    $('#perPageFilter').on('change', function() {
+      perPage = $(this).val();
+      currentPage = 1;
+      updateTable();
+    });
+
+    $('#clearFilters').on('click', function() {
+      $('#searchInput').val('');
+      $('#roleFilter').val('');
+      $('#sortFilter').val('username_asc');
+      $('#perPageFilter').val('7');
+      perPage = 7;
+      currentPage = 1;
+      updateTable();
+    });
+
     $(document).on('click', '.pagination a.page-link', function(e) {
       e.preventDefault();
-      const page = $(this).attr('data-page');
-      window.history.pushState({}, '', `?page=${page}&search=${$('#searchInput').val()}&role_id=${$('#roleFilter').val()}&sort=${$('#sortAscBtn').hasClass('active') ? 'asc' : 'desc'}`);
-      updateTable();
+      const page = $(this).data('page');
+      window.history.pushState({}, '', `?page=${page}&search=${encodeURIComponent($('#searchInput').val())}&role_id=${$('#roleFilter').val()}&sort=${$('#sortFilter').val()}&per_page=${$('#perPageFilter').val()}`);
+      updateTable(page);
     });
 
-    // Set initial sort button state
-    {% if sort|default('asc') == 'asc' %}
-    $('#sortAscBtn').addClass('active').removeClass('btn-outline-primary').addClass('btn-primary');
-    $('#sortDescBtn').removeClass('active').removeClass('btn-primary').addClass('btn-outline-primary');
-    {% else %}
-    $('#sortDescBtn').addClass('active').removeClass('btn-outline-primary').addClass('btn-primary');
-    $('#sortAscBtn').removeClass('active').removeClass('btn-primary').addClass('btn-outline-primary');
-    {% endif %}
+    // Event listener for edit links
+    $(document).on('click', '.edit-link', function(e) {
+      e.preventDefault();
+      const userId = $(this).data('user-id');
+      $.get(`/users/${userId}/json`, function(data) {
+        $('#editForm input[name="username"]').val(data.username);
+        $('#editForm input[name="email"]').val(data.email);
+        $('#editForm input[name="phone_number"]').val(data.phone_number || '');
+        $('#editForm select[name="role_id"]').val(data.role_id || '');
+        $('#editForm select[name="department_id"]').val(data.department_id || '');
+        $('#editForm textarea[name="address"]').val(data.address || '');
+        $('#editForm input[name="password"]').val('');
+
+        const preview = document.getElementById('imagePreviewEdit');
+        preview.innerHTML = data.image_url ? `<img src="${data.image_url}" alt="Profile Picture">` : '';
+        if (data.image_url) {
+          preview.classList.remove('image-preview-placeholder');
+          addRemoveButton('imageInputEdit', 'imagePreviewEdit');
+          $('#removeImageInput').val('0');
+        } else {
+          preview.classList.add('image-preview-placeholder');
+          const removeBtn = preview.parentElement.querySelector('.remove-image-btn');
+          if (removeBtn) removeBtn.remove();
+          $('#removeImageInput').val('0');
+        }
+
+        $('#editForm').attr('action', `/users/update/${userId}?page=${currentPage}`);
+        $('#editUserModal').modal('show');
+      }).fail(function() {
+        alert('Error loading user data. Please try again.');
+      });
+    });
+
+    // Event listener for delete links
+    $(document).on('click', '.delete-link', function(e) {
+      e.preventDefault();
+      const userId = $(this).data('user-id');
+      const username = $(this).data('username');
+      $('#deleteUsername').text(username);
+      $('#deleteForm').attr('action', `/users/delete/${userId}?page=${currentPage}`);
+      $('#deleteUserModal').modal('show');
+    });
+
+    // Set initial sort filter state
+    $('#sortFilter').val('{{ sort|default('username_asc') }}');
   });
 </script>
 {% endblock %}

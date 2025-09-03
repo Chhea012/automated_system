@@ -18,29 +18,47 @@ def allowed_file(filename):
 @login_required
 def index():
     page = request.args.get('page', 1, type=int)
-    search = request.args.get('search', '', type=str)
+    search = request.args.get('search', '', type=str).strip()
     role_id = request.args.get('role_id', '', type=str)
-    sort = request.args.get('sort', 'asc', type=str)
+    sort = request.args.get('sort', 'username_asc', type=str)
+    per_page = request.args.get('per_page', 7, type=int)
+
+    # Ensure per_page is within allowed values
+    allowed_per_page = [7, 10, 25, 50]
+    if per_page not in allowed_per_page:
+        per_page = 7
 
     # Base query
     query = User.query
 
-    # Apply search filter
+    # Apply search filter (username or email)
     if search:
-        query = query.filter(User.username.ilike(f'%{search}%'))
+        query = query.filter(
+            (User.username.ilike(f'%{search}%')) | 
+            (User.email.ilike(f'%{search}%'))
+        )
 
     # Apply role filter
     if role_id:
         query = query.filter(User.role_id == role_id)
 
     # Apply sorting
-    if sort == 'desc':
+    if sort == 'username_desc':
         query = query.order_by(User.username.desc())
-    else:
+    elif sort == 'email_asc':
+        query = query.order_by(User.email.asc())
+    elif sort == 'email_desc':
+        query = query.order_by(User.email.desc())
+    else:  # Default to username_asc
         query = query.order_by(User.username.asc())
 
     # Paginate the results
-    pagination = query.paginate(page=page, per_page=7, error_out=False)
+    try:
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    except:
+        # Handle invalid page number
+        page = 1
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
     # Calculate metrics for the cards
     total_users = User.query.count()
@@ -73,6 +91,7 @@ def index():
                 'next_num': pagination.next_num,
                 'page': pagination.page,
                 'pages': pagination.pages,
+                'per_page': pagination.per_page,
                 'iter_pages': list(pagination.iter_pages())
             }
         })
@@ -89,8 +108,24 @@ def index():
         total_employees=total_employees,
         search=search,
         role_id=role_id,
-        sort=sort
+        sort=sort,
+        per_page=per_page
     )
+
+@users_bp.route("/<int:user_id>/json")
+@login_required
+def get_user(user_id):
+    user = User.query.get_or_404(user_id)
+    return jsonify({
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'phone_number': user.phone_number,
+        'address': user.address,
+        'role_id': user.role_id,
+        'department_id': user.department_id,
+        'image_url': user.get_image_url()
+    })
 
 @users_bp.route("/profile/<int:user_id>")
 @login_required
@@ -142,12 +177,21 @@ def create():
         upload_folder = os.path.join(current_app.root_path, 'static/uploads')
         os.makedirs(upload_folder, exist_ok=True)
         file_path = os.path.join(upload_folder, filename)
-        image.save(file_path)
-        new_user.image = filename
+        try:
+            image.save(file_path)
+            new_user.image = filename
+        except Exception as e:
+            flash(f"Error uploading image: {str(e)}", "danger")
+            return redirect(url_for("users.index", page=1))
 
-    db.session.add(new_user)
-    db.session.commit()
-    flash("User created successfully!", "success")
+    try:
+        db.session.add(new_user)
+        db.session.commit()
+        flash("User created successfully!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error creating user: {str(e)}", "danger")
+
     return redirect(url_for("users.index", page=1))
 
 @users_bp.route("/update/<int:user_id>", methods=["POST"])
@@ -162,18 +206,19 @@ def update(user_id):
     role_id = request.form.get("role_id")
     department_id = request.form.get("department_id")
     image = request.files.get("image")
+    remove_image = request.form.get("remove_image")
 
     if not username or not email:
         flash("Username and email are required!", "danger")
-        return redirect(url_for("users.index", page=request.args.get('page', 1)))
+        return redirect(url_for("users.index", page=request.args.get('page', 1, type=int)))
 
     if username != user.username and User.query.filter_by(username=username).first():
         flash("Username already exists!", "danger")
-        return redirect(url_for("users.index", page=request.args.get('page', 1)))
+        return redirect(url_for("users.index", page=request.args.get('page', 1, type=int)))
 
     if email != user.email and User.query.filter_by(email=email).first():
         flash("Email already exists!", "danger")
-        return redirect(url_for("users.index", page=request.args.get('page', 1)))
+        return redirect(url_for("users.index", page=request.args.get('page', 1, type=int)))
 
     user.username = username
     user.email = email
@@ -185,23 +230,49 @@ def update(user_id):
     if password:
         user.set_password(password)
 
+    if remove_image == '1' and user.image:
+        try:
+            image_path = os.path.join(current_app.root_path, 'static/uploads', user.image)
+            if os.path.exists(image_path):
+                os.remove(image_path)
+            user.image = None
+        except Exception as e:
+            flash(f"Error removing image: {str(e)}", "danger")
+
     if image and allowed_file(image.filename):
         filename = secure_filename(image.filename)
         upload_folder = os.path.join(current_app.root_path, 'static/uploads')
         os.makedirs(upload_folder, exist_ok=True)
         file_path = os.path.join(upload_folder, filename)
-        image.save(file_path)
-        user.image = filename
+        try:
+            image.save(file_path)
+            user.image = filename
+        except Exception as e:
+            flash(f"Error uploading image: {str(e)}", "danger")
+            return redirect(url_for("users.index", page=request.args.get('page', 1, type=int)))
 
-    db.session.commit()
-    flash("User updated successfully!", "success")
-    return redirect(url_for("users.index", page=request.args.get('page', 1)))
+    try:
+        db.session.commit()
+        flash("User updated successfully!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error updating user: {str(e)}", "danger")
+
+    return redirect(url_for("users.index", page=request.args.get('page', 1, type=int)))
 
 @users_bp.route("/delete/<int:user_id>", methods=["POST"])
 @login_required
 def delete(user_id):
     user = User.query.get_or_404(user_id)
-    db.session.delete(user)
-    db.session.commit()
-    flash("User deleted!", "success")
-    return redirect(url_for("users.index", page=request.args.get('page', 1)))
+    try:
+        if user.image:
+            image_path = os.path.join(current_app.root_path, 'static/uploads', user.image)
+            if os.path.exists(image_path):
+                os.remove(image_path)
+        db.session.delete(user)
+        db.session.commit()
+        flash("User deleted successfully!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error deleting user: {str(e)}", "danger")
+    return redirect(url_for("users.index", page=request.args.get('page', 1, type=int)))
