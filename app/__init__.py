@@ -4,6 +4,8 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_migrate import Migrate
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from .config import Config
 
 load_dotenv()
@@ -11,6 +13,7 @@ load_dotenv()
 db = SQLAlchemy()
 login_manager = LoginManager()
 migrate = Migrate()
+limiter = Limiter(key_func=get_remote_address)
 
 def create_app():
     app = Flask(__name__)
@@ -19,11 +22,11 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
+    limiter.init_app(app)
 
     login_manager.login_view = "auth.login"
     login_manager.login_message_category = "info"
 
-    # Register blueprints
     from .routes.auth import auth_bp
     from .routes.main import main_bp
     from .routes.users import users_bp
@@ -40,12 +43,12 @@ def create_app():
     app.register_blueprint(departments_bp, url_prefix="/departments")
     app.register_blueprint(contracts_bp, url_prefix="/contracts")
 
-    # Import models to ensure they are registered with SQLAlchemy
     from .models.user import User
     from .models.permission import Permission
     from .models.role import Role
     from .models.department import Department
     from .models.contract import Contract
+    from .forms import LoginForm, RegisterForm
 
     @login_manager.user_loader
     def load_user(user_id):

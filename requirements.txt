@@ -11,3 +11,7 @@ docx
 python-docx
 openpyxl
 flask-wtf
+flask-limiter
+email_validator
+itsdangerous 
+flask-mail

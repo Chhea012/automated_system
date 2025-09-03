@@ -10,38 +10,21 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
-
-    # profile
+    password_hash = db.Column(db.String(255), nullable=False)  # Increased size
     image = db.Column(db.String(255), nullable=True, default="default_profile.png")
     phone_number = db.Column(db.String(20), nullable=True)
     address = db.Column(db.String(255), nullable=True)
-
-    # NEW: relations
     role_id = db.Column(db.Integer, db.ForeignKey("role.id"), nullable=True, index=True)
     department_id = db.Column(db.Integer, db.ForeignKey("department.id"), nullable=True, index=True)
-
-    # timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # ORM relationships
-    role = db.relationship(
-        "Role",
-        backref=db.backref("users", lazy="dynamic"),
-        foreign_keys=[role_id],
-        lazy="joined",
-    )
-    department = db.relationship(
-        "Department",
-        backref=db.backref("users", lazy="dynamic"),
-        foreign_keys=[department_id],
-        lazy="joined",
-    )
+    role = db.relationship("Role", backref=db.backref("users", lazy="dynamic"), foreign_keys=[role_id], lazy="joined")
+    department = db.relationship("Department", backref=db.backref("users", lazy="dynamic"), foreign_keys=[department_id], lazy="joined")
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
+        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256:600000')  # Explicit method
+    
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
