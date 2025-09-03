@@ -10,3 +10,4 @@ num2words
 docx
 python-docx
 openpyxl
+flask-wtf
