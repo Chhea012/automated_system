@@ -31,3 +31,14 @@ def fix_contract_fields():
                     if isinstance(parsed, list):
                         print(f"Fixing JSON-serialized payment_installment_desc for contract {contract.id}: {contract.payment_installment_desc}")
                         contract.payment_installment_desc = '; '.join(str(item).strip() for item in parsed if str(item).strip())
+                except json.JSONDecodeError:
+                    pass  # Not a JSON string, leave as is
+
+        db.session.commit()
+        print("Contract fields fixed successfully.")
+    except Exception as e:
+        print(f"Error fixing contract fields: {e}")
+        db.session.rollback()
+
+if __name__ == "__main__":
+    fix_contract_fields()
