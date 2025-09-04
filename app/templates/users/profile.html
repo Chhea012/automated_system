@@ -358,16 +358,15 @@
         <dt><i class="bx bx-map"></i> Address:</dt>
         <dd>{{ user.address|default('N/A') }}</dd>
       </dl>
-                 <!-- Action Buttons -->
+      <!-- Action Buttons -->
       <div class="action-buttons">
-        <a href="{{ url_for('users.index', page=page|default(1)) }}" class="action-btn bg-gray-600 text-white hover:bg-gray-700">
-          <i class="bx bx-arrow-back"></i> Back to Users
-        </a>
-
         {% if user.role and user.role.name in ['Admin', 'Manager'] %}
-        <button class="action-btn bg-blue-600 text-white hover:bg-blue-700" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id|default('') }}">
-          <i class="bx bx-edit"></i> Edit Profile
-        </button>
+          <a href="{{ url_for('users.index', page=page|default(1)) }}" class="action-btn bg-gray-600 text-white hover:bg-gray-700">
+            <i class="bx bx-arrow-back"></i> Back to Users
+          </a>
+          <button class="action-btn bg-blue-600 text-white hover:bg-blue-700" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id|default('') }}">
+            <i class="bx bx-edit"></i> Edit Profile
+          </button>
         {% endif %}
       </div>
     </div>
