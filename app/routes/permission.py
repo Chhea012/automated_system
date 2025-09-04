@@ -1,22 +1,28 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from flask_login import login_required
+from flask_login import login_required, current_user
 from app import db
 from app.models.permission import Permission
 
 permissions_bp = Blueprint("permissions", __name__)
 
-# List permissions with pagination, sorted by created_at descending
 @permissions_bp.route("/")
 @login_required
 def index():
+    if not current_user.has_role('Admin'):
+        flash("You do not have permission to access this page.", "danger")
+        return redirect(url_for("main.dashboard"))
+
     page = request.args.get('page', 1, type=int)
     pagination = Permission.query.order_by(Permission.created_at.desc()).paginate(page=page, per_page=7, error_out=False)
     return render_template("permissions/index.html", permissions=pagination.items, pagination=pagination)
 
-# Create permission
 @permissions_bp.route("/create", methods=["POST"])
 @login_required
 def create():
+    if not current_user.has_role('Admin'):
+        flash("You do not have permission to create permissions.", "danger")
+        return redirect(url_for("main.dashboard"))
+
     name = request.form.get("name")
     description = request.form.get("description")
 
@@ -38,10 +44,13 @@ def create():
     flash("Permission created successfully!", "success")
     return redirect(url_for("permissions.index", page=1))
 
-# Update permission
 @permissions_bp.route("/update/<int:permission_id>", methods=["POST"])
 @login_required
 def update(permission_id):
+    if not current_user.has_role('Admin'):
+        flash("You do not have permission to update permissions.", "danger")
+        return redirect(url_for("main.dashboard"))
+
     permission = Permission.query.get_or_404(permission_id)
     name = request.form.get("name")
     description = request.form.get("description")
@@ -61,10 +70,13 @@ def update(permission_id):
     flash("Permission updated successfully!", "success")
     return redirect(url_for("permissions.index", page=request.args.get('page', 1)))
 
-# Delete permission
 @permissions_bp.route("/delete/<int:permission_id>", methods=["POST"])
 @login_required
 def delete(permission_id):
+    if not current_user.has_role('Admin'):
+        flash("You do not have permission to delete permissions.", "danger")
+        return redirect(url_for("main.dashboard"))
+
     permission = Permission.query.get_or_404(permission_id)
     db.session.delete(permission)
     db.session.commit()

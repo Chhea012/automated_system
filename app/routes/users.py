@@ -1,6 +1,6 @@
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, jsonify
-from flask_login import login_required
+from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 from app import db
 from app.models.user import User
@@ -17,50 +17,46 @@ def allowed_file(filename):
 @users_bp.route("/")
 @login_required
 def index():
+    if not current_user.has_role('Admin') and not current_user.has_role('Manager'):
+        flash("You do not have permission to access this page.", "danger")
+        return redirect(url_for("main.dashboard"))
+
     page = request.args.get('page', 1, type=int)
     search = request.args.get('search', '', type=str).strip()
     role_id = request.args.get('role_id', '', type=str)
     sort = request.args.get('sort', 'username_asc', type=str)
     per_page = request.args.get('per_page', 7, type=int)
 
-    # Ensure per_page is within allowed values
     allowed_per_page = [7, 10, 25, 50]
     if per_page not in allowed_per_page:
         per_page = 7
 
-    # Base query
     query = User.query
 
-    # Apply search filter (username or email)
     if search:
         query = query.filter(
             (User.username.ilike(f'%{search}%')) | 
             (User.email.ilike(f'%{search}%'))
         )
 
-    # Apply role filter
     if role_id:
         query = query.filter(User.role_id == role_id)
 
-    # Apply sorting
     if sort == 'username_desc':
         query = query.order_by(User.username.desc())
     elif sort == 'email_asc':
         query = query.order_by(User.email.asc())
     elif sort == 'email_desc':
         query = query.order_by(User.email.desc())
-    else:  # Default to username_asc
+    else:
         query = query.order_by(User.username.asc())
 
-    # Paginate the results
     try:
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     except:
-        # Handle invalid page number
         page = 1
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
-    # Calculate metrics for the cards
     total_users = User.query.count()
     total_hr_admin = User.query.join(Role).filter(Role.name.in_(['HR', 'Admin'])).count()
     total_managers = User.query.join(Role).filter(Role.name == 'Manager').count()
@@ -69,7 +65,6 @@ def index():
     roles = Role.query.all()
     departments = Department.query.all()
 
-    # Handle AJAX request
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({
             'users': [
@@ -115,6 +110,8 @@ def index():
 @users_bp.route("/<int:user_id>/json")
 @login_required
 def get_user(user_id):
+    if not current_user.has_role('Admin') and not current_user.has_role('Manager'):
+        return jsonify({'error': 'Unauthorized'}), 403
     user = User.query.get_or_404(user_id)
     return jsonify({
         'id': user.id,
@@ -130,7 +127,12 @@ def get_user(user_id):
 @users_bp.route("/profile/<int:user_id>")
 @login_required
 def profile(user_id):
+    # Allow users to view their own profile or Admins/Managers to view any profile
     user = User.query.get_or_404(user_id)
+    if not (current_user.id == user_id or current_user.has_role('Admin') or current_user.has_role('Manager')):
+        flash("You do not have permission to view this profile.", "danger")
+        return redirect(url_for("main.dashboard"))
+
     roles = Role.query.all()
     departments = Department.query.all()
     return render_template(
@@ -144,6 +146,10 @@ def profile(user_id):
 @users_bp.route("/create", methods=["POST"])
 @login_required
 def create():
+    if not current_user.has_role('Admin'):
+        flash("You do not have permission to create users.", "danger")
+        return redirect(url_for("main.dashboard"))
+
     username = request.form.get("username")
     email = request.form.get("email")
     password = request.form.get("password")
@@ -197,6 +203,10 @@ def create():
 @users_bp.route("/update/<int:user_id>", methods=["POST"])
 @login_required
 def update(user_id):
+    if not current_user.has_role('Admin'):
+        flash("You do not have permission to update users.", "danger")
+        return redirect(url_for("main.dashboard"))
+
     user = User.query.get_or_404(user_id)
     username = request.form.get("username")
     email = request.form.get("email")
@@ -263,6 +273,10 @@ def update(user_id):
 @users_bp.route("/delete/<int:user_id>", methods=["POST"])
 @login_required
 def delete(user_id):
+    if not current_user.has_role('Admin'):
+        flash("You do not have permission to delete users.", "danger")
+        return redirect(url_for("main.dashboard"))
+
     user = User.query.get_or_404(user_id)
     try:
         if user.image:

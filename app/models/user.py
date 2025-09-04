@@ -10,7 +10,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)  # Increased size
+    password_hash = db.Column(db.String(255), nullable=False)
     image = db.Column(db.String(255), nullable=True, default="default_profile.png")
     phone_number = db.Column(db.String(20), nullable=True)
     address = db.Column(db.String(255), nullable=True)
@@ -23,7 +23,7 @@ class User(UserMixin, db.Model):
     department = db.relationship("Department", backref=db.backref("users", lazy="dynamic"), foreign_keys=[department_id], lazy="joined")
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256:600000')  # Explicit method
+        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256:600000')
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
@@ -32,6 +32,10 @@ class User(UserMixin, db.Model):
         if self.image and self.image != "default_profile.png":
             return f"/static/uploads/{self.image}"
         return "/static/uploads/default_profile.png"
+
+    def has_role(self, role_name):
+        """Check if the user has the specified role."""
+        return self.role and self.role.name.lower() == role_name.lower()
 
     def __repr__(self):
         return f"<User {self.username}>"

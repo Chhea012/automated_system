@@ -17,17 +17,20 @@ def index():
 @login_required
 def dashboard():
     try:
+        # Ensure user has one of the allowed roles
+        if not current_user.has_role('Admin') and not current_user.has_role('Manager') and not current_user.has_role('Employee'):
+            flash("You do not have permission to access the dashboard.", "danger")
+            return redirect(url_for("auth.logout"))
+
         # Fetch all departments
         departments = Department.query.all()
 
         # Prepare data for the pie chart and department details
         department_data = []
         for dept in departments:
-            # Get users in this department
             users = User.query.filter_by(department_id=dept.id).all()
             user_count = len(users)
             
-            # Get managers and employees
             managers = [
                 user.username for user in users 
                 if user.role and user.role.name == 'Manager'
