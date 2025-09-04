@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
-from flask_login import login_required
+from flask_login import login_required, current_user
 from app import db
 from app.models.contract import Contract
 import uuid
@@ -21,7 +21,6 @@ from docx.oxml import OxmlElement
 from docx.shared import Inches, Pt, RGBColor
 import zipfile
 
-
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -30,7 +29,7 @@ contracts_bp = Blueprint('contracts', __name__)
 
 def sanitize_filename(name):
     # Sanitize the filename to remove invalid characters and replace spaces with underscores
-    return re.sub(r'[^\w\s.-]', ' ', name.replace(' ', ' ')).strip()
+    return re.sub(r'[^\w\s.-]', ' ', name.replace(' ', '_')).strip()
 
 # Helper function to generate next contract number
 def generate_next_contract_number(last_contract_number, current_year):
@@ -132,7 +131,8 @@ def index():
         sort_order = request.args.get('sort', 'created_at_desc', type=str)
         entries_per_page = request.args.get('entries', 10, type=int)
 
-        query = Contract.query
+        # Filter by user_id and exclude soft-deleted contracts
+        query = Contract.query.filter(Contract.user_id == current_user.id, Contract.deleted_at == None)
 
         # Apply search filter
         if search_query:
@@ -155,11 +155,8 @@ def index():
             query = query.order_by(Contract.total_fee_usd.asc())
         elif sort_order == 'total_fee_desc':
             query = query.order_by(Contract.total_fee_usd.desc())
-        elif sort_order == 'created_at_desc':
+        else:  # Default to created_at_desc
             query = query.order_by(Contract.created_at.desc())
-        else:
-            query = query.order_by(Contract.contract_number.asc())
-
 
         # Pagination
         pagination = query.paginate(page=page, per_page=entries_per_page, error_out=False)
@@ -175,8 +172,8 @@ def index():
                 contract['custom_article_sentences'] = []
 
         # Total contracts and last contract
-        total_contracts = Contract.query.count()
-        last_contract = Contract.query.order_by(Contract.contract_number.desc()).first()
+        total_contracts = Contract.query.filter(Contract.user_id == current_user.id, Contract.deleted_at == None).count()
+        last_contract = Contract.query.filter(Contract.user_id == current_user.id, Contract.deleted_at == None).order_by(Contract.created_at.desc()).first()
         last_contract_number = last_contract.contract_number if last_contract else None
 
         return render_template(
@@ -192,7 +189,7 @@ def index():
 
     except Exception as e:
         logger.error(f"Error in index route: {str(e)}")
-        flash(f"Error loading contracts: {str(e)}", 'danger')
+        flash("An error occurred while loading contracts.", 'danger')
         return render_template(
             'contracts/index.html',
             contracts=[],
@@ -203,16 +200,18 @@ def index():
             total_contracts=0,
             last_contract_number=None
         )
-
-# Export contract to excel
+    # Export contract to excel
 @contracts_bp.route('/export_excel')
 @login_required
 def export_excel():
     try:
         search_query = request.args.get('search', '', type=str)
-        sort_order = request.args.get('sort', 'project_title_asc', type=str)
+        sort_order = request.args.get('sort', 'created_at_desc', type=str)
 
-        query = Contract.query
+        # Filter by user_id and exclude soft-deleted contracts
+        query = Contract.query.filter(Contract.user_id == current_user.id, Contract.deleted_at == None)
+
+        # Apply search filter
         if search_query:
             query = query.filter(
                 (Contract.project_title.ilike(f'%{search_query}%')) |
@@ -220,10 +219,11 @@ def export_excel():
                 (Contract.party_b_signature_name.ilike(f'%{search_query}%'))
             )
 
-        if sort_order == 'project_title_asc':
-            query = query.order_by(Contract.project_title.asc())
-        elif sort_order == 'project_title_desc':
-            query = query.order_by(Contract.project_title.desc())
+        # Sorting
+        if sort_order == 'contract_number_asc':
+            query = query.order_by(Contract.contract_number.asc())
+        elif sort_order == 'contract_number_desc':
+            query = query.order_by(Contract.contract_number.desc())
         elif sort_order == 'start_date_asc':
             query = query.order_by(Contract.agreement_start_date.asc())
         elif sort_order == 'start_date_desc':
@@ -232,6 +232,8 @@ def export_excel():
             query = query.order_by(Contract.total_fee_usd.asc())
         elif sort_order == 'total_fee_desc':
             query = query.order_by(Contract.total_fee_usd.desc())
+        else:  # Default to created_at_desc
+            query = query.order_by(Contract.created_at.desc())
 
         contracts = [contract.to_dict() for contract in query.all()]
         data = []
@@ -284,10 +286,10 @@ def export_excel():
         ws = wb.active
         ws.title = 'List'
 
-        # ===== Row 1: default (no fill) =====
+        # Row 1: default (no fill)
         ws.row_dimensions[1].height = 5
 
-        # ===== Header row (row 2) =====
+        # Header row (row 2)
         headers = ['Contract No.', 'Consultant', 'Agreement Name', 'Term of Payment', 'Attached']
         for col_num, header in enumerate(headers, 1):
             target_col = col_num if col_num <= 3 else 4 if col_num == 4 else 7
@@ -311,14 +313,14 @@ def export_excel():
         )
         ws.cell(row=2, column=4).fill = PatternFill(start_color="88B84D", end_color="88B84D", fill_type="solid")
 
-        # ===== Empty teal row UNDER headers (row 3) =====
+        # Empty teal row UNDER headers (row 3)
         for col in range(1, 8):
             cell = ws.cell(row=3, column=col, value="")
             cell.fill = PatternFill(start_color="28677A", end_color="28677A", fill_type="solid")
             cell.border = Border()
         ws.row_dimensions[3].height = 5
 
-        # ===== Write data rows (start at row 4) =====
+        # Write data rows (start at row 4)
         for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=False), 4):
             is_separator_row = all(v == "" for v in row)
             for c_idx, value in enumerate(row, 1):
@@ -347,7 +349,7 @@ def export_excel():
                         ws.cell(row=r_idx, column=col).border = Border()
                     ws.row_dimensions[r_idx].height = 5
 
-        # ===== Merge contract info cells =====
+        # Merge contract info cells
         current_contract = None
         start_row = 4
         for idx, row in enumerate(data, 4):
@@ -370,7 +372,7 @@ def export_excel():
             for col in [1, 2, 3]:
                 ws.cell(row=start_row, column=col).alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
 
-        # ===== Column widths (wider than before) =====
+        # Column widths
         column_widths = [22, 22, 60, 22, 22, 30, 25]
         for i, width in enumerate(column_widths, 1):
             ws.column_dimensions[chr(64 + i)].width = width
@@ -387,18 +389,15 @@ def export_excel():
 
     except Exception as e:
         logger.error(f"Error exporting to Excel: {str(e)}")
-        flash(f"Error exporting to Excel: {str(e)}", 'danger')
+        flash("An error occurred while exporting to Excel.", 'danger')
         return redirect(url_for('contracts.index'))
-
-
-
-# Create contract
+    # Create contract
 @contracts_bp.route('/create', methods=['GET', 'POST'])
 @login_required
 def create():
     form_data = {}
     current_year = datetime.now().year
-    last_contract = Contract.query.order_by(Contract.contract_number.desc()).first()
+    last_contract = Contract.query.filter(Contract.user_id == current_user.id, Contract.deleted_at == None).order_by(Contract.created_at.desc()).first()
     last_contract_number = last_contract.contract_number if last_contract else None
     default_contract_number = generate_next_contract_number(last_contract_number, current_year)
 
@@ -424,6 +423,10 @@ def create():
                 )
                 if desc.strip() and deliv.strip() and due.strip()
             ]
+            if not payment_installments:
+                flash('At least one payment installment is required.', 'danger')
+                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
+
             deliverables = '; '.join([inst['deliverables'] for inst in payment_installments])
 
             total_fee_usd = float(request.form.get('total_fee_usd', '0.0').strip() or 0.0)
@@ -462,7 +465,6 @@ def create():
                 'workshop_description': request.form.get('workshop_description', '').strip(),
                 'custom_article_sentences': custom_article_sentences,
                 'party_b_signature_name': request.form.get('party_b_signature_name', '').strip(),
-                'party_b_signature_name_confirm': request.form.get('party_b_signature_name_confirm', '').strip(),
                 'title': request.form.get('title', '').strip(),
                 'deliverables': deliverables
             }
@@ -478,28 +480,19 @@ def create():
                 ('party_b_signature_name', 'Party B signature name is required.'),
                 ('agreement_start_date', 'Agreement start date is required.'),
                 ('agreement_end_date', 'Agreement end date is required.'),
-                ('total_fee_usd', 'Total fee USD is required.'),
-                ('party_b_signature_name_confirm', 'Party B signature name confirmation is required.')
+                ('total_fee_usd', 'Total fee USD is required.')
             ]
             for field, message in required_fields:
                 if not form_data[field]:
                     flash(message, 'danger')
                     return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
 
-            if not form_data['payment_installments']:
-                flash('At least one payment installment is required.', 'danger')
-                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
-
-            if form_data['party_b_signature_name'] != form_data['party_b_signature_name_confirm']:
-                flash('Party B Signature Name and Confirmation do not match.', 'danger')
-                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
-
             if not re.match(r"NGOF/\d{4}-\d{3}", form_data['contract_number']):
                 flash('Contract number must follow the format NGOF/YYYY-NNN (e.g., NGOF/2025-005).', 'danger')
                 return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
 
-            if Contract.query.filter_by(contract_number=form_data['contract_number']).first():
-                flash('Contract number already exists.', 'danger')
+            if Contract.query.filter(Contract.contract_number == form_data['contract_number'], Contract.user_id == current_user.id).first():
+                flash('Contract number already exists for your account.', 'danger')
                 return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
 
             start_date = form_data['agreement_start_date']
@@ -553,6 +546,7 @@ def create():
 
             contract = Contract(
                 id=str(uuid.uuid4()),
+                user_id=current_user.id,  # Assign user_id
                 project_title=form_data['project_title'],
                 contract_number=form_data['contract_number'],
                 organization_name=form_data['organization_name'],
@@ -594,16 +588,22 @@ def create():
             return redirect(url_for('contracts.index'))
         except Exception as e:
             logger.error(f"Error creating contract: {str(e)}")
-            flash(f"Error creating contract: {str(e)}", 'danger')
+            flash("An error occurred while creating the contract.", 'danger')
             return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
 
     return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
-
 # Update contract
 @contracts_bp.route('/update/<contract_id>', methods=['GET', 'POST'])
 @login_required
 def update(contract_id):
     contract = Contract.query.get_or_404(contract_id)
+    if contract.user_id != current_user.id:
+        flash("You are not authorized to update this contract.", 'danger')
+        return redirect(url_for('contracts.index'))
+    if contract.deleted_at is not None:
+        flash("This contract has been deleted and cannot be updated.", 'danger')
+        return redirect(url_for('contracts.index'))
+
     if request.method == 'POST':
         try:
             articles = [
@@ -626,6 +626,10 @@ def update(contract_id):
                 )
                 if desc.strip() and deliv.strip() and due.strip()
             ]
+            if not payment_installments:
+                flash('At least one payment installment is required.', 'danger')
+                return render_template('contracts/update.html', form_data=form_data)
+
             deliverables = '; '.join([inst['deliverables'] for inst in payment_installments])
 
             total_fee_usd = float(request.form.get('total_fee_usd', '0.0').strip() or 0.0)
@@ -665,7 +669,6 @@ def update(contract_id):
                 'workshop_description': request.form.get('workshop_description', '').strip(),
                 'custom_article_sentences': custom_article_sentences,
                 'party_b_signature_name': request.form.get('party_b_signature_name', '').strip(),
-                'party_b_signature_name_confirm': request.form.get('party_b_signature_name_confirm', '').strip(),
                 'title': request.form.get('title', '').strip(),
                 'deliverables': deliverables
             }
@@ -681,8 +684,7 @@ def update(contract_id):
                 ('party_b_signature_name', 'Party B signature name is required.'),
                 ('agreement_start_date', 'Agreement start date is required.'),
                 ('agreement_end_date', 'Agreement end date is required.'),
-                ('total_fee_usd', 'Total fee USD is required.'),
-                ('party_b_signature_name_confirm', 'Party B signature name confirmation is required.')
+                ('total_fee_usd', 'Total fee USD is required.')
             ]
             for field, message in required_fields:
                 if not form_data[field]:
@@ -693,8 +695,8 @@ def update(contract_id):
                 flash('Contract number must follow the format NGOF/YYYY-NNN (e.g., NGOF/2025-005).', 'danger')
                 return render_template('contracts/update.html', form_data=form_data)
 
-            if Contract.query.filter(Contract.contract_number == form_data['contract_number'], Contract.id != contract_id).first():
-                flash('Contract number already exists.', 'danger')
+            if Contract.query.filter(Contract.contract_number == form_data['contract_number'], Contract.id != contract_id, Contract.user_id == current_user.id).first():
+                flash('Contract number already exists for your account.', 'danger')
                 return render_template('contracts/update.html', form_data=form_data)
 
             start_date = form_data['agreement_start_date']
@@ -785,24 +787,32 @@ def update(contract_id):
             return redirect(url_for('contracts.index'))
         except Exception as e:
             logger.error(f"Error updating contract: {str(e)}")
-            flash(f"Error updating contract: {str(e)}", 'danger')
+            flash("An error occurred while updating the contract.", 'danger')
             return render_template('contracts/update.html', form_data=form_data)
 
     form_data = contract.to_dict()
+    if 'custom_article_sentences' not in form_data or form_data['custom_article_sentences'] is None:
+        form_data['custom_article_sentences'] = []
     return render_template('contracts/update.html', form_data=form_data)
-
-# View contract (Fixed)
+# View contract
 @contracts_bp.route('/view/<contract_id>')
 @login_required
 def view(contract_id):
     try:
         contract = Contract.query.get_or_404(contract_id)
+        if contract.user_id != current_user.id:
+            flash("You are not authorized to view this contract.", 'danger')
+            return redirect(url_for('contracts.index'))
+        if contract.deleted_at is not None:
+            flash("This contract has been deleted and cannot be viewed.", 'danger')
+            return redirect(url_for('contracts.index'))
+
         contract_data = contract.to_dict()
 
         # Format dates
         contract_data['agreement_start_date_display'] = format_date(contract_data['agreement_start_date'])
         contract_data['agreement_end_date_display'] = format_date(contract_data['agreement_end_date'])
-        
+
         # Get financial data as floats
         total_fee_usd = float(contract_data['total_fee_usd']) if contract_data['total_fee_usd'] else 0.0
         tax_percentage = float(contract_data.get('tax_percentage', 15.0))
@@ -816,8 +826,8 @@ def view(contract_id):
         )
         contract_data['total_gross_amount'] = total_gross_amount
         contract_data['total_net_amount'] = total_net_amount
-        contract_data['total_gross'] = f"USD{total_gross_amount:.2f} "
-        contract_data['total_net'] = f"USD{total_net_amount:.2f} "
+        contract_data['total_gross'] = f"USD{total_gross_amount:.2f}"
+        contract_data['total_net'] = f"USD{total_net_amount:.2f}"
 
         # Process payment installments
         for installment in contract_data.get('payment_installments', []):
@@ -856,15 +866,13 @@ def view(contract_id):
                 'number': 3,
                 'title': 'PROFESSIONAL FEE',
                 'content': (
-                    f'The professional fee is the total amount of<span style="font-size: 16px;"> <strong> {contract_data["total_gross"]} </strong></span>'
+                    f'The professional fee is the total amount of <span style="font-size: 16px;"> <strong> {contract_data["total_gross"]} </strong></span>'
                     f'<span style="font-size: 16px; "><strong> ({contract_data["total_fee_words"]})</strong></span> including tax for the whole assignment period.\n\n'
                     f'<span style="font-size: 16px; margin-left:40px;"><strong>Total Service Fee: {contract_data["total_gross"]}</strong></span>\n'
                     f'<span style="font-size: 16px; margin-left:40px;"><strong>Withholding Tax {tax_percentage}%: USD{contract_data["total_gross_amount"] * (tax_percentage/100):.2f}</strong></span>\n'
                     f'<span style="font-size: 16px; margin-left:40px;"><strong>Net amount: {contract_data["total_net"]}</strong></span>\n\n'
                     f'“Party B” is responsible to issue the Invoice (net amount) and receipt (when receiving the payment) '
-                    f'with the total amount as stipulated in each instalment as in the Article 4 after having done the '
-                    f'agreed deliverable tasks, for payment request. The payment will be processed after the satisfaction '
-                    f'from “Party A” as of the required deliverable tasks as stated in <strong>Article 4.</strong>\n\n'
+                    f'with the total amount as stipulated in each instalment as in <strong>Article 4.</strong>\n\n'
                     f'“Party B” is responsible for all related taxes payable to the government department.'
                 ),
                 'table': None
@@ -1001,30 +1009,26 @@ def view(contract_id):
                 ),
                 'table': None
             },
-             {
+            {
                 'number': 14,
                 'title': 'TERMINATION',
                 'content': (
-                    f'<span style="font-size: 14px;">'
-                    f'The “Party A” or the “Party B” may, by notice in writing, terminate this agreement under the following conditions:\n\n'
-                    f'<ol>\n'
-                    f'<li><span style="font-size: 14px;">“Party A” may terminate this agreement at any time with a week notice if “Party B” fails to comply with the '
-                    f'terms and conditions of this agreement.</span></li>\n\n'
-                    f'<li><span style="font-size: 14px;">For gross professional misconduct (as defined in the NGOF Human Resource Policy), “Party A” may terminate '
-                    f'this agreement immediately without prior notice. “Party A” will notify “Party B” in a letter that will indicate '
-                    f'the reason for termination as well as the effective date of termination.</span></li>\n\n'
-                    f'<li><span style="font-size: 14px;">“Party B” may terminate this agreement at any time with a one-week notice if “Party A” fails to comply with '
-                    f'the terms and conditions of this agreement. “Party B” will notify “Party A” in a letter that will indicate the '
-                    f'reason for termination as well as the effective date of termination. But if “Party B” intended to terminate this '
-                    f'agreement by itself without any appropriate reason or fails of implementing the assignment, “Party B” has to '
-                    f'refund the full amount of fees received to “Party A”.</span></li>\n\n'
-                    f'<li><span style="font-size: 14px;">If for any reason either “Party A” or the “Party B” decides to terminate this agreement, “Party B” shall be '
-                    f'paid pro-rata for the work already completed by “Party A”. This payment will require the submission of a timesheet '
-                    f'that demonstrates work completed as well as the handing over of any deliverables completed or partially completed. '
-                    f'In case “Party B” has received payment for services under the agreement which have not yet been performed; the '
-                    f'appropriate portion of these fees would be refunded by “Party B” to “Party A”.</span></li>\n'
-                    f'</ol>'
-                    f'</span>'
+                    'The “Party A” or the “Party B” may, by notice in writing, terminate this agreement under the following conditions:\n\n'
+                    '1. “Party A” may terminate this agreement at any time with a one-week notice if “Party B” fails to comply with the '
+                    'terms and conditions of this agreement.\n\n'
+                    '2. For gross professional misconduct (as defined in the NGOF Human Resource Policy), “Party A” may terminate '
+                    'this agreement immediately without prior notice. “Party A” will notify “Party B” in a letter that will indicate '
+                    'the reason for termination as well as the effective date of termination.\n\n'
+                    '3. “Party B” may terminate this agreement at any time with a one-week notice if “Party A” fails to comply with '
+                    'the terms and conditions of this agreement. “Party B” will notify “Party A” in a letter that will indicate the '
+                    'reason for termination as well as the effective date of termination. If “Party B” terminates this '
+                    'agreement without any appropriate reason or fails to implement the assignment, “Party B” must '
+                    'refund the full amount of fees received to “Party A”.\n\n'
+                    '4. If for any reason either “Party A” or “Party B” decides to terminate this agreement, “Party B” shall be '
+                    'paid pro-rata for the work already completed by “Party A”. This payment will require the submission of a timesheet '
+                    'that demonstrates work completed as well as the handing over of any deliverables completed or partially completed. '
+                    'In case “Party B” has received payment for services under the agreement which have not yet been performed, the '
+                    'appropriate portion of these fees must be refunded by “Party B” to “Party A”.'
                 ),
                 'table': None
             },
@@ -1063,37 +1067,58 @@ def view(contract_id):
         )
     except Exception as e:
         logger.error(f"Error viewing contract {contract_id}: {str(e)}")
-        flash(f"Error viewing contract: {str(e)}", 'danger')
+        flash("An error occurred while viewing the contract.", 'danger')
         return redirect(url_for('contracts.index'))
-# Delete contract
+    # Delete contract
 @contracts_bp.route('/delete/<contract_id>', methods=['POST'])
 @login_required
 def delete(contract_id):
     try:
         contract = Contract.query.get_or_404(contract_id)
-        db.session.delete(contract)
+        if contract.user_id != current_user.id:
+            flash("You are not authorized to delete this contract.", 'danger')
+            return redirect(url_for('contracts.index'))
+        if contract.deleted_at is not None:
+            flash("This contract has already been deleted.", 'danger')
+            return redirect(url_for('contracts.index'))
+
+        contract.deleted_at = datetime.now()
         db.session.commit()
         flash('Contract deleted successfully!', 'success')
     except Exception as e:
         logger.error(f"Error deleting contract: {str(e)}")
-        flash(f"Error deleting contract: {str(e)}", 'danger')
+        flash("An error occurred while deleting the contract.", 'danger')
     return redirect(url_for('contracts.index'))
-
 # Export contract to DOCX
 @contracts_bp.route('/export_docx/<contract_id>')
 @login_required
 def export_docx(contract_id):
     try:
         contract = Contract.query.get_or_404(contract_id)
+        if contract.user_id != current_user.id:
+            flash("You are not authorized to export this contract.", 'danger')
+            return redirect(url_for('contracts.index'))
+        if contract.deleted_at is not None:
+            flash("This contract has been deleted and cannot be exported.", 'danger')
+            return redirect(url_for('contracts.index'))
+
         contract_data = contract.to_dict()
+        if 'custom_article_sentences' not in contract_data or contract_data['custom_article_sentences'] is None:
+            contract_data['custom_article_sentences'] = {}
 
         # Format dates
         contract_data['agreement_start_date_display'] = format_date(contract_data['agreement_start_date'])
         contract_data['agreement_end_date_display'] = format_date(contract_data['agreement_end_date'])
-        
+
         # Get financial data as floats
-        total_fee_usd = float(contract_data['total_fee_usd']) if contract_data['total_fee_usd'] else 0.0
-        tax_percentage = float(contract_data.get('tax_percentage', 15.0))
+        try:
+            total_fee_usd = float(contract_data['total_fee_usd']) if contract_data['total_fee_usd'] else 0.0
+            tax_percentage = float(contract_data.get('tax_percentage', 15.0))
+        except (ValueError, TypeError) as e:
+            logger.error(f"Error converting financial data for contract {contract_id}: {str(e)}")
+            flash("An error occurred while exporting the contract.", 'danger')
+            return redirect(url_for('contracts.index'))
+
         contract_data['total_fee_usd'] = total_fee_usd
         contract_data['gross_amount_usd'] = total_fee_usd
         contract_data['total_fee_words'] = contract_data.get('total_fee_words') or number_to_words(total_fee_usd)
@@ -1114,6 +1139,95 @@ def export_docx(contract_id):
             installment['gross_amount'] = gross
             installment['tax_amount'] = tax
             installment['net_amount'] = net
+
+        # Create DOCX document
+        doc = Document()
+
+        # Set document margins (in inches)
+        sections = doc.sections
+        for section in sections:
+            section.left_margin = Inches(1)
+            section.right_margin = Inches(1)
+            section.top_margin = Inches(1)
+            section.bottom_margin = Inches(1)
+
+        # Set default font
+        doc.styles['Normal'].font.name = 'Calibri'
+        doc.styles['Normal'].font.size = Pt(11)
+
+        # Helper function to add paragraph with selective bolding, email formatting, and custom bold segments
+        def add_paragraph(text, alignment=WD_ALIGN_PARAGRAPH.LEFT, bold=False, size=11, underline=False, email_addresses=None, bold_segments=None):
+            p = doc.add_paragraph()
+            p.alignment = alignment
+            email_addresses = email_addresses or []
+            bold_segments = bold_segments or []
+            pattern_parts = [re.escape(segment) for segment in email_addresses + bold_segments + ['“Party A”', '“Party B”']]
+            pattern = r'(' + '|'.join(pattern_parts) + r')' if pattern_parts else r'(“Party A”|“Party B”)'
+            parts = re.split(pattern, text)
+            for part in parts:
+                run = p.add_run(part)
+                run.font.size = Pt(size)
+                run.bold = bold or part in bold_segments or part in ['“Party A”', '“Party B”']
+                if part in email_addresses:
+                    run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
+                    run.underline = WD_UNDERLINE.SINGLE
+                elif underline:
+                    run.underline = WD_UNDERLINE.SINGLE
+            return p
+
+        # Helper function to add paragraph with selective bold and size
+        def add_paragraph_with_bold(text_parts, bold_parts, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12):
+            p = doc.add_paragraph()
+            p.alignment = alignment
+            for part in text_parts:
+                pattern_parts = [re.escape(bp) for bp in bold_parts] + ['“Party A”', '“Party B”']
+                pattern = r'(' + '|'.join(pattern_parts) + r')'
+                sub_parts = re.split(pattern, part)
+                for sub_part in sub_parts:
+                    run = p.add_run(sub_part)
+                    run.bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
+                    run.font.size = Pt(bold_size if sub_part in bold_parts else default_size)
+            return p
+
+        # Helper function to add paragraph with selective formatting for Party B email
+        def add_paragraph_with_email_formatting(text_parts, bold_parts, email_text, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12):
+            p = doc.add_paragraph()
+            p.alignment = alignment
+            for part in text_parts:
+                if part == email_text:
+                    run = p.add_run(part)
+                    run.font.size = Pt(default_size)
+                    run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
+                    run.underline = WD_UNDERLINE.SINGLE
+                else:
+                    sub_parts = re.split(r'(“Party A”|“Party B”)', part)
+                    for sub_part in sub_parts:
+                        run = p.add_run(sub_part)
+                        run.bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
+                        run.font.size = Pt(bold_size if sub_part in bold_parts else default_size)
+            return p
+
+        # Helper function to add heading with selective underlining
+        def add_heading(number, title, level, size=12):
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            run1 = p.add_run(f"ARTICLE {number}")
+            run1.font.name = 'Calibri'
+            run1.font.size = Pt(size)
+            run1.bold = True
+            run1.underline = WD_UNDERLINE.SINGLE
+            run1.font.color.rgb = RGBColor(0, 0, 0)
+            run2 = p.add_run(": ")
+            run2.font.name = 'Calibri'
+            run2.font.size = Pt(size)
+            run2.bold = True
+            run2.font.color.rgb = RGBColor(0, 0, 0)
+            run3 = p.add_run(title)
+            run3.font.name = 'Calibri'
+            run3.font.size = Pt(size)
+            run3.bold = True
+            run3.font.color.rgb = RGBColor(0, 0, 0)
+            return p
 
         # Define standard articles
         standard_articles = [
@@ -1313,21 +1427,21 @@ def export_docx(contract_id):
                 'title': 'TERMINATION',
                 'content': (
                     'The “Party A” or the “Party B” may, by notice in writing, terminate this agreement under the following conditions:\n\n'
-                    '1. “Party A” may terminate this agreement at any time with a week notice if “Party B” fails to comply with the '
+                    '1. “Party A” may terminate this agreement at any time with a one-week notice if “Party B” fails to comply with the '
                     'terms and conditions of this agreement.\n\n'
                     '2. For gross professional misconduct (as defined in the NGOF Human Resource Policy), “Party A” may terminate '
                     'this agreement immediately without prior notice. “Party A” will notify “Party B” in a letter that will indicate '
                     'the reason for termination as well as the effective date of termination.\n\n'
                     '3. “Party B” may terminate this agreement at any time with a one-week notice if “Party A” fails to comply with '
                     'the terms and conditions of this agreement. “Party B” will notify “Party A” in a letter that will indicate the '
-                    'reason for termination as well as the effective date of termination. But if “Party B” intended to terminate this '
-                    'agreement by itself without any appropriate reason or fails of implementing the assignment, “Party B” has to '
+                    'reason for termination as well as the effective date of termination. If “Party B” terminates this '
+                    'agreement without any appropriate reason or fails to implement the assignment, “Party B” must '
                     'refund the full amount of fees received to “Party A”.\n\n'
-                    '4. If for any reason either “Party A” or the “Party B” decides to terminate this agreement, “Party B” shall be '
+                    '4. If for any reason either “Party A” or “Party B” decides to terminate this agreement, “Party B” shall be '
                     'paid pro-rata for the work already completed by “Party A”. This payment will require the submission of a timesheet '
                     'that demonstrates work completed as well as the handing over of any deliverables completed or partially completed. '
-                    'In case “Party B” has received payment for services under the agreement which have not yet been performed; the '
-                    'appropriate portion of these fees would be refunded by “Party B” to “Party A”.'
+                    'In case “Party B” has received payment for services under the agreement which have not yet been performed, the '
+                    'appropriate portion of these fees must be refunded by “Party B” to “Party A”.'
                 ),
                 'table': None
             },
@@ -1356,101 +1470,6 @@ def export_docx(contract_id):
             {'article_number': str(k), 'custom_sentence': v}
             for k, v in contract_data.get('custom_article_sentences', {}).items()
         ]
-
-        # Create DOCX document
-        doc = Document()
-        
-        # Set document margins (in inches)
-        sections = doc.sections
-        for section in sections:
-            section.left_margin = Inches(1)
-            section.right_margin = Inches(1)
-            section.top_margin = Inches(1)
-            section.bottom_margin = Inches(1)
-
-        # Set default font
-        doc.styles['Normal'].font.name = 'Calibri'
-        doc.styles['Normal'].font.size = Pt(11)
-
-        # Helper function to add paragraph with selective bolding, email formatting, and custom bold segments
-        def add_paragraph(text, alignment=WD_ALIGN_PARAGRAPH.LEFT, bold=False, size=11, underline=False, email_addresses=None, bold_segments=None):
-            p = doc.add_paragraph()
-            p.alignment = alignment
-            email_addresses = email_addresses or []
-            bold_segments = bold_segments or []
-            # Create pattern to split by “Party A”, “Party B”, email addresses, and bold segments
-            pattern_parts = [re.escape(segment) for segment in email_addresses + bold_segments + ['“Party A”', '“Party B”']]
-            pattern = r'(' + '|'.join(pattern_parts) + r')' if pattern_parts else r'(“Party A”|“Party B”)'
-            parts = re.split(pattern, text)
-            for part in parts:
-                run = p.add_run(part)
-                run.font.size = Pt(size)
-                run.bold = bold or part in bold_segments or part in ['“Party A”', '“Party B”']
-                if part in email_addresses:
-                    run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
-                    run.underline = WD_UNDERLINE.SINGLE
-                elif underline:
-                    run.underline = WD_UNDERLINE.SINGLE
-            return p
-
-        # Helper function to add paragraph with selective bold and size
-        def add_paragraph_with_bold(text_parts, bold_parts, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12):
-            p = doc.add_paragraph()
-            p.alignment = alignment
-            for part in text_parts:
-                # Split each part by “Party A”, “Party B”, and bold_parts to apply bold formatting and size
-                pattern_parts = [re.escape(bp) for bp in bold_parts] + ['“Party A”', '“Party B”']
-                pattern = r'(' + '|'.join(pattern_parts) + r')'
-                sub_parts = re.split(pattern, part)
-                for sub_part in sub_parts:
-                    run = p.add_run(sub_part)
-                    run.bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
-                    run.font.size = Pt(bold_size if sub_part in bold_parts else default_size)
-            return p
-
-        # Helper function to add paragraph with selective formatting for Party B email
-        def add_paragraph_with_email_formatting(text_parts, bold_parts, email_text, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12):
-            p = doc.add_paragraph()
-            p.alignment = alignment
-            for part in text_parts:
-                if part == email_text:
-                    run = p.add_run(part)
-                    run.font.size = Pt(default_size)
-                    run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
-                    run.underline = WD_UNDERLINE.SINGLE
-                else:
-                    # Split each part by “Party A” and “Party B” to apply bold formatting
-                    sub_parts = re.split(r'(“Party A”|“Party B”)', part)
-                    for sub_part in sub_parts:
-                        run = p.add_run(sub_part)
-                        run.bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
-                        run.font.size = Pt(bold_size if sub_part in bold_parts else default_size)
-            return p
-
-        # Helper function to add heading with selective underlining
-        def add_heading(number, title, level, size=12):
-            p = doc.add_paragraph()
-            p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-            # Add "ARTICLE {number}" with underline, bold, and black color
-            run1 = p.add_run(f"ARTICLE {number}")
-            run1.font.name = 'Calibri'
-            run1.font.size = Pt(size)
-            run1.bold = True
-            run1.underline = WD_UNDERLINE.SINGLE
-            run1.font.color.rgb = RGBColor(0, 0, 0)
-            # Add ": " with bold and black color (no underline)
-            run2 = p.add_run(": ")
-            run2.font.name = 'Calibri'
-            run2.font.size = Pt(size)
-            run2.bold = True
-            run2.font.color.rgb = RGBColor(0, 0, 0)
-            # Add title with bold and black color (no underline)
-            run3 = p.add_run(title)
-            run3.font.name = 'Calibri'
-            run3.font.size = Pt(size)
-            run3.bold = True
-            run3.font.color.rgb = RGBColor(0, 0, 0)
-            return p
 
         # Header
         add_paragraph('The Service Agreement', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
@@ -1513,10 +1532,8 @@ def export_docx(contract_id):
 
         # Articles
         for article in standard_articles:
-            # Add article title with selective underlining
             add_heading(article['number'], article['title'], level=3, size=12)
 
-            # Add article content
             if article['number'] == 3:
                 add_paragraph_with_bold(
                     article['content'],
@@ -1525,7 +1542,6 @@ def export_docx(contract_id):
                     bold_size=12
                 )
             elif article['number'] == 6:
-                # For Article 6, pass email addresses and bold segments
                 email_addresses = [
                     contract_data.get("focal_person_a_email", "N/A"),
                     contract_data.get("party_b_email", "N/A")
@@ -1539,7 +1555,6 @@ def export_docx(contract_id):
                 ]
                 add_paragraph(article['content'], size=11, email_addresses=email_addresses, bold_segments=bold_segments)
             elif article['number'] == 7:
-                # For Article 7, pass bold segments for project_title
                 bold_segments = [
                     f"“{contract_data.get('project_title', 'N/A')}”"
                 ]
@@ -1547,13 +1562,11 @@ def export_docx(contract_id):
             else:
                 add_paragraph(article['content'], size=11)
 
-            # Add table if present
             if article['table']:
                 table = doc.add_table(rows=len(article['table']), cols=len(article['table'][0]))
                 table.alignment = WD_TABLE_ALIGNMENT.CENTER
                 table.allow_autofit = True
 
-                # Set table borders
                 for row in table.rows:
                     for cell in row.cells:
                         tc = cell._element
@@ -1562,11 +1575,9 @@ def export_docx(contract_id):
                             border = OxmlElement(f'w:{border_name}')
                             border.set(qn('w:val'), 'single')
                             border.set(qn('w:sz'), '4')
-                            border.set(qn('w:space'), '0')
                             border.set(qn('w:color'), '000000')
                             tcPr.append(border)
 
-                # Populate table
                 for i, row_data in enumerate(article['table']):
                     row_cells = table.rows[i].cells
                     for j, key in enumerate(row_data.keys()):
@@ -1582,7 +1593,6 @@ def export_docx(contract_id):
                             if key == 'Total Amount (USD)' and i > 0:
                                 run.bold = True
 
-            # Add custom sentences for this article
             for custom in custom_articles:
                 if custom['article_number'] == str(article['number']):
                     add_paragraph(custom['custom_sentence'], size=11)
@@ -1600,84 +1610,81 @@ def export_docx(contract_id):
         table.alignment = WD_TABLE_ALIGNMENT.CENTER
         table.allow_autofit = True
 
-        # Set column widths
         table.columns[0].width = Inches(3)
         table.columns[1].width = Inches(3)
 
-        # Party A
         cell1 = table.cell(0, 0)
         p = cell1.add_paragraph("For “Party A”")
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         for run in p.runs:
             run.bold = True
             run.font.size = Pt(11)
-        
+
         cell2 = table.cell(1, 0)
         p = cell2.add_paragraph("_________________")
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.runs[0].font.size = Pt(11)
-        
+
         cell3 = table.cell(2, 0)
-        p = cell3.add_paragraph(f"{contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun')}")
+        p = cell3.add_paragraph(f"{contract_data.get('party_a_signature_name', 'Mr. Soeung Saroeun')}")
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.runs[0].bold = True
         p.runs[0].font.size = Pt(11)
-        
+
         cell4 = table.cell(3, 0)
         p = cell4.add_paragraph(f"{contract_data.get('party_a_position', 'Executive Director')}")
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.runs[0].bold = True
         p.runs[0].font.size = Pt(11)
 
-        # Party B
         cell5 = table.cell(0, 1)
         p = cell5.add_paragraph("For “Party B”")
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         for run in p.runs:
             run.bold = True
             run.font.size = Pt(11)
-        
+
         cell6 = table.cell(1, 1)
         p = cell6.add_paragraph("_________________")
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.runs[0].font.size = Pt(11)
-        
+
         cell7 = table.cell(2, 1)
         p = cell7.add_paragraph(f"{contract_data.get('party_b_signature_name', 'N/A')}")
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.runs[0].bold = True
         p.runs[0].font.size = Pt(11)
-        
+
         cell8 = table.cell(3, 1)
         p = cell8.add_paragraph(f"{contract_data.get('party_b_position', 'N/A')}")
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.runs[0].bold = True
         p.runs[0].font.size = Pt(11)
 
-        # Save to BytesIO
+        # Save the document to a BytesIO stream
         output = BytesIO()
         doc.save(output)
         output.seek(0)
 
+        # Return the file
         return send_file(
             output,
             mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             as_attachment=True,
-            download_name=f"{contract_data.get('party_b_signature_name', 'Unknown')}.docx"
+            download_name=f"{sanitize_filename(contract_data.get('party_b_signature_name', 'Contract_' + contract_id))}.docx"
         )
 
     except Exception as e:
-        logger.error(f"Error exporting to DOCX: {str(e)}")
-        flash(f"Error exporting to DOCX: {str(e)}", 'danger')
+        logger.error(f"Error exporting contract {contract_id} to DOCX: {str(e)}")
+        flash("An error occurred while exporting the contract.", 'danger')
         return redirect(url_for('contracts.index'))
-
-# Export all contract to DOCX    
+    # Export all contracts to DOCX
 @contracts_bp.route('/export_all_docx', methods=['GET'])
 @login_required
 def export_all_docx():
     try:
-        # Fetch all contracts
-        contracts = Contract.query.all()
+        # Fetch all contracts for the current user
+        contracts = Contract.query.filter(Contract.user_id == current_user.id, Contract.deleted_at == None).all()
         if not contracts:
             flash("No contracts available to export.", "warning")
             return redirect(url_for('contracts.index'))
@@ -1687,6 +1694,8 @@ def export_all_docx():
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             for contract in contracts:
                 contract_data = contract.to_dict()
+                if 'custom_article_sentences' not in contract_data or contract_data['custom_article_sentences'] is None:
+                    contract_data['custom_article_sentences'] = {}
 
                 # Create a new DOCX document for each contract
                 doc = Document()
@@ -1782,8 +1791,13 @@ def export_all_docx():
                 contract_data['agreement_end_date_display'] = format_date(contract_data['agreement_end_date'])
 
                 # Get financial data as floats
-                total_fee_usd = float(contract_data['total_fee_usd']) if contract_data['total_fee_usd'] else 0.0
-                tax_percentage = float(contract_data.get('tax_percentage', 15.0))
+                try:
+                    total_fee_usd = float(contract_data['total_fee_usd']) if contract_data['total_fee_usd'] else 0.0
+                    tax_percentage = float(contract_data.get('tax_percentage', 15.0))
+                except (ValueError, TypeError) as e:
+                    logger.error(f"Error converting financial data for contract {contract.id}: {str(e)}")
+                    continue  # Skip this contract and proceed to the next
+
                 contract_data['total_fee_usd'] = total_fee_usd
                 contract_data['gross_amount_usd'] = total_fee_usd
                 contract_data['total_fee_words'] = contract_data.get('total_fee_words') or number_to_words(total_fee_usd)
@@ -2003,21 +2017,21 @@ def export_all_docx():
                         'title': 'TERMINATION',
                         'content': (
                             'The “Party A” or the “Party B” may, by notice in writing, terminate this agreement under the following conditions:\n\n'
-                            '1. “Party A” may terminate this agreement at any time with a week notice if “Party B” fails to comply with the '
+                            '1. “Party A” may terminate this agreement at any time with a one-week notice if “Party B” fails to comply with the '
                             'terms and conditions of this agreement.\n\n'
                             '2. For gross professional misconduct (as defined in the NGOF Human Resource Policy), “Party A” may terminate '
                             'this agreement immediately without prior notice. “Party A” will notify “Party B” in a letter that will indicate '
                             'the reason for termination as well as the effective date of termination.\n\n'
                             '3. “Party B” may terminate this agreement at any time with a one-week notice if “Party A” fails to comply with '
                             'the terms and conditions of this agreement. “Party B” will notify “Party A” in a letter that will indicate the '
-                            'reason for termination as well as the effective date of termination. But if “Party B” intended to terminate this '
-                            'agreement by itself without any appropriate reason or fails of implementing the assignment, “Party B” has to '
+                            'reason for termination as well as the effective date of termination. If “Party B” terminates this '
+                            'agreement without any appropriate reason or fails to implement the assignment, “Party B” must '
                             'refund the full amount of fees received to “Party A”.\n\n'
-                            '4. If for any reason either “Party A” or the “Party B” decides to terminate this agreement, “Party B” shall be '
+                            '4. If for any reason either “Party A” or “Party B” decides to terminate this agreement, “Party B” shall be '
                             'paid pro-rata for the work already completed by “Party A”. This payment will require the submission of a timesheet '
                             'that demonstrates work completed as well as the handing over of any deliverables completed or partially completed. '
-                            'In case “Party B” has received payment for services under the agreement which have not yet been performed; the '
-                            'appropriate portion of these fees would be refunded by “Party B” to “Party A”.'
+                            'In case “Party B” has received payment for services under the agreement which have not yet been performed, the '
+                            'appropriate portion of these fees must be refunded by “Party B” to “Party A”.'
                         ),
                         'table': None
                     },
@@ -2258,5 +2272,5 @@ def export_all_docx():
 
     except Exception as e:
         logger.error(f"Error exporting all contracts to ZIP: {str(e)}")
-        flash(f"Error exporting all contracts: {str(e)}", 'danger')
+        flash("An error occurred while exporting all contracts.", 'danger')
         return redirect(url_for('contracts.index'))

@@ -7,6 +7,7 @@ class Contract(db.Model):
     __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     project_title = db.Column(db.String(255), nullable=False, default='')
     contract_number = db.Column(db.String(50), nullable=False, default='')
     organization_name = db.Column(db.String(100), default='')
@@ -44,13 +45,14 @@ class Contract(db.Model):
     deleted_at = db.Column(db.DateTime, nullable=True)
     
     def __repr__(self):
-        return f"<Contract {self.contract_number}>"
+        return f"<Contract {self.contract_number} by User {self.user_id}>"
 
     def to_dict(self):
         custom_sentences = self.custom_article_sentences if isinstance(self.custom_article_sentences, dict) else {}
         payment_installments = self.payment_installments if isinstance(self.payment_installments, list) else []
         return {
             'id': self.id or '',
+            'user_id': self.user_id or '',
             'project_title': self.project_title or '',
             'contract_number': self.contract_number or '',
             'organization_name': self.organization_name or '',
