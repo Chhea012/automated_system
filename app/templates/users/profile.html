@@ -373,18 +373,13 @@
           <button class="action-btn bg-blue-600 text-white hover:bg-blue-700" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id|default('') }}">
             <i class="bx bx-edit"></i> Edit Profile
           </button>
-          {% if not (user.id == current_user.id and user.role.name == 'Manager') %}
-            <button class="action-btn bg-red-600 text-white hover:bg-red-700" data-bs-toggle="modal" data-bs-target="#deleteUserModal{{ user.id|default('') }}">
-              <i class="bx bx-trash"></i> Delete
-            </button>
-          {% endif %}
         {% endif %}
       </div>
     </div>
   </div>
 
   <!-- Edit User Modal -->
-  <div class="modal fade modal-left" id="editUserModal{{ user.id|default('') }}" tabindex="-1">
+  <div class="modal fade modal-center" id="editUserModal{{ user.id|default('') }}" tabindex="-1">
     <div class="modal-dialog">
       <form method="POST" action="{{ url_for('users.update', user_id=user.id|default(''), page=page|default(1)) }}" enctype="multipart/form-data">
         <input type="hidden" name="remove_image" id="removeImageInput{{ user.id|default('') }}" value="0">
