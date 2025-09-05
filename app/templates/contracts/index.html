@@ -3,14 +3,15 @@
 {% block content %}
 <div class="container mt-4">
 
-    <!-- Total Contracts Card -->
+    <!-- Total Contracts Cards -->
 <div class="row mb-4">
+    <!-- User-specific Total Contracts Card -->
     <div class="col-sm-6 col-xl-3">
         <div class="card card-1 h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-title text-muted">Total Contracts</h6>
+                        <h6 class="card-title text-muted">Your Contracts</h6>
                         <h4 class="mb-1">{{ total_contracts }}</h4>
                         <small class="text-muted">Last Contract: <strong>{{ last_contract_number or 'N/A' }}</strong></small>
                     </div>
@@ -21,8 +22,24 @@
             </div>
         </div>
     </div>
+    <!-- Global Total Contracts Card -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-1 h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title text-muted">Global Contracts</h6>
+                        <h4 class="mb-1">{{ total_contracts_global }}</h4>
+                        <small class="text-muted">Across all users</small>
+                    </div>
+                    <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                        <i class="bx bx-globe fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-
     <!-- Rest of the template remains unchanged -->
     <!-- Filter Form -->
     <div class="table-card card-1">

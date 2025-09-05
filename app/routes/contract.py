@@ -173,6 +173,8 @@ def index():
 
         # Total contracts for the current user (non-deleted)
         total_contracts = Contract.query.filter(Contract.user_id == current_user.id, Contract.deleted_at == None).count()
+        # Total contracts globally (non-deleted, across all users)
+        total_contracts_global = Contract.query.filter(Contract.deleted_at == None).count()  # New query for global count
         # Last contract globally (not user-specific)
         last_contract = Contract.query.filter(Contract.deleted_at == None).order_by(Contract.contract_number.desc()).first()
         # Set last_contract_number to NGOF/YYYY-003 if no contracts exist
@@ -186,6 +188,7 @@ def index():
             sort_order=sort_order,
             entries_per_page=entries_per_page,
             total_contracts=total_contracts,
+            total_contracts_global=total_contracts_global,  # Pass new variable to template
             last_contract_number=last_contract_number
         )
 
@@ -200,6 +203,7 @@ def index():
             sort_order='created_at_desc',
             entries_per_page=10,
             total_contracts=0,
+            total_contracts_global=0,  # Include in error case
             last_contract_number=f"NGOF/{datetime.now().year}-003"
         )
  # Export contract to excel
@@ -394,7 +398,6 @@ def export_excel():
         flash("An error occurred while exporting to Excel.", 'danger')
         return redirect(url_for('contracts.index'))
     
-# Create contract
 # Create contract
 @contracts_bp.route('/create', methods=['GET', 'POST'])
 @login_required
