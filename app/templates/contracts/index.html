@@ -11,7 +11,7 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-title text-muted">Your Contracts</h6>
+                        <h6 class="card-title text-muted">{{ 'Your Contracts' if not is_admin else 'Total Contracts (Filtered)' }}</h6>
                         <h4 class="mb-1">{{ total_contracts }}</h4>
                         <small class="text-muted">Last Contract: <strong>{{ last_contract_number or 'N/A' }}</strong></small>
                     </div>
@@ -40,7 +40,6 @@
         </div>
     </div>
 </div>
-    <!-- Rest of the template remains unchanged -->
     <!-- Filter Form -->
     <div class="table-card card-1">
         <form id="filterForm" action="{{ url_for('contracts.index') }}" method="get" class="d-flex flex-wrap gap-3 mb-4 align-items-center justify-content-between">
@@ -89,7 +88,13 @@
                     </button>
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="{{ url_for('contracts.export_excel', search=search_query, sort=sort_order) }}">Export to Excel</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('contracts.export_all_docx') }}">Export All to DOCX</a></li>
+                        {% if is_admin %}
+                        <li><a class="dropdown-item" href="{{ url_for('contracts.export_excel_all', search=search_query, sort=sort_order) }}">Export All Contracts to Excel</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('contracts.export_all_docx') }}">Export All Contracts to DOCX</a></li>
+                        {% endif %}
+                        {% if not is_admin %}
+                        <li><a class="dropdown-item" href="{{ url_for('contracts.export_all_docx') }}">Export My Contracts to DOCX</a></li>
+                        {% endif %}
                     </ul>
                 </div>
             </div>
@@ -106,6 +111,9 @@
                     <th>End Date</th>
                     <th>Total Fee (USD)</th>
                     <th>Articles</th>
+                    {% if is_admin %}
+                    <th>Created By</th>
+                    {% endif %}
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -119,6 +127,9 @@
                     <td>{{ contract.agreement_end_date_display or 'N/A' }}</td>
                     <td>${{ contract.total_fee_usd or '0.00' }}</td>
                     <td>{{ contract.custom_article_sentences|length }} {{ 'article' if contract.custom_article_sentences|length == 1 else 'articles' }}</td>
+                    {% if is_admin %}
+                    <td>{{ contract.username or 'N/A' }}</td>
+                    {% endif %}
                     <td>
                         <div class="dropdown">
                             <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">

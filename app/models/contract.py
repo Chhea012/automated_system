@@ -43,7 +43,10 @@ class Contract(db.Model):
     payment_installments = db.Column(db.JSON, default=lambda: [])
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     deleted_at = db.Column(db.DateTime, nullable=True)
-    
+
+    # Add relationship to User model
+    user = db.relationship('User', backref=db.backref('contracts', lazy='dynamic'), lazy='joined')
+
     def __repr__(self):
         return f"<Contract {self.contract_number} by User {self.user_id}>"
 
@@ -52,7 +55,8 @@ class Contract(db.Model):
         payment_installments = self.payment_installments if isinstance(self.payment_installments, list) else []
         return {
             'id': self.id or '',
-            'user_id': self.user_id or '',
+            'user_id': self.user_id or 0,
+            'username': self.user.username if self.user else 'N/A',  # Add username
             'project_title': self.project_title or '',
             'contract_number': self.contract_number or '',
             'organization_name': self.organization_name or '',

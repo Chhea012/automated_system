@@ -63,7 +63,8 @@ def format_date(iso_date):
         year = date.year
         suffix = 'th' if 11 <= day % 100 <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
         return f"{day}{suffix} {month} {year}"
-    except (ValueError, TypeError):
+    except (ValueError, TypeError) as e:
+        logger.warning(f"Error formatting date '{iso_date}': {str(e)}")
         return iso_date or ''
 
 # Helper function to convert number to words
@@ -131,8 +132,12 @@ def index():
         sort_order = request.args.get('sort', 'created_at_desc', type=str)
         entries_per_page = request.args.get('entries', 10, type=int)
 
-        # Filter by user_id and exclude soft-deleted contracts for contract list
-        query = Contract.query.filter(Contract.user_id == current_user.id, Contract.deleted_at == None)
+        # Base query for contracts (exclude soft-deleted)
+        query = Contract.query.filter(Contract.deleted_at == None)
+
+        # If user is not admin, filter by user_id
+        if not current_user.has_role('admin'):
+            query = query.filter(Contract.user_id == current_user.id)
 
         # Apply search filter
         if search_query:
@@ -171,13 +176,12 @@ def index():
             if 'custom_article_sentences' not in contract or contract['custom_article_sentences'] is None:
                 contract['custom_article_sentences'] = []
 
-        # Total contracts for the current user (non-deleted)
-        total_contracts = Contract.query.filter(Contract.user_id == current_user.id, Contract.deleted_at == None).count()
+        # Total contracts (user-specific for non-admins, global for admins)
+        total_contracts = query.count()
         # Total contracts globally (non-deleted, across all users)
-        total_contracts_global = Contract.query.filter(Contract.deleted_at == None).count()  # New query for global count
+        total_contracts_global = Contract.query.filter(Contract.deleted_at == None).count()
         # Last contract globally (not user-specific)
         last_contract = Contract.query.filter(Contract.deleted_at == None).order_by(Contract.contract_number.desc()).first()
-        # Set last_contract_number to NGOF/YYYY-003 if no contracts exist
         last_contract_number = last_contract.contract_number if last_contract else f"NGOF/{datetime.now().year}-003"
 
         return render_template(
@@ -188,8 +192,9 @@ def index():
             sort_order=sort_order,
             entries_per_page=entries_per_page,
             total_contracts=total_contracts,
-            total_contracts_global=total_contracts_global,  # Pass new variable to template
-            last_contract_number=last_contract_number
+            total_contracts_global=total_contracts_global,
+            last_contract_number=last_contract_number,
+            is_admin=current_user.has_role('admin')
         )
 
     except Exception as e:
@@ -203,10 +208,12 @@ def index():
             sort_order='created_at_desc',
             entries_per_page=10,
             total_contracts=0,
-            total_contracts_global=0,  # Include in error case
-            last_contract_number=f"NGOF/{datetime.now().year}-003"
+            total_contracts_global=0,
+            last_contract_number=f"NGOF/{datetime.now().year}-003",
+            is_admin=current_user.has_role('admin')
         )
- # Export contract to excel
+
+# Export contract to excel (original, user-specific)
 @contracts_bp.route('/export_excel')
 @login_required
 def export_excel():
@@ -396,6 +403,205 @@ def export_excel():
     except Exception as e:
         logger.error(f"Error exporting to Excel: {str(e)}")
         flash("An error occurred while exporting to Excel.", 'danger')
+        return redirect(url_for('contracts.index'))
+
+# Export all contracts to excel (admin only)
+@contracts_bp.route('/export_excel_all')
+@login_required
+def export_excel_all():
+    if not current_user.has_role('admin'):
+        flash("You do not have permission to export all contracts.", 'danger')
+        return redirect(url_for('contracts.index'))
+
+    try:
+        search_query = request.args.get('search', '', type=str)
+        sort_order = request.args.get('sort', 'created_at_desc', type=str)
+
+        # Base query for all contracts (exclude soft-deleted)
+        query = Contract.query.filter(Contract.deleted_at == None)
+
+        # Apply search filter
+        if search_query:
+            query = query.filter(
+                (Contract.project_title.ilike(f'%{search_query}%')) |
+                (Contract.contract_number.ilike(f'%{search_query}%')) |
+                (Contract.party_b_signature_name.ilike(f'%{search_query}%'))
+            )
+
+        # Sorting
+        if sort_order == 'contract_number_asc':
+            query = query.order_by(Contract.contract_number.asc())
+        elif sort_order == 'contract_number_desc':
+            query = query.order_by(Contract.contract_number.desc())
+        elif sort_order == 'start_date_asc':
+            query = query.order_by(Contract.agreement_start_date.asc())
+        elif sort_order == 'start_date_desc':
+            query = query.order_by(Contract.agreement_start_date.desc())
+        elif sort_order == 'total_fee_asc':
+            query = query.order_by(Contract.total_fee_usd.asc())
+        elif sort_order == 'total_fee_desc':
+            query = query.order_by(Contract.total_fee_usd.desc())
+        else:  # Default to created_at_desc
+            query = query.order_by(Contract.created_at.desc())
+
+        contracts = [contract.to_dict() for contract in query.all()]
+        if not contracts:
+            flash("No contracts available to export.", 'warning')
+            return redirect(url_for('contracts.index'))
+
+        data = []
+        # Sequential NGOF numbering
+        year = datetime.now().year
+        for contract_index, contract in enumerate(contracts, 1):
+            total_fee_usd = float(contract.get('total_fee_usd', 0.0)) if contract.get('total_fee_usd') is not None else 0.0
+            tax_percentage = float(contract.get('tax_percentage', 15.0))
+            if contract.get('project_title') == 'REJECTED':
+                continue
+            payment_installments = contract.get('payment_installments', []) or []
+
+            # Format sequential contract number NGOF/YYYY-XXX
+            formatted_contract_no = f"NGOF/{year}-{contract_index:03d}"
+
+            for idx, installment in enumerate(payment_installments, 1):
+                match = re.search(r'\((\d+\.?\d*)\%\)', installment.get('description', ''))
+                percentage = float(match.group(1)) if match else 0.0
+                due_date = format_date(installment.get('dueDate', ''))
+                gross, tax, net = calculate_installment_payments(total_fee_usd, tax_percentage, percentage) if match else (0.0, 0.0, 0.0)
+                payment_details = (
+                    f"Gross: {gross:.2f} USD\n"
+                    f"Tax({tax_percentage:.1f}%): {tax:.2f} USD\n"
+                    f"Net: {net:.2f} USD"
+                )
+                data.append({
+                    'Contract No.': formatted_contract_no,
+                    'Consultant': contract.get('party_b_signature_name', '') or '',
+                    'Agreement Name': contract.get('project_title', '') or '',
+                    'Term of Payment': f"Installment #{idx} ({percentage:.1f}%)" if percentage else installment.get('description', ''),
+                    'Date': due_date,
+                    '': payment_details,
+                    'Attached': ''
+                })
+            # Empty separator row
+            data.append({
+                'Contract No.': '',
+                'Consultant': '',
+                'Agreement Name': '',
+                'Term of Payment': '',
+                'Date': '',
+                '': '',
+                'Attached': ''
+            })
+
+        df = pd.DataFrame(data)
+        output = BytesIO()
+        wb = Workbook()
+        ws = wb.active
+        ws.title = 'List'
+
+        # Row 1: default (no fill)
+        ws.row_dimensions[1].height = 5
+
+        # Header row (row 2)
+        headers = ['Contract No.', 'Consultant', 'Agreement Name', 'Term of Payment', 'Attached']
+        for col_num, header in enumerate(headers, 1):
+            target_col = col_num if col_num <= 3 else 4 if col_num == 4 else 7
+            cell = ws.cell(row=2, column=target_col, value=header)
+            cell.fill = PatternFill(start_color="88B84D", end_color="88B84D", fill_type="solid")
+            cell.font = Font(name="Times New Roman", bold=True, size=16)
+            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+            cell.border = Border(
+                left=Side(style='thin'),
+                right=Side(style='thin'),
+                top=Side(style='thin'),
+                bottom=Side(style='thin', color='000000')
+            )
+        ws.merge_cells(start_row=2, start_column=4, end_row=2, end_column=6)
+        ws.cell(row=2, column=4).alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        ws.cell(row=2, column=4).border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin', color='000000')
+        )
+        ws.cell(row=2, column=4).fill = PatternFill(start_color="88B84D", end_color="88B84D", fill_type="solid")
+
+        # Empty teal row UNDER headers (row 3)
+        for col in range(1, 8):
+            cell = ws.cell(row=3, column=col, value="")
+            cell.fill = PatternFill(start_color="28677A", end_color="28677A", fill_type="solid")
+            cell.border = Border()
+        ws.row_dimensions[3].height = 5
+
+        # Write data rows (start at row 4)
+        for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=False), 4):
+            is_separator_row = all(v == "" for v in row)
+            for c_idx, value in enumerate(row, 1):
+                cell = ws.cell(row=r_idx, column=c_idx, value=value)
+
+                if not is_separator_row:
+                    if c_idx in [4, 5, 6]:
+                        cell.font = Font(name="Times New Roman", size=14, bold=True, color='FF0000' if c_idx == 6 else '000000')
+                    else:
+                        cell.font = Font(name="Times New Roman", size=14)
+
+                    cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+                    cell.border = Border(
+                        left=Side(style='thin'),
+                        right=Side(style='thin'),
+                        top=Side(style='thin'),
+                        bottom=Side(style='thin')
+                    )
+
+                    if c_idx in [6, 7]:
+                        ws.row_dimensions[r_idx].height = 60
+                else:
+                    for col in range(1, 8):
+                        ws.cell(row=r_idx, column=col, value="")
+                        ws.cell(row=r_idx, column=col).fill = PatternFill(start_color="28677A", end_color="28677A", fill_type="solid")
+                        ws.cell(row=r_idx, column=col).border = Border()
+                    ws.row_dimensions[r_idx].height = 5
+
+        # Merge contract info cells
+        current_contract = None
+        start_row = 4
+        for idx, row in enumerate(data, 4):
+            if row['Contract No.'] == '' and current_contract is not None:
+                if idx - 1 > start_row:
+                    ws.merge_cells(start_row=start_row, start_column=1, end_row=idx-1, end_column=1)
+                    ws.merge_cells(start_row=start_row, start_column=2, end_row=idx-1, end_column=2)
+                    ws.merge_cells(start_row=start_row, start_column=3, end_row=idx-1, end_column=3)
+                    for col in [1, 2, 3]:
+                        ws.cell(row=start_row, column=col).alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+                current_contract = None
+                start_row = idx + 1
+            elif row['Contract No.'] and current_contract != row['Contract No.']:
+                current_contract = row['Contract No.']
+                start_row = idx
+        if current_contract is not None and len(data) + 3 > start_row:
+            ws.merge_cells(start_row=start_row, start_column=1, end_row=len(data)+3, end_column=1)
+            ws.merge_cells(start_row=start_row, start_column=2, end_row=len(data)+3, end_column=2)
+            ws.merge_cells(start_row=start_row, start_column=3, end_row=len(data)+3, end_column=3)
+            for col in [1, 2, 3]:
+                ws.cell(row=start_row, column=col).alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+        # Column widths
+        column_widths = [22, 22, 60, 22, 22, 30, 25]
+        for i, width in enumerate(column_widths, 1):
+            ws.column_dimensions[chr(64 + i)].width = width
+
+        wb.save(output)
+        output.seek(0)
+
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name='Consultancy_Agreement_List_All.xlsx'
+        )
+
+    except Exception as e:
+        logger.error(f"Error exporting all contracts to Excel: {str(e)}")
+        flash("An error occurred while exporting all contracts to Excel.", 'danger')
         return redirect(url_for('contracts.index'))
     
 # Create contract
@@ -618,7 +824,8 @@ def create():
 @login_required
 def update(contract_id):
     contract = Contract.query.get_or_404(contract_id)
-    if contract.user_id != current_user.id:
+    # Allow admins to update any contract, non-admins only their own
+    if not current_user.has_role('admin') and contract.user_id != current_user.id:
         flash("You are not authorized to update this contract.", 'danger')
         return redirect(url_for('contracts.index'))
     if contract.deleted_at is not None:
@@ -716,7 +923,15 @@ def update(contract_id):
                 flash('Contract number must follow the format NGOF/YYYY-NNN (e.g., NGOF/2025-005).', 'danger')
                 return render_template('contracts/update.html', form_data=form_data)
 
-            if Contract.query.filter(Contract.contract_number == form_data['contract_number'], Contract.id != contract_id, Contract.user_id == current_user.id).first():
+            # Check for contract number uniqueness, considering admin scope
+            existing_contract_query = Contract.query.filter(
+                Contract.contract_number == form_data['contract_number'],
+                Contract.id != contract_id,
+                Contract.deleted_at == None
+            )
+            if not current_user.has_role('admin'):
+                existing_contract_query = existing_contract_query.filter(Contract.user_id == current_user.id)
+            if existing_contract_query.first():
                 flash('Contract number already exists for your account.', 'danger')
                 return render_template('contracts/update.html', form_data=form_data)
 
@@ -815,13 +1030,15 @@ def update(contract_id):
     if 'custom_article_sentences' not in form_data or form_data['custom_article_sentences'] is None:
         form_data['custom_article_sentences'] = []
     return render_template('contracts/update.html', form_data=form_data)
+
 # View contract
 @contracts_bp.route('/view/<contract_id>')
 @login_required
 def view(contract_id):
     try:
         contract = Contract.query.get_or_404(contract_id)
-        if contract.user_id != current_user.id:
+        # Allow admins to view any contract, non-admins only their own
+        if not current_user.has_role('admin') and contract.user_id != current_user.id:
             flash("You are not authorized to view this contract.", 'danger')
             return redirect(url_for('contracts.index'))
         if contract.deleted_at is not None:
@@ -951,7 +1168,7 @@ def view(contract_id):
                     f'which is a contribution from, and to be claimed as a public document by the main author and co-author '
                     f'in associated, and/or under this agreement, shall be the property of “Party A”. The “Party B” agrees '
                     f'to not disclose any confidential information, of which he/she may take cognizance in the performance '
-                    f'under this contract, except with the prior written approval of the “Party A”.'
+                    f'under this contract, except with the prior written approval of “Party A”.'
                 ),
                 'table': None
             },
@@ -1090,13 +1307,14 @@ def view(contract_id):
         logger.error(f"Error viewing contract {contract_id}: {str(e)}")
         flash("An error occurred while viewing the contract.", 'danger')
         return redirect(url_for('contracts.index'))
-    # Delete contract
+# Delete contract
 @contracts_bp.route('/delete/<contract_id>', methods=['POST'])
 @login_required
 def delete(contract_id):
     try:
         contract = Contract.query.get_or_404(contract_id)
-        if contract.user_id != current_user.id:
+        # Allow admins to delete any contract, non-admins only their own
+        if not current_user.has_role('admin') and contract.user_id != current_user.id:
             flash("You are not authorized to delete this contract.", 'danger')
             return redirect(url_for('contracts.index'))
         if contract.deleted_at is not None:
@@ -1117,7 +1335,8 @@ def delete(contract_id):
 def export_docx(contract_id):
     try:
         contract = Contract.query.get_or_404(contract_id)
-        if contract.user_id != current_user.id:
+        # Allow admins to export any contract, non-admins only their own
+        if not current_user.has_role('admin') and contract.user_id != current_user.id:
             flash("You are not authorized to export this contract.", 'danger')
             return redirect(url_for('contracts.index'))
         if contract.deleted_at is not None:
@@ -1365,7 +1584,7 @@ def export_docx(contract_id):
                     f'which is a contribution from, and to be claimed as a public document by the main author and co-author '
                     f'in associated, and/or under this agreement, shall be the property of “Party A”. The “Party B” agrees '
                     f'to not disclose any confidential information, of which he/she may take cognizance in the performance '
-                    f'under this contract, except with the prior written approval of the “Party A”.'
+                    f'under this contract, except with the prior written approval of “Party A”.'
                 ),
                 'table': None
             },
@@ -1700,13 +1919,18 @@ def export_docx(contract_id):
         logger.error(f"Error exporting contract {contract_id} to DOCX: {str(e)}")
         flash("An error occurred while exporting the contract.", 'danger')
         return redirect(url_for('contracts.index'))
-    # Export all contracts to DOCX
+    
+# Export all contracts to DOCX
 @contracts_bp.route('/export_all_docx', methods=['GET'])
 @login_required
 def export_all_docx():
     try:
-        # Fetch all contracts for the current user
-        contracts = Contract.query.filter(Contract.user_id == current_user.id, Contract.deleted_at == None).all()
+        # Fetch contracts based on user role: admins get all non-deleted contracts, non-admins get only their own
+        if current_user.has_role('admin'):
+            contracts = Contract.query.filter(Contract.deleted_at == None).all()
+        else:
+            contracts = Contract.query.filter(Contract.user_id == current_user.id, Contract.deleted_at == None).all()
+        
         if not contracts:
             flash("No contracts available to export.", "warning")
             return redirect(url_for('contracts.index'))
