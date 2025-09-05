@@ -32,23 +32,23 @@ def sanitize_filename(name):
     return re.sub(r'[^\w\s.-]', ' ', name.replace(' ', '_')).strip()
 
 # Helper function to generate next contract number
-def generate_next_contract_number(last_contract_number, current_year):
+def generate_next_contract_number(last_contract_number, current_year, for_create_form=False):
     if not last_contract_number:
-        return f"NGOF/{current_year}-001"
+        return f"NGOF/{current_year}-004" if for_create_form else f"NGOF/{current_year}-003"
     try:
         match = re.match(r"NGOF/(\d{4})-(\d{3})", last_contract_number)
         if not match:
             logger.error(f"Invalid contract number format: {last_contract_number}")
-            return f"NGOF/{current_year}-001"
+            return f"NGOF/{current_year}-004" if for_create_form else f"NGOF/{current_year}-003"
         year, number = match.groups()
         if year == str(current_year):
             next_number = int(number) + 1
             return f"NGOF/{year}-{next_number:03d}"
         else:
-            return f"NGOF/{current_year}-001"
+            return f"NGOF/{current_year}-004" if for_create_form else f"NGOF/{current_year}-003"
     except Exception as e:
         logger.error(f"Error generating next contract number: {str(e)}")
-        return f"NGOF/{current_year}-001"
+        return f"NGOF/{current_year}-004" if for_create_form else f"NGOF/{current_year}-003"
 
 # Helper function to format date
 def format_date(iso_date):
@@ -131,7 +131,7 @@ def index():
         sort_order = request.args.get('sort', 'created_at_desc', type=str)
         entries_per_page = request.args.get('entries', 10, type=int)
 
-        # Filter by user_id and exclude soft-deleted contracts
+        # Filter by user_id and exclude soft-deleted contracts for contract list
         query = Contract.query.filter(Contract.user_id == current_user.id, Contract.deleted_at == None)
 
         # Apply search filter
@@ -171,10 +171,12 @@ def index():
             if 'custom_article_sentences' not in contract or contract['custom_article_sentences'] is None:
                 contract['custom_article_sentences'] = []
 
-        # Total contracts and last contract
+        # Total contracts for the current user (non-deleted)
         total_contracts = Contract.query.filter(Contract.user_id == current_user.id, Contract.deleted_at == None).count()
-        last_contract = Contract.query.filter(Contract.user_id == current_user.id, Contract.deleted_at == None).order_by(Contract.created_at.desc()).first()
-        last_contract_number = last_contract.contract_number if last_contract else None
+        # Last contract globally (not user-specific)
+        last_contract = Contract.query.filter(Contract.deleted_at == None).order_by(Contract.contract_number.desc()).first()
+        # Set last_contract_number to NGOF/YYYY-003 if no contracts exist
+        last_contract_number = last_contract.contract_number if last_contract else f"NGOF/{datetime.now().year}-003"
 
         return render_template(
             'contracts/index.html',
@@ -198,9 +200,9 @@ def index():
             sort_order='created_at_desc',
             entries_per_page=10,
             total_contracts=0,
-            last_contract_number=None
+            last_contract_number=f"NGOF/{datetime.now().year}-003"
         )
-    # Export contract to excel
+ # Export contract to excel
 @contracts_bp.route('/export_excel')
 @login_required
 def export_excel():
@@ -391,18 +393,22 @@ def export_excel():
         logger.error(f"Error exporting to Excel: {str(e)}")
         flash("An error occurred while exporting to Excel.", 'danger')
         return redirect(url_for('contracts.index'))
-    # Create contract
+    
+# Create contract
+# Create contract
 @contracts_bp.route('/create', methods=['GET', 'POST'])
 @login_required
 def create():
     form_data = {}
     current_year = datetime.now().year
-    last_contract = Contract.query.filter(Contract.user_id == current_user.id, Contract.deleted_at == None).order_by(Contract.created_at.desc()).first()
+    # Fetch the last contract globally (not user-specific)
+    last_contract = Contract.query.filter(Contract.deleted_at == None).order_by(Contract.contract_number.desc()).first()
     last_contract_number = last_contract.contract_number if last_contract else None
-    default_contract_number = generate_next_contract_number(last_contract_number, current_year)
+    default_contract_number = generate_next_contract_number(last_contract_number, current_year, for_create_form=True)
 
     if request.method == 'POST':
         try:
+            # Process custom articles
             articles = [
                 {'article_number': num.strip(), 'custom_sentence': sent.strip()}
                 for num, sent in zip(request.form.getlist('articleNumber[]'), request.form.getlist('customSentence[]'))
@@ -410,6 +416,7 @@ def create():
             ]
             custom_article_sentences = {str(article['article_number']): article['custom_sentence'] for article in articles}
 
+            # Process payment installments
             payment_installments = [
                 {
                     'description': desc.strip(),
@@ -429,6 +436,7 @@ def create():
 
             deliverables = '; '.join([inst['deliverables'] for inst in payment_installments])
 
+            # Extract and validate total_fee_usd and tax_percentage
             total_fee_usd = float(request.form.get('total_fee_usd', '0.0').strip() or 0.0)
             tax_percentage = float(request.form.get('tax_percentage', '15.0').strip() or 15.0)
             gross_amount_usd = total_fee_usd
@@ -436,6 +444,7 @@ def create():
             payment_gross = f"${total_gross:.2f} USD"
             payment_net = f"${total_net:.2f} USD"
 
+            # Collect form data
             form_data = {
                 'project_title': request.form.get('project_title', '').strip(),
                 'contract_number': request.form.get('contract_number', '').strip(),
@@ -469,6 +478,7 @@ def create():
                 'deliverables': deliverables
             }
 
+            # Validate required fields
             required_fields = [
                 ('project_title', 'Project title is required.'),
                 ('contract_number', 'Contract number is required.'),
@@ -487,14 +497,17 @@ def create():
                     flash(message, 'danger')
                     return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
 
+            # Validate contract number format
             if not re.match(r"NGOF/\d{4}-\d{3}", form_data['contract_number']):
                 flash('Contract number must follow the format NGOF/YYYY-NNN (e.g., NGOF/2025-005).', 'danger')
                 return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
 
-            if Contract.query.filter(Contract.contract_number == form_data['contract_number'], Contract.user_id == current_user.id).first():
-                flash('Contract number already exists for your account.', 'danger')
+            # Check for duplicate contract number globally
+            if Contract.query.filter(Contract.contract_number == form_data['contract_number'], Contract.deleted_at == None).first():
+                flash('Contract number already exists.', 'danger')
                 return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
 
+            # Validate dates
             start_date = form_data['agreement_start_date']
             end_date = form_data['agreement_end_date']
             if start_date and end_date:
@@ -506,6 +519,7 @@ def create():
                     flash('Invalid date format for agreement start or end date.', 'danger')
                     return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
 
+            # Validate total_fee_usd
             try:
                 if total_fee_usd < 0:
                     flash('Total fee USD cannot be negative.', 'danger')
@@ -514,6 +528,7 @@ def create():
                 flash('Total fee USD must be a valid number.', 'danger')
                 return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
 
+            # Validate tax_percentage
             try:
                 if tax_percentage not in [0, 5, 10, 15, 20]:
                     flash('Tax percentage must be one of 0, 5, 10, 15, or 20.', 'danger')
@@ -522,6 +537,7 @@ def create():
                 flash('Tax percentage must be a valid number.', 'danger')
                 return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
 
+            # Validate payment installment percentages
             total_percentage = 0.0
             for installment in form_data['payment_installments']:
                 match = re.search(r'\((\d+\.?\d*)\%\)', installment['description'])
@@ -544,9 +560,10 @@ def create():
                 flash('Total percentage of payment installments must equal 100%.', 'danger')
                 return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
 
+            # Create new contract
             contract = Contract(
                 id=str(uuid.uuid4()),
-                user_id=current_user.id,  # Assign user_id
+                user_id=current_user.id,
                 project_title=form_data['project_title'],
                 contract_number=form_data['contract_number'],
                 organization_name=form_data['organization_name'],
@@ -592,6 +609,7 @@ def create():
             return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
 
     return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
+
 # Update contract
 @contracts_bp.route('/update/<contract_id>', methods=['GET', 'POST'])
 @login_required
@@ -1089,6 +1107,7 @@ def delete(contract_id):
         logger.error(f"Error deleting contract: {str(e)}")
         flash("An error occurred while deleting the contract.", 'danger')
     return redirect(url_for('contracts.index'))
+
 # Export contract to DOCX
 @contracts_bp.route('/export_docx/<contract_id>')
 @login_required
