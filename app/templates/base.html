@@ -38,12 +38,27 @@
         color: #333 !important;
         font-weight: 500;
         font-family: 'Montserrat', sans-serif;
+        position: relative; /* For underline positioning */
       }
       .navbar-custom .nav-link:hover {
         color: #0d6efd !important;
       }
       .navbar-custom .nav-link.text-danger {
         font-weight: bold;
+      }
+      .navbar-custom .nav-link.active {
+        color: #0d6efd !important;
+        font-weight: bold;
+      }
+      .navbar-custom .nav-link.active::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: -2px;
+        width: 100%;
+        height: 3px;
+        background-color: #f6a401; /* Yellow underline to match dropdown */
+        transition: all 0.3s ease;
       }
       .text {
         font-size: 18px;
@@ -256,13 +271,13 @@
           {% if current_user.is_authenticated %}
             <!-- Dashboard -->
             <li class="nav-item">
-              <a class="nav-link text" href="{{ url_for('main.dashboard') }}"><strong>Dashboard</strong></a>
+              <a class="nav-link text {{ 'active' if request.endpoint == 'main.dashboard' }}" href="{{ url_for('main.dashboard') }}"><strong>Dashboard</strong></a>
             </li>
 
             <!-- Administration Dropdown -->
-            {% if current_user.has_role('Admin') or current_user.has_role('Manager') %}
+            {% if current_user.has_role('Admin') %}
               <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle text" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><strong>Administration</strong></a>
+                <a class="nav-link dropdown-toggle text {{ 'active' if request.endpoint in ['roles.index', 'permissions.index', 'departments.index', 'users.index'] }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><strong>Administration</strong></a>
                 <ul class="dropdown-menu dropdown-menu-end card-1">
                   {% if current_user.has_role('Admin') %}
                     <li>
@@ -281,10 +296,15 @@
                 </ul>
               </li>
             {% endif %}
-
+            <!-- My Department Link (Restricted to Admin and Manager) -->
+            {% if current_user.has_role('Admin') or current_user.has_role('Manager') %}
+              <li class="nav-item">
+                <a class="nav-link text {{ 'active' if request.endpoint == 'mydepartments.index' }}" href="{{ url_for('mydepartments.index') }}"><strong>My Department</strong></a>
+              </li>
+            {% endif %}
             <!-- Contract Dropdown -->
             <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle text" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><strong>Contract</strong></a>
+              <a class="nav-link dropdown-toggle text {{ 'active' if request.endpoint in ['contracts.index', 'contracts.create'] }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><strong>Contract</strong></a>
               <ul class="dropdown-menu dropdown-menu-end card-1">
                 <li>
                   <a class="dropdown-item" href="{{ url_for('contracts.index') }}">List of Contract</a>
@@ -300,7 +320,7 @@
 
             <!-- Create Contract Button -->
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('contracts.create') }}">
+              <a class="nav-link {{ 'active' if request.endpoint == 'contracts.create' }}" href="{{ url_for('contracts.create') }}">
                 <button class="button">
                   <span class="button_lg">
                     <span class="button_sl"></span>
@@ -317,7 +337,7 @@
             {% if current_user.is_authenticated %}
               <!-- Profile Dropdown -->
               <li class="nav-item dropdown profile-dropdown">
-                <a class="nav-link dropdown-toggle text" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <a class="nav-link dropdown-toggle text {{ 'active' if request.endpoint == 'users.profile' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                   <img src="{{ current_user.get_image_url()|default('https://via.placeholder.com/45') }}" alt="Profile" class="circle" width="55" height="55" />
                   <span class="d-none d-lg-inline"><strong>{{ current_user.username|default('N/A') }}</strong></span>
                 </a>
@@ -336,10 +356,10 @@
             {% else %}
               <!-- Login and Register Links -->
               <li class="nav-item">
-                <a class="nav-link text" href="{{ url_for('auth.login') }}"><i class="bi bi-box-arrow-in-right"></i> Login</a>
+                <a class="nav-link text {{ 'active' if request.endpoint == 'auth.login' }}" href="{{ url_for('auth.login') }}"><i class="bi bi-box-arrow-in-right"></i> Login</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link text" href="{{ url_for('auth.register') }}"><i class="bi bi-person-plus"></i> Register</a>
+                <a class="nav-link text {{ 'active' if request.endpoint == 'auth.register' }}" href="{{ url_for('auth.register') }}"><i class="bi bi-person-plus"></i> Register</a>
               </li>
             {% endif %}
           </ul>

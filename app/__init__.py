@@ -37,6 +37,7 @@ def create_app():
     from .routes.role import roles_bp
     from .routes.department import departments_bp
     from .routes.contract import contracts_bp
+    from .routes.mydepartments import mydepartments_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(main_bp)
@@ -45,6 +46,7 @@ def create_app():
     app.register_blueprint(roles_bp, url_prefix="/roles")
     app.register_blueprint(departments_bp, url_prefix="/departments")
     app.register_blueprint(contracts_bp, url_prefix="/contracts")
+    app.register_blueprint(mydepartments_bp, url_prefix="/mydepartments")
 
     from .models.user import User
     from .models.permission import Permission

@@ -27,12 +27,12 @@
     padding: 1rem 2rem;
     text-align: center;
     overflow: hidden;
-    height: 340px; /* Adjust height for video */
+    height: 340px;
   }
   .profile-header video {
     width: 100%;
     height: 100%;
-    object-fit: cover; /* Ensure video covers the header */
+    object-fit: cover;
     position: absolute;
     top: 0;
     left: 0;
@@ -45,14 +45,14 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.3); /* Optional overlay for better text visibility */
+    background: rgba(0, 0, 0, 0.3);
     z-index: 1;
   }
   .profile-pic-container {
     position: relative;
     display: inline-block;
     transition: transform 0.3s ease;
-    z-index: 2; /* Ensure profile pic is above video */
+    z-index: 2;
   }
   .profile-pic-container:hover {
     transform: scale(1.1);
@@ -291,7 +291,7 @@
     }
     .profile-header {
       padding: 2rem 1.5rem;
-      height: 200px; /* Adjust for smaller screens */
+      height: 200px;
     }
     .profile-pic {
       width: 100px;
@@ -361,21 +361,33 @@
       <!-- Action Buttons -->
       <div class="action-buttons">
         {% if user.role and user.role.name in ['Admin', 'Manager'] %}
-          <a href="{{ url_for('users.index', page=page|default(1)) }}" class="action-btn bg-gray-600 text-white hover:bg-gray-700">
-            <i class="bx bx-arrow-back"></i> Back to Users
-          </a>
+          {% if user.role.name == 'Manager' %}
+            <a href="{{ url_for('mydepartments.index', page=page|default(1)) }}" class="action-btn bg-gray-600 text-white hover:bg-gray-700">
+              <i class="bx bx-arrow-back"></i> Back to My Department
+            </a>
+          {% else %}
+            <a href="{{ url_for('users.index', page=page|default(1)) }}" class="action-btn bg-gray-600 text-white hover:bg-gray-700">
+              <i class="bx bx-arrow-back"></i> Back to Users
+            </a>
+          {% endif %}
           <button class="action-btn bg-blue-600 text-white hover:bg-blue-700" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id|default('') }}">
             <i class="bx bx-edit"></i> Edit Profile
           </button>
+          {% if not (user.id == current_user.id and user.role.name == 'Manager') %}
+            <button class="action-btn bg-red-600 text-white hover:bg-red-700" data-bs-toggle="modal" data-bs-target="#deleteUserModal{{ user.id|default('') }}">
+              <i class="bx bx-trash"></i> Delete
+            </button>
+          {% endif %}
         {% endif %}
       </div>
     </div>
   </div>
 
   <!-- Edit User Modal -->
-  <div class="modal fade modal-center" id="editUserModal{{ user.id|default('') }}" tabindex="-1">
+  <div class="modal fade modal-left" id="editUserModal{{ user.id|default('') }}" tabindex="-1">
     <div class="modal-dialog">
       <form method="POST" action="{{ url_for('users.update', user_id=user.id|default(''), page=page|default(1)) }}" enctype="multipart/form-data">
+        <input type="hidden" name="remove_image" id="removeImageInput{{ user.id|default('') }}" value="0">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">Edit User</h5>
@@ -422,7 +434,7 @@
             </div>
             <div class="mb-3">
               <label class="form-label">Address</label>
-              <textarea class="form-label" name="address" rows="3">{{ user.address|default('') }}</textarea>
+              <textarea class="form-control" name="address" rows="3">{{ user.address|default('') }}</textarea>
             </div>
             <div class="mb-3">
               <label class="form-label">Profile Picture</label>
@@ -442,11 +454,6 @@
                 </label>
                 <input type="file" class="custom-file-input" id="imageInput{{ user.id|default('') }}"
                   name="image" accept="image/*">
-                {% if user.get_image_url()|default(None) %}
-                <button type="button" class="remove-image-btn"
-                  onclick="removeImage('imageInput{{ user.id|default('') }}', 'imagePreview{{ user.id|default('') }}')">Remove
-                  Image</button>
-                {% endif %}
               </div>
             </div>
           </div>
@@ -525,6 +532,7 @@
           preview.innerHTML = `<img src="${e.target.result}" alt="Profile Picture">`;
           preview.classList.remove('image-preview-placeholder');
           addRemoveButton(inputId, previewId);
+          document.getElementById(`removeImageInput${inputId.replace('imageInput', '')}`).value = '0';
         };
         reader.onerror = function () {
           console.error('Error reading file');
@@ -546,6 +554,7 @@
         preview.innerHTML = `<img src="${e.target.result}" alt="Profile Picture">`;
         preview.classList.remove('image-preview-placeholder');
         addRemoveButton(inputId, previewId);
+        document.getElementById(`removeImageInput${inputId.replace('imageInput', '')}`).value = '0';
       };
       reader.onerror = function () {
         console.error('Error reading dropped file');
@@ -578,6 +587,7 @@
     if (removeBtn) {
       removeBtn.remove();
     }
+    document.getElementById(`removeImageInput${inputId.replace('imageInput', '')}`).value = '1';
   }
 
   // Initialize image preview for Edit User modal
@@ -591,7 +601,7 @@
         backdrop: 'static'
       });
       videoModal.show();
-    }, 5000); // 5000ms = 5 seconds
+    }, 5000);
   });
 </script>
 {% endblock %}

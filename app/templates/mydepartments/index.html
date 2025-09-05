@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Users{% endblock %}
+{% block title %}My Department{% endblock %}
 
 {% block content %}
 <style>
@@ -245,50 +245,6 @@
     font-size: 1.5rem;
   }
 
-  .btn-sort {
-    transform: scale(1);
-    transition: transform 0.2s ease;
-  }
-
-  .btn-sort:hover {
-    transform: scale(1.05);
-  }
-
-  .btn-sort i {
-    font-size: 1.2rem;
-  }
-
-  @media (max-width: 576px) {
-    .modal-left .modal-dialog {
-      max-width: 100%;
-      border-radius: 0;
-    }
-
-    .modal-left .modal-content {
-      border-radius: 0;
-    }
-
-    .image-preview {
-      width: 100px;
-      height: 100px;
-    }
-
-    .image-upload-container {
-      padding: 8px;
-    }
-
-    .management-card .card-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 10px;
-    }
-
-    .management-card .card-header .btn {
-      width: 100%;
-    }
-  }
-
-  /* Enhanced filter styles */
   .filter-container {
     display: flex;
     align-items: center;
@@ -325,11 +281,57 @@
   .filter-container .btn-clear:hover {
     background-color: #5c636a;
   }
+
+  @media (max-width: 576px) {
+    .modal-left .modal-dialog {
+      max-width: 100%;
+      border-radius: 0;
+    }
+
+    .modal-left .modal-content {
+      border-radius: 0;
+    }
+
+    .image-preview {
+      width: 100px;
+      height: 100px;
+    }
+
+    .image-upload-container {
+      padding: 8px;
+    }
+
+    .management-card .card-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .management-card .card-header .btn {
+      width: 100%;
+    }
+  }
 </style>
 
 <div class="user-container mt-4">
   <div class="row g-4 mb-4">
-    <!-- Total Users Card -->
+    <div class="col-sm-6 col-xl-3">
+      <div class="card card-1 h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h6 class="card-title text-muted">Department</h6>
+              <h5 class="mb-1">{{ department.name|default('N/A') }}</h5>
+              <small class="text-success">Current Department</small>
+            </div>
+            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                 style="width:50px; height:50px;">
+              <i class="bx bx-building fs-4"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="col-sm-6 col-xl-3">
       <div class="card card-1 h-100">
         <div class="card-body">
@@ -337,9 +339,9 @@
             <div>
               <h6 class="card-title text-muted">Total Users</h6>
               <h4 class="mb-1">{{ total_users|default(0) }}</h4>
-              <small class="text-success">All registered users</small>
+              <small class="text-success">Users in Department</small>
             </div>
-            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center"
                  style="width:50px; height:50px;">
               <i class="bx bx-group fs-4"></i>
             </div>
@@ -347,69 +349,11 @@
         </div>
       </div>
     </div>
-
-    <!-- Total HR/Admin Card -->
-    <div class="col-sm-6 col-xl-3">
-      <div class="card card-1 h-100">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <h6 class="card-title text-muted">HR/Admin</h6>
-              <h4 class="mb-1">{{ total_hr_admin|default(0) }}</h4>
-              <small class="text-success">HR and Admin roles</small>
-            </div>
-            <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center"
-                 style="width:50px; height:50px;">
-              <i class="bx bx-user-plus fs-4"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Total Managers Card -->
-    <div class="col-sm-6 col-xl-3">
-      <div class="card card-1 h-100">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <h6 class="card-title text-muted">Managers</h6>
-              <h4 class="mb-1">{{ total_managers|default(0) }}</h4>
-              <small class="text-success">Manager roles</small>
-            </div>
-            <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center"
-                 style="width:50px; height:50px;">
-              <i class="bx bx-user-check fs-4"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Total Employees Card -->
-    <div class="col-sm-6 col-xl-3">
-      <div class="card card-1 h-100">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <h6 class="card-title text-muted">Employees</h6>
-              <h4 class="mb-1">{{ total_employees|default(0) }}</h4>
-              <small class="text-success">Employee roles</small>
-            </div>
-            <div class="bg-warning text-white rounded-circle d-flex align-items-center justify-content-center"
-                 style="width:50px; height:50px;">
-              <i class="bx bx-user-voice fs-4"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 
-  <!-- Consolidated User Management Card -->
   <div class="card card-1 mb-3 management-card">
     <div class="card-header d-flex justify-content-between align-items-center">
-      <h2>User Management</h2>
+      <h2>My Department Users</h2>
       <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
         <i class="bi bi-plus-circle"></i> Add User
       </button>
@@ -419,16 +363,6 @@
         <div class="search-input col-md-4">
           <i class="bx bx-search"></i>
           <input type="text" class="form-control" id="searchInput" placeholder="Search by username or email" value="{{ search|default('') }}">
-        </div>
-        <div class="col-md-3">
-          <select class="form-select" id="roleFilter">
-            <option value="">All Roles</option>
-            {% for role in roles|default([]) %}
-            <option value="{{ role.id }}" {% if role_id|default('') == role.id|string %}selected{% endif %}>
-              {{ role.name|default('N/A') }}
-            </option>
-            {% endfor %}
-          </select>
         </div>
         <div class="col-md-3">
           <select class="form-select" id="sortFilter">
@@ -497,7 +431,7 @@
                       <i class="bx bx-edit"></i> Edit
                     </a>
                   </li>
-                  {% if not (user.id == current_user.id and user.role.name == 'Admin') %}
+                  {% if not (user.id == current_user.id and not current_user.has_role('Admin')) %}
                   <li>
                     <a class="dropdown-item text-danger delete-link" href="#" data-user-id="{{ user.id }}" data-username="{{ user.username|default('N/A') }}">
                       <i class="bx bx-trash"></i> Delete
@@ -512,7 +446,6 @@
         </tbody>
       </table>
     </div>
-    <!-- Pagination Controls -->
     <div class="d-flex justify-content-between align-items-center mt-3" id="paginationControls">
       <div class="col-md-4">
         <select class="form-select" id="perPageFilter">
@@ -561,7 +494,7 @@
   <!-- Create User Modal -->
   <div class="modal fade modal-center" id="createUserModal" tabindex="-1">
     <div class="modal-dialog">
-      <form method="POST" action="{{ url_for('users.create', page=pagination.page|default(1)) }}"
+      <form method="POST" action="{{ url_for('mydepartments.create', page=pagination.page|default(1)) }}"
             enctype="multipart/form-data">
         <div class="modal-content">
           <div class="modal-header bg-primary">
@@ -590,18 +523,15 @@
               <select class="form-select" name="role_id">
                 <option value="">None</option>
                 {% for role in roles|default([]) %}
-                {% if role.name != 'Admin' or total_admins == 0 %}
                 <option value="{{ role.id }}">{{ role.name|default('N/A') }}</option>
-                {% endif %}
                 {% endfor %}
               </select>
             </div>
             <div class="mb-3">
               <label class="form-label">Department</label>
-              <select class="form-select" name="department_id">
-                <option value="">None</option>
+              <select class="form-select" name="department_id" disabled>
                 {% for department in departments|default([]) %}
-                <option value="{{ department.id }}">{{ department.name|default('N/A') }}</option>
+                <option value="{{ department.id }}" selected>{{ department.name|default('N/A') }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -631,7 +561,7 @@
     </div>
   </div>
 
-  <!-- Edit User Modal (Single) -->
+  <!-- Edit User Modal -->
   <div class="modal fade modal-center" id="editUserModal" tabindex="-1">
     <div class="modal-dialog">
       <form method="POST" action="" enctype="multipart/form-data" id="editForm">
@@ -660,7 +590,7 @@
             </div>
             <div class="mb-3">
               <label class="form-label">Role</label>
-              <select class="form-select" name="role_id" id="roleSelect">
+              <select class="form-select" name="role_id">
                 <option value="">None</option>
                 {% for role in roles|default([]) %}
                 <option value="{{ role.id }}">{{ role.name|default('N/A') }}</option>
@@ -669,10 +599,9 @@
             </div>
             <div class="mb-3">
               <label class="form-label">Department</label>
-              <select class="form-select" name="department_id">
-                <option value="">None</option>
+              <select class="form-select" name="department_id" disabled>
                 {% for department in departments|default([]) %}
-                <option value="{{ department.id }}">{{ department.name|default('N/A') }}</option>
+                <option value="{{ department.id }}" selected>{{ department.name|default('N/A') }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -703,7 +632,7 @@
     </div>
   </div>
 
-  <!-- Delete User Modal (Single) -->
+  <!-- Delete User Modal -->
   <div class="modal fade" id="deleteUserModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -725,14 +654,140 @@
   </div>
 </div>
 
-<!-- Boxicons CDN -->
 <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-
-<!-- jQuery CDN -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-<!-- JavaScript for image preview, drag-and-drop, and filters -->
 <script>
+$(document).ready(function() {
+  let currentPage = {{ pagination.page|default(1) }};
+  let perPage = {{ pagination.per_page|default(7) }};
+  let debounceTimer;
+  const currentUserId = {{ current_user.id }};
+  const isAdmin = {{ 'true' if current_user.has_role('Admin') else 'false' }};
+
+  function debounce(func, delay) {
+    return function() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(func, delay);
+    };
+  }
+
+  function updateTable(page) {
+    if (page) {
+      currentPage = page;
+    }
+    const search = $('#searchInput').val().trim();
+    const sort = $('#sortFilter').val();
+    const per_page = $('#perPageFilter').val();
+
+    $('#loadingOverlay').show();
+
+    $.ajax({
+      url: '{{ url_for("mydepartments.index") }}',
+      type: 'GET',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      data: { search: search, sort: sort, page: currentPage, per_page: per_page },
+      success: function(data) {
+        const tbody = $('#userTableBody');
+        tbody.empty();
+        if (data.users.length === 0) {
+          tbody.append('<tr><td colspan="9" class="text-center">No users found in your department</td></tr>');
+        } else {
+          data.users.forEach((user, index) => {
+            const isCurrentUser = user.id === currentUserId && !isAdmin;
+            const row = `
+              <tr>
+                <td>${index + 1 + (data.pagination.page - 1) * data.pagination.per_page}</td>
+                <td>
+                  ${user.image_url ? `<img src="${user.image_url}" alt="Profile Picture" class="profile-pic">` : 'N/A'}
+                </td>
+                <td>${user.username}</td>
+                <td>${user.email}</td>
+                <td>${user.phone_number}</td>
+                <td>${user.role_name}</td>
+                <td>${user.department_name}</td>
+                <td>${user.address}</td>
+                <td>
+                  <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                      <i class="bx bx-dots-horizontal-rounded"></i>
+                    </button>
+                    <ul class="dropdown-menu card-1">
+                      <li>
+                        <a class="dropdown-item" href="/users/profile/${user.id}?page=${data.pagination.page}">
+                          <i class="bx bx-user"></i> View
+                        </a>
+                      </li>
+                      <li>
+                        <a class="dropdown-item edit-link" href="#" data-user-id="${user.id}">
+                          <i class="bx bx-edit"></i> Edit
+                        </a>
+                      </li>
+                      ${!isCurrentUser ? `
+                      <li>
+                        <a class="dropdown-item text-danger delete-link" href="#" data-user-id="${user.id}" data-username="${user.username}">
+                          <i class="bx bx-trash"></i> Delete
+                        </a>
+                      </li>
+                      ` : ''}
+                    </ul>
+                  </div>
+                </td>
+              </tr>`;
+            tbody.append(row);
+          });
+        }
+
+        const pagination = $('#paginationControls');
+        pagination.empty();
+        let paginationHtml = `
+          <div class="d-flex justify-content-between align-items-center mt-3" id="paginationControls">
+            <div class="col-md-4">
+              <select class="form-select" id="perPageFilter">
+                <option value="7" ${data.pagination.per_page === 7 ? 'selected' : ''}>7 per page</option>
+                <option value="10" ${data.pagination.per_page === 10 ? 'selected' : ''}>10 per page</option>
+                <option value="25" ${data.pagination.per_page === 25 ? 'selected' : ''}>25 per page</option>
+                <option value="50" ${data.pagination.per_page === 50 ? 'selected' : ''}>50 per page</option>
+              </select>
+            </div>
+            <nav>
+              <ul class="pagination mb-0">
+        `;
+        
+        if (data.pagination.has_prev) {
+          paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${data.pagination.prev_num}">Previous</a></li>`;
+        } else {
+          paginationHtml += '<li class="page-item disabled"><span class="page-link">Previous</span></li>';
+        }
+
+        data.pagination.iter_pages.forEach(pageNum => {
+          if (pageNum) {
+            paginationHtml += `<li class="page-item ${pageNum === data.pagination.page ? 'active' : ''}">
+              <a class="page-link" href="#" data-page="${pageNum}">${pageNum}</a>
+            </li>`;
+          } else {
+            paginationHtml += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+          }
+        });
+
+        if (data.pagination.has_next) {
+          paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${data.pagination.next_num}">Next</a></li>`;
+        } else {
+          paginationHtml += '<li class="page-item disabled"><span class="page-link">Next</span></li>';
+        }
+
+        paginationHtml += '</ul></nav></div>';
+        pagination.html(paginationHtml);
+
+        $('#loadingOverlay').hide();
+      },
+      error: function() {
+        $('#loadingOverlay').hide();
+        alert('Error loading users. Please try again.');
+      }
+    });
+  }
+
   function handleImagePreview(inputId, previewId) {
     const input = document.getElementById(inputId);
     const preview = document.getElementById(previewId);
@@ -815,228 +870,80 @@
   handleImagePreview('imageInputCreate', 'imagePreviewCreate');
   handleImagePreview('imageInputEdit', 'imagePreviewEdit');
 
-  // AJAX for real-time table updates
-  $(document).ready(function() {
-    let currentPage = {{ pagination.page|default(1) }};
-    let perPage = {{ pagination.per_page|default(7) }};
-    let debounceTimer;
+  $('#searchInput').on('input', debounce(function() {
+    currentPage = 1;
+    updateTable();
+  }, 300));
 
-    function debounce(func, delay) {
-      return function() {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(func, delay);
-      };
-    }
-
-    function updateTable(page) {
-      if (page) {
-        currentPage = page;
-      }
-      const search = $('#searchInput').val().trim();
-      const role_id = $('#roleFilter').val();
-      const sort = $('#sortFilter').val();
-      const per_page = $('#perPageFilter').val();
-
-      $('#loadingOverlay').show();
-
-      $.ajax({
-        url: '{{ url_for("users.index") }}',
-        type: 'GET',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        data: { search: search, role_id: role_id, sort: sort, page: currentPage, per_page: per_page },
-        success: function(data) {
-          // Update table body
-          const tbody = $('#userTableBody');
-          tbody.empty();
-          if (data.users.length === 0) {
-            tbody.append('<tr><td colspan="9" class="text-center">No users found</td></tr>');
-          } else {
-            data.users.forEach((user, index) => {
-              const isCurrentAdmin = user.id === {{ current_user.id }} && user.role_name === 'Admin';
-              const row = `
-                <tr>
-                  <td>${index + 1 + (data.pagination.page - 1) * data.pagination.per_page}</td>
-                  <td>
-                    ${user.image_url ? `<img src="${user.image_url}" alt="Profile Picture" class="profile-pic">` : 'N/A'}
-                  </td>
-                  <td>${user.username}</td>
-                  <td>${user.email}</td>
-                  <td>${user.phone_number}</td>
-                  <td>${user.role_name}</td>
-                  <td>${user.department_name}</td>
-                  <td>${user.address}</td>
-                  <td>
-                    <div class="dropdown">
-                      <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bx bx-dots-horizontal-rounded"></i>
-                      </button>
-                      <ul class="dropdown-menu card-1">
-                        <li>
-                          <a class="dropdown-item" href="/users/profile/${user.id}?page=${data.pagination.page}">
-                            <i class="bx bx-user"></i> View
-                          </a>
-                        </li>
-                        <li>
-                          <a class="dropdown-item edit-link" href="#" data-user-id="${user.id}">
-                            <i class="bx bx-edit"></i> Edit
-                          </a>
-                        </li>
-                        ${!isCurrentAdmin ? `
-                        <li>
-                          <a class="dropdown-item text-danger delete-link" href="#" data-user-id="${user.id}" data-username="${user.username}">
-                            <i class="bx bx-trash"></i> Delete
-                          </a>
-                        </li>` : ''}
-                      </ul>
-                    </div>
-                  </td>
-                </tr>`;
-              tbody.append(row);
-            });
-          }
-
-          // Update pagination
-          const pagination = $('#paginationControls');
-          pagination.empty();
-          let paginationHtml = `
-            <div class="d-flex justify-content-between align-items-center mt-3" id="paginationControls">
-              <div class="col-md-4">
-                <select class="form-select" id="perPageFilter">
-                  <option value="7" ${data.pagination.per_page === 7 ? 'selected' : ''}>7 per page</option>
-                  <option value="10" ${data.pagination.per_page === 10 ? 'selected' : ''}>10 per page</option>
-                  <option value="25" ${data.pagination.per_page === 25 ? 'selected' : ''}>25 per page</option>
-                  <option value="50" ${data.pagination.per_page === 50 ? 'selected' : ''}>50 per page</option>
-                </select>
-              </div>
-              <nav>
-                <ul class="pagination mb-0">
-          `;
-          
-          if (data.pagination.has_prev) {
-            paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${data.pagination.prev_num}">Previous</a></li>`;
-          } else {
-            paginationHtml += '<li class="page-item disabled"><span class="page-link">Previous</span></li>';
-          }
-
-          data.pagination.iter_pages.forEach(pageNum => {
-            if (pageNum) {
-              paginationHtml += `<li class="page-item ${pageNum === data.pagination.page ? 'active' : ''}">
-                <a class="page-link" href="#" data-page="${pageNum}">${pageNum}</a>
-              </li>`;
-            } else {
-              paginationHtml += '<li class="page-item disabled"><span class="page-link">...</span></li>';
-            }
-          });
-
-          if (data.pagination.has_next) {
-            paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${data.pagination.next_num}">Next</a></li>`;
-          } else {
-            paginationHtml += '<li class="page-item disabled"><span class="page-link">Next</span></li>';
-          }
-
-          paginationHtml += '</ul></nav></div>';
-          pagination.html(paginationHtml);
-
-          $('#loadingOverlay').hide();
-        },
-        error: function() {
-          $('#loadingOverlay').hide();
-          alert('Error loading users. Please try again.');
-        }
-      });
-    }
-
-    // Event listeners for filters and pagination
-    $('#searchInput').on('input', debounce(function() {
-      currentPage = 1;
-      updateTable();
-    }, 300));
-
-    $('#roleFilter').on('change', function() {
-      currentPage = 1;
-      updateTable();
-    });
-
-    $('#sortFilter').on('change', function() {
-      currentPage = 1;
-      updateTable();
-    });
-
-    $('#perPageFilter').on('change', function() {
-      perPage = $(this).val();
-      currentPage = 1;
-      updateTable();
-    });
-
-    $('#clearFilters').on('click', function() {
-      $('#searchInput').val('');
-      $('#roleFilter').val('');
-      $('#sortFilter').val('username_asc');
-      $('#perPageFilter').val('7');
-      perPage = 7;
-      currentPage = 1;
-      updateTable();
-    });
-
-    $(document).on('click', '.pagination a.page-link', function(e) {
-      e.preventDefault();
-      const page = $(this).data('page');
-      window.history.pushState({}, '', `?page=${page}&search=${encodeURIComponent($('#searchInput').val())}&role_id=${$('#roleFilter').val()}&sort=${$('#sortFilter').val()}&per_page=${$('#perPageFilter').val()}`);
-      updateTable(page);
-    });
-
-    // Event listener for edit links
-    $(document).on('click', '.edit-link', function(e) {
-      e.preventDefault();
-      const userId = $(this).data('user-id');
-      $.get(`/users/${userId}/json`, function(data) {
-        $('#editForm input[name="username"]').val(data.username);
-        $('#editForm input[name="email"]').val(data.email);
-        $('#editForm input[name="phone_number"]').val(data.phone_number || '');
-        $('#editForm select[name="role_id"]').val(data.role_id || '');
-        $('#editForm select[name="department_id"]').val(data.department_id || '');
-        $('#editForm textarea[name="address"]').val(data.address || '');
-        $('#editForm input[name="password"]').val('');
-
-        const preview = document.getElementById('imagePreviewEdit');
-        preview.innerHTML = data.image_url ? `<img src="${data.image_url}" alt="Profile Picture">` : '';
-        if (data.image_url) {
-          preview.classList.remove('image-preview-placeholder');
-          addRemoveButton('imageInputEdit', 'imagePreviewEdit');
-          $('#removeImageInput').val('0');
-        } else {
-          preview.classList.add('image-preview-placeholder');
-          const removeBtn = preview.parentElement.querySelector('.remove-image-btn');
-          if (removeBtn) removeBtn.remove();
-          $('#removeImageInput').val('0');
-        }
-
-        // Disable role selection if editing the sole Admin
-        if (data.role_name === 'Admin' && {{ total_admins|default(0) }} === 1) {
-          $('#roleSelect').prop('disabled', true);
-        } else {
-          $('#roleSelect').prop('disabled', false);
-        }
-
-        $('#editForm').attr('action', `/users/update/${userId}?page=${currentPage}`);
-        $('#editUserModal').modal('show');
-      }).fail(function() {
-        alert('Error loading user data. Please try again.');
-      });
-    });
-
-    // Event listener for delete links
-    $(document).on('click', '.delete-link', function(e) {
-      e.preventDefault();
-      const userId = $(this).data('user-id');
-      const username = $(this).data('username');
-      $('#deleteUsername').text(username);
-      $('#deleteForm').attr('action', `/users/delete/${userId}?page=${currentPage}`);
-      $('#deleteUserModal').modal('show');
-    });
-
-    // Set initial sort filter state
-    $('#sortFilter').val('{{ sort|default('username_asc') }}');
+  $('#sortFilter').on('change', function() {
+    currentPage = 1;
+    updateTable();
   });
+
+  $('#perPageFilter').on('change', function() {
+    perPage = $(this).val();
+    currentPage = 1;
+    updateTable();
+  });
+
+  $('#clearFilters').on('click', function() {
+    $('#searchInput').val('');
+    $('#sortFilter').val('username_asc');
+    $('#perPageFilter').val('7');
+    perPage = 7;
+    currentPage = 1;
+    updateTable();
+  });
+
+  $(document).on('click', '.pagination a.page-link', function(e) {
+    e.preventDefault();
+    const page = $(this).data('page');
+    window.history.pushState({}, '', `?page=${page}&search=${encodeURIComponent($('#searchInput').val())}&sort=${$('#sortFilter').val()}&per_page=${$('#perPageFilter').val()}`);
+    updateTable(page);
+  });
+
+  $(document).on('click', '.edit-link', function(e) {
+    e.preventDefault();
+    const userId = $(this).data('user-id');
+    $.get(`/mydepartments/${userId}/json`, function(data) {
+      $('#editForm input[name="username"]').val(data.username);
+      $('#editForm input[name="email"]').val(data.email);
+      $('#editForm input[name="phone_number"]').val(data.phone_number || '');
+      $('#editForm select[name="role_id"]').val(data.role_id || '');
+      $('#editForm select[name="department_id"]').val(data.department_id || '');
+      $('#editForm textarea[name="address"]').val(data.address || '');
+      $('#editForm input[name="password"]').val('');
+
+      const preview = document.getElementById('imagePreviewEdit');
+      preview.innerHTML = data.image_url ? `<img src="${data.image_url}" alt="Profile Picture">` : '';
+      if (data.image_url) {
+        preview.classList.remove('image-preview-placeholder');
+        addRemoveButton('imageInputEdit', 'imagePreviewEdit');
+        $('#removeImageInput').val('0');
+      } else {
+        preview.classList.add('image-preview-placeholder');
+        const removeBtn = preview.parentElement.querySelector('.remove-image-btn');
+        if (removeBtn) removeBtn.remove();
+        $('#removeImageInput').val('0');
+      }
+
+      $('#editForm').attr('action', `/mydepartments/update/${userId}?page=${currentPage}`);
+      $('#editUserModal').modal('show');
+    }).fail(function() {
+      alert('Error loading user data. Please try again.');
+    });
+  });
+
+  $(document).on('click', '.delete-link', function(e) {
+    e.preventDefault();
+    const userId = $(this).data('user-id');
+    const username = $(this).data('username');
+    $('#deleteUsername').text(username);
+    $('#deleteForm').attr('action', `/mydepartments/delete/${userId}?page=${currentPage}`);
+    $('#deleteUserModal').modal('show');
+  });
+
+  $('#sortFilter').val('{{ sort|default('username_asc') }}');
+});
 </script>
 {% endblock %}
