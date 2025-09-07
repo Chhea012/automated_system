@@ -29,7 +29,7 @@ contracts_bp = Blueprint('contracts', __name__)
 
 def sanitize_filename(name):
     # Sanitize the filename to remove invalid characters and replace spaces with underscores
-    return re.sub(r'[^\w\s.-]', ' ', name.replace(' ', '_')).strip()
+    return re.sub(r'[^\w\s.-]', ' ', name.replace(' ', ' ')).strip()
 
 # Helper function to generate next contract number
 def generate_next_contract_number(last_contract_number, current_year):

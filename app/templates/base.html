@@ -38,7 +38,6 @@
         color: #333 !important;
         font-weight: 500;
         font-family: 'Montserrat', sans-serif;
-        position: relative; /* For underline positioning */
       }
       .navbar-custom .nav-link:hover {
         color: #0d6efd !important;
@@ -49,16 +48,7 @@
       .navbar-custom .nav-link.active {
         color: #0d6efd !important;
         font-weight: bold;
-      }
-      .navbar-custom .nav-link.active::after {
-        content: '';
-        position: absolute;
-        left: 0;
-        bottom: -2px;
-        width: 100%;
-        height: 3px;
-        background-color: #f6a401; /* Yellow underline to match dropdown */
-        transition: all 0.3s ease;
+        /* Removed underline effect */
       }
       .text {
         font-size: 18px;
@@ -251,12 +241,6 @@
       }
       .navbar .dropdown-menu .dropdown-item:hover::before {
         width: 100%;
-      }
-      .dropdown-toggle::after {
-        transition: transform 0.3s ease;
-      }
-      .dropdown:hover > .dropdown-toggle::after {
-        transform: rotate(180deg);
       }
     </style>
   </head>
