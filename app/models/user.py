@@ -12,7 +12,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     image = db.Column(db.String(255), nullable=True, default="default_profile.png")
-    phone_number = db.Column(db.String(20), nullable=True)
+    phone_number = db.Column(db.String(20), unique=True, nullable=True)  # Added unique=True
     address = db.Column(db.String(255), nullable=True)
     role_id = db.Column(db.Integer, db.ForeignKey("role.id"), nullable=True, index=True)
     department_id = db.Column(db.Integer, db.ForeignKey("department.id"), nullable=True, index=True)

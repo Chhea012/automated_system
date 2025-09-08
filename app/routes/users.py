@@ -127,10 +127,28 @@ def get_user(user_id):
         'image_url': user.get_image_url()
     })
 
+@users_bp.route("/check_phone", methods=["POST"])
+@login_required
+def check_phone():
+    if not current_user.has_role('Admin'):
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    phone_number = request.form.get("phone_number").strip() if request.form.get("phone_number") else None
+    user_id = request.form.get("user_id", type=int)
+
+    if not phone_number:
+        return jsonify({'exists': False})
+
+    query = User.query.filter_by(phone_number=phone_number)
+    if user_id:
+        query = query.filter(User.id != user_id)
+    
+    exists = query.first() is not None
+    return jsonify({'exists': exists})
+
 @users_bp.route("/profile/<int:user_id>")
 @login_required
 def profile(user_id):
-    # Allow users to view their own profile or Admins/Managers to view any profile
     user = User.query.get_or_404(user_id)
     if not (current_user.id == user_id or current_user.has_role('Admin') or current_user.has_role('Manager')):
         flash("You do not have permission to view this profile.", "danger")
@@ -158,7 +176,7 @@ def create():
     username = request.form.get("username")
     email = request.form.get("email")
     password = request.form.get("password")
-    phone_number = request.form.get("phone_number")
+    phone_number = request.form.get("phone_number").strip() if request.form.get("phone_number") else None
     address = request.form.get("address")
     role_id = request.form.get("role_id")
     department_id = request.form.get("department_id")
@@ -176,7 +194,10 @@ def create():
         flash("Email already exists!", "danger")
         return redirect(url_for("users.index", page=1))
 
-    # Prevent creating a new Admin if one already exists
+    if phone_number and User.query.filter_by(phone_number=phone_number).first():
+        flash("Phone number already exists!", "danger")
+        return redirect(url_for("users.index", page=1))
+
     if role_id:
         role = Role.query.get(role_id)
         if role and role.name == 'Admin' and User.query.join(Role).filter(Role.name == 'Admin').count() > 0:
@@ -223,7 +244,7 @@ def update(user_id):
     username = request.form.get("username")
     email = request.form.get("email")
     password = request.form.get("password")
-    phone_number = request.form.get("phone_number")
+    phone_number = request.form.get("phone_number").strip() if request.form.get("phone_number") else None
     address = request.form.get("address")
     role_id = request.form.get("role_id")
     department_id = request.form.get("department_id")
@@ -242,13 +263,15 @@ def update(user_id):
         flash("Email already exists!", "danger")
         return redirect(url_for("users.index", page=request.args.get('page', 1, type=int)))
 
-    # Prevent changing the sole Admin's role
+    if phone_number and phone_number != user.phone_number and User.query.filter_by(phone_number=phone_number).first():
+        flash("Phone number already exists!", "danger")
+        return redirect(url_for("users.index", page=request.args.get('page', 1, type=int)))
+
     if user.role and user.role.name == 'Admin' and User.query.join(Role).filter(Role.name == 'Admin').count() == 1:
         if role_id and role_id != str(user.role_id):
             flash("Cannot change the role of the sole Admin!", "danger")
             return redirect(url_for("users.index", page=request.args.get('page', 1, type=int)))
 
-    # Prevent creating another Admin if one exists
     if role_id:
         role = Role.query.get(role_id)
         if role and role.name == 'Admin' and User.query.join(Role).filter(Role.name == 'Admin').count() > 0 and user.role.name != 'Admin':
@@ -265,12 +288,12 @@ def update(user_id):
     if password:
         user.set_password(password)
 
-    if remove_image == '1' and user.image:
+    if remove_image == '1' and user.image and user.image != "default_profile.png":
         try:
             image_path = os.path.join(current_app.root_path, 'static/uploads', user.image)
             if os.path.exists(image_path):
                 os.remove(image_path)
-            user.image = None
+            user.image = "default_profile.png"
         except Exception as e:
             flash(f"Error removing image: {str(e)}", "danger")
 
@@ -304,18 +327,16 @@ def delete(user_id):
 
     user = User.query.get_or_404(user_id)
 
-    # Prevent deleting the sole Admin
     if user.role and user.role.name == 'Admin' and User.query.join(Role).filter(Role.name == 'Admin').count() == 1:
         flash("Cannot delete the sole Admin!", "danger")
         return redirect(url_for("users.index", page=request.args.get('page', 1, type=int)))
 
-    # Prevent Admin from deleting themselves
     if user.id == current_user.id:
         flash("You cannot delete your own account!", "danger")
         return redirect(url_for("users.index", page=request.args.get('page', 1, type=int)))
 
     try:
-        if user.image:
+        if user.image and user.image != "default_profile.png":
             image_path = os.path.join(current_app.root_path, 'static/uploads', user.image)
             if os.path.exists(image_path):
                 os.remove(image_path)
