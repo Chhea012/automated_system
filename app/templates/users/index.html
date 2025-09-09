@@ -258,22 +258,6 @@
     font-size: 1.2rem;
   }
 
-  /* Phone number input styles */
-  .phone-input-container {
-    position: relative;
-  }
-
-  .phone-input-container .invalid-feedback {
-    display: none;
-    color: #dc3545;
-    font-size: 0.875rem;
-    margin-top: 0.25rem;
-  }
-
-  .phone-input-container .is-invalid ~ .invalid-feedback {
-    display: block;
-  }
-
   @media (max-width: 576px) {
     .modal-left .modal-dialog {
       max-width: 100%;
@@ -578,53 +562,40 @@
   <div class="modal fade modal-center" id="createUserModal" tabindex="-1">
     <div class="modal-dialog">
       <form method="POST" action="{{ url_for('users.create', page=pagination.page|default(1)) }}"
-            enctype="multipart/form-data" id="createUserForm">
+            enctype="multipart/form-data">
         <div class="modal-content">
           <div class="modal-header bg-primary">
             <h5 class="modal-title text-white">Add User</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            <div class="mb-3">
-              {% for category, message in messages %}
-              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-              </div>
-              {% endfor %}
-            </div>
-            {% endif %}
-            {% endwith %}
             <div class="mb-3">
               <label class="form-label">Username</label>
-              <input type="text" class="form-control" name="username" value="{{ request.form.username|default('') }}" required>
+              <input type="text" class="form-control" name="username" required>
             </div>
             <div class="mb-3">
               <label class="form-label">Email</label>
-              <input type="email" class="form-control" name="email" value="{{ request.form.email|default('') }}" required>
+              <input type="email" class="form-control" name="email" required>
             </div>
             <div class="mb-3">
               <label class="form-label">Password</label>
               <input type="password" class="form-control" name="password" required>
             </div>
-            <div class="mb-3 phone-input-container">
-              <label class="form-label">Phone Number</label>
-              <input type="tel" class="form-control" name="phone_number" id="phoneInputCreate"
-                     pattern="[\+]?[0-9\s\-\(\)]{7,20}" title="Enter a valid phone number (7-20 characters, e.g., +1234567890 or 123-456-7890)"
-                     value="{{ request.form.phone_number|default('') }}">
-              <div class="invalid-feedback" id="phoneErrorCreate">Phone number already exists!</div>
+            <div class="mb-3">
+           <label class="form-label">Phone Number</label>
+            <input type="text" class="form-control" name="phone_number" id="phoneInputCreate">
+            <div class="invalid-feedback" id="phoneErrorCreate" style="display:none; color:red;">
+             Phone number already exists.
+             </div>
             </div>
+
             <div class="mb-3">
               <label class="form-label">Role</label>
               <select class="form-select" name="role_id">
                 <option value="">None</option>
                 {% for role in roles|default([]) %}
                 {% if role.name != 'Admin' or total_admins == 0 %}
-                <option value="{{ role.id }}" {% if request.form.role_id|default('') == role.id|string %}selected{% endif %}>
-                  {{ role.name|default('N/A') }}
-                </option>
+                <option value="{{ role.id }}">{{ role.name|default('N/A') }}</option>
                 {% endif %}
                 {% endfor %}
               </select>
@@ -634,15 +605,13 @@
               <select class="form-select" name="department_id">
                 <option value="">None</option>
                 {% for department in departments|default([]) %}
-                <option value="{{ department.id }}" {% if request.form.department_id|default('') == department.id|string %}selected{% endif %}>
-                  {{ department.name|default('N/A') }}
-                </option>
+                <option value="{{ department.id }}">{{ department.name|default('N/A') }}</option>
                 {% endfor %}
               </select>
             </div>
             <div class="mb-3">
               <label class="form-label">Address</label>
-              <textarea class="form-control" name="address" rows="3">{{ request.form.address|default('') }}</textarea>
+              <textarea class="form-control" name="address" rows="3"></textarea>
             </div>
             <div class="mb-3">
               <label class="form-label">Profile Picture</label>
@@ -666,7 +635,7 @@
     </div>
   </div>
 
-  <!-- Edit User Modal -->
+  <!-- Edit User Modal (Single) -->
   <div class="modal fade modal-center" id="editUserModal" tabindex="-1">
     <div class="modal-dialog">
       <form method="POST" action="" enctype="multipart/form-data" id="editForm">
@@ -677,18 +646,6 @@
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            <div class="mb-3">
-              {% for category, message in messages %}
-              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-              </div>
-              {% endfor %}
-            </div>
-            {% endif %}
-            {% endwith %}
             <div class="mb-3">
               <label class="form-label">Username</label>
               <input type="text" class="form-control" name="username" required>
@@ -701,12 +658,14 @@
               <label class="form-label">Password (leave blank to keep unchanged)</label>
               <input type="password" class="form-control" name="password">
             </div>
-            <div class="mb-3 phone-input-container">
-              <label class="form-label">Phone Number</label>
-              <input type="tel" class="form-control" name="phone_number" id="phoneInputEdit"
-                     pattern="[\+]?[0-9\s\-\(\)]{7,20}" title="Enter a valid phone number (7-20 characters, e.g., +1234567890 or 123-456-7890)">
-              <div class="invalid-feedback" id="phoneErrorEdit">Phone number already exists!</div>
-            </div>
+            <div class="mb-3">
+           <label class="form-label">Phone Number</label>
+          <input type="text" class="form-control" name="phone_number" id="phoneInputEdit">
+          <div class="invalid-feedback" id="phoneErrorEdit" style="display:none; color:red;">
+          Phone number already exists.
+          </div>
+          </div>
+
             <div class="mb-3">
               <label class="form-label">Role</label>
               <select class="form-select" name="role_id" id="roleSelect">
@@ -752,7 +711,7 @@
     </div>
   </div>
 
-  <!-- Delete User Modal -->
+  <!-- Delete User Modal (Single) -->
   <div class="modal fade" id="deleteUserModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -780,9 +739,49 @@
 <!-- jQuery CDN -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-<!-- JavaScript for image preview, drag-and-drop, filters, and phone validation -->
+<!-- JavaScript for image preview, drag-and-drop, and filters -->
 <script>
-  // Image handling functions
+  function validatePhoneUnique(inputId, errorId, userId=null) {
+  const phoneInput = $(`#${inputId}`);
+  const errorDiv = $(`#${errorId}`);
+
+  phoneInput.on('blur keyup', function() {
+    const phoneNumber = phoneInput.val().trim();
+    if (!phoneNumber) {
+      errorDiv.hide();
+      phoneInput.removeClass('is-invalid');
+      return;
+    }
+
+    $.get('/users/check_phone', { phone_number: phoneNumber, user_id: userId }, function(data) {
+      if (data.exists) {
+        errorDiv.show();
+        phoneInput.addClass('is-invalid');
+      } else {
+        errorDiv.hide();
+        phoneInput.removeClass('is-invalid');
+      }
+    });
+  });
+}
+
+// Apply to create form
+validatePhoneUnique('phoneInputCreate', 'phoneErrorCreate');
+
+// Apply to edit form (userId is parsed dynamically)
+$(document).on('shown.bs.modal', '#editUserModal', function() {
+  const userId = $('#editForm').attr('action').match(/update\/(\d+)/)[1];
+  validatePhoneUnique('phoneInputEdit', 'phoneErrorEdit', userId);
+});
+
+// Prevent form submit if invalid
+$('#createUserModal form, #editUserModal form').on('submit', function(e) {
+  if ($(this).find('.is-invalid').length > 0) {
+    e.preventDefault();
+    alert('Please fix errors before submitting.');
+  }
+});
+
   function handleImagePreview(inputId, previewId) {
     const input = document.getElementById(inputId);
     const preview = document.getElementById(previewId);
@@ -865,160 +864,18 @@
   handleImagePreview('imageInputCreate', 'imagePreviewCreate');
   handleImagePreview('imageInputEdit', 'imagePreviewEdit');
 
-  // Debounce function for input validation
-  function debounce(func, delay) {
-    let debounceTimer;
-    return function() {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(func, delay);
-    };
-  }
-
-  // Phone number validation
-  function validatePhoneNumber(phoneInputId, errorId, userId = null) {
-    const phoneInput = document.getElementById(phoneInputId);
-    const errorElement = document.getElementById(errorId);
-
-    if (!phoneInput || !errorElement) return;
-
-    phoneInput.addEventListener('input', debounce(function() {
-      const phoneNumber = phoneInput.value.trim();
-      phoneInput.classList.remove('is-invalid');
-      errorElement.style.display = 'none';
-
-      if (phoneNumber && !phoneInput.checkValidity()) {
-        phoneInput.classList.add('is-invalid');
-        errorElement.textContent = 'Please enter a valid phone number.';
-        errorElement.style.display = 'block';
-        return;
-      }
-
-      if (!phoneNumber) return;
-
-      $.ajax({
-        url: '/users/check_phone',
-        type: 'POST',
-        data: { phone_number: phoneNumber, user_id: userId },
-        success: function(data) {
-          if (data.exists) {
-            phoneInput.classList.add('is-invalid');
-            errorElement.textContent = 'Phone number already exists!';
-            errorElement.style.display = 'block';
-          } else {
-            phoneInput.classList.remove('is-invalid');
-            errorElement.style.display = 'none';
-          }
-        },
-        error: function() {
-          console.error('Error checking phone number');
-          phoneInput.classList.add('is-invalid');
-          errorElement.textContent = 'Error checking phone number. Please try again.';
-          errorElement.style.display = 'block';
-        }
-      });
-    }, 300));
-  }
-
-  // Initialize phone number validation for create modal
-  validatePhoneNumber('phoneInputCreate', 'phoneErrorCreate');
-
-  // Handle edit modal population and validation
-  $(document).on('click', '.edit-link', function(e) {
-    e.preventDefault();
-    const userId = $(this).data('user-id');
-    $.get(`/users/${userId}/json`, function(data) {
-      $('#editForm input[name="username"]').val(data.username);
-      $('#editForm input[name="email"]').val(data.email);
-      $('#editForm input[name="phone_number"]').val(data.phone_number || '');
-      $('#editForm select[name="role_id"]').val(data.role_id || '');
-      $('#editForm select[name="department_id"]').val(data.department_id || '');
-      $('#editForm textarea[name="address"]').val(data.address || '');
-      $('#editForm input[name="password"]').val('');
-
-      const preview = document.getElementById('imagePreviewEdit');
-      preview.innerHTML = data.image_url ? `<img src="${data.image_url}" alt="Profile Picture">` : '';
-      if (data.image_url) {
-        preview.classList.remove('image-preview-placeholder');
-        addRemoveButton('imageInputEdit', 'imagePreviewEdit');
-        $('#removeImageInput').val('0');
-      } else {
-        preview.classList.add('image-preview-placeholder');
-        const removeBtn = preview.parentElement.querySelector('.remove-image-btn');
-        if (removeBtn) removeBtn.remove();
-        $('#removeImageInput').val('0');
-      }
-
-      if (data.role_name === 'Admin' && {{ total_admins|default(0) }} === 1) {
-        $('#roleSelect').prop('disabled', true);
-      } else {
-        $('#roleSelect').prop('disabled', false);
-      }
-
-      $('#editForm').attr('action', `/users/update/${userId}?page=${currentPage}`);
-      $('#editUserModal').modal('show');
-
-      // Initialize phone number validation for edit modal
-      validatePhoneNumber('phoneInputEdit', 'phoneErrorEdit', userId);
-
-      // Check for flash messages indicating a phone number error
-      {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-      {% for category, message in messages %}
-      {% if message == 'Phone number already exists!' %}
-      $('#editForm input[name="phone_number"]').addClass('is-invalid');
-      $('#phoneErrorEdit').text('{{ message }}');
-      $('#phoneErrorEdit').css('display', 'block');
-      {% endif %}
-      {% endfor %}
-      $('#editUserModal').modal('show');
-      {% endif %}
-      {% endwith %}
-    }).fail(function() {
-      alert('Error loading user data. Please try again.');
-    });
-  });
-
-  // Prevent form submission if phone number is invalid
-  $('#createUserForm').on('submit', function(e) {
-    const phoneInput = document.getElementById('phoneInputCreate');
-    const errorElement = document.getElementById('phoneErrorCreate');
-    if (phoneInput.classList.contains('is-invalid')) {
-      e.preventDefault();
-      errorElement.style.display = 'block';
-      $('#createUserModal').modal('show');
-    }
-  });
-
-  $('#editForm').on('submit', function(e) {
-    const phoneInput = document.getElementById('phoneInputEdit');
-    const errorElement = document.getElementById('phoneErrorEdit');
-    if (phoneInput.classList.contains('is-invalid')) {
-      e.preventDefault();
-      errorElement.style.display = 'block';
-      $('#editUserModal').modal('show');
-    }
-  });
-
-  // Reopen create modal if there are flash messages
-  {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-  {% for category, message in messages %}
-  {% if message == 'Phone number already exists!' %}
-  $(document).ready(function() {
-    $('#createUserModal').modal('show');
-    $('#phoneInputCreate').addClass('is-invalid');
-    $('#phoneErrorCreate').text('{{ message }}');
-    $('#phoneErrorCreate').css('display', 'block');
-  });
-  {% endif %}
-  {% endfor %}
-  {% endif %}
-  {% endwith %}
-
   // AJAX for real-time table updates
   $(document).ready(function() {
     let currentPage = {{ pagination.page|default(1) }};
     let perPage = {{ pagination.per_page|default(7) }};
+    let debounceTimer;
+
+    function debounce(func, delay) {
+      return function() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(func, delay);
+      };
+    }
 
     function updateTable(page) {
       if (page) {
@@ -1037,6 +894,7 @@
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
         data: { search: search, role_id: role_id, sort: sort, page: currentPage, per_page: per_page },
         success: function(data) {
+          // Update table body
           const tbody = $('#userTableBody');
           tbody.empty();
           if (data.users.length === 0) {
@@ -1086,6 +944,7 @@
             });
           }
 
+          // Update pagination
           const pagination = $('#paginationControls');
           pagination.empty();
           let paginationHtml = `
@@ -1173,6 +1032,46 @@
       const page = $(this).data('page');
       window.history.pushState({}, '', `?page=${page}&search=${encodeURIComponent($('#searchInput').val())}&role_id=${$('#roleFilter').val()}&sort=${$('#sortFilter').val()}&per_page=${$('#perPageFilter').val()}`);
       updateTable(page);
+    });
+
+    // Event listener for edit links
+    $(document).on('click', '.edit-link', function(e) {
+      e.preventDefault();
+      const userId = $(this).data('user-id');
+      $.get(`/users/${userId}/json`, function(data) {
+        $('#editForm input[name="username"]').val(data.username);
+        $('#editForm input[name="email"]').val(data.email);
+        $('#editForm input[name="phone_number"]').val(data.phone_number || '');
+        $('#editForm select[name="role_id"]').val(data.role_id || '');
+        $('#editForm select[name="department_id"]').val(data.department_id || '');
+        $('#editForm textarea[name="address"]').val(data.address || '');
+        $('#editForm input[name="password"]').val('');
+
+        const preview = document.getElementById('imagePreviewEdit');
+        preview.innerHTML = data.image_url ? `<img src="${data.image_url}" alt="Profile Picture">` : '';
+        if (data.image_url) {
+          preview.classList.remove('image-preview-placeholder');
+          addRemoveButton('imageInputEdit', 'imagePreviewEdit');
+          $('#removeImageInput').val('0');
+        } else {
+          preview.classList.add('image-preview-placeholder');
+          const removeBtn = preview.parentElement.querySelector('.remove-image-btn');
+          if (removeBtn) removeBtn.remove();
+          $('#removeImageInput').val('0');
+        }
+
+        // Disable role selection if editing the sole Admin
+        if (data.role_name === 'Admin' && {{ total_admins|default(0) }} === 1) {
+          $('#roleSelect').prop('disabled', true);
+        } else {
+          $('#roleSelect').prop('disabled', false);
+        }
+
+        $('#editForm').attr('action', `/users/update/${userId}?page=${currentPage}`);
+        $('#editUserModal').modal('show');
+      }).fail(function() {
+        alert('Error loading user data. Please try again.');
+      });
     });
 
     // Event listener for delete links

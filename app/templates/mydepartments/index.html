@@ -515,9 +515,13 @@
               <input type="password" class="form-control" name="password" required>
             </div>
             <div class="mb-3">
-              <label class="form-label">Phone Number</label>
-              <input type="text" class="form-control" name="phone_number">
-            </div>
+  <label class="form-label">Phone Number</label>
+  <input type="text" class="form-control" name="phone_number" id="phoneInputCreate">
+  <div class="invalid-feedback" id="phoneErrorCreate" style="display:none; color:red;">
+    Phone number already exists.
+  </div>
+</div>
+
             <div class="mb-3">
               <label class="form-label">Role</label>
               <select class="form-select" name="role_id">
@@ -585,9 +589,13 @@
               <input type="password" class="form-control" name="password">
             </div>
             <div class="mb-3">
-              <label class="form-label">Phone Number</label>
-              <input type="text" class="form-control" name="phone_number">
+             <label class="form-label">Phone Number</label>
+             <input type="text" class="form-control" name="phone_number" id="phoneInputEdit">
+             <div class="invalid-feedback" id="phoneErrorEdit" style="display:none; color:red;">
+              Phone number already exists.
             </div>
+          </div>
+
             <div class="mb-3">
               <label class="form-label">Role</label>
               <select class="form-select" name="role_id">
@@ -658,6 +666,47 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
+  function validatePhoneUnique(inputId, errorId, userId=null) {
+  const phoneInput = $(`#${inputId}`);
+  const errorDiv = $(`#${errorId}`);
+
+  phoneInput.on('blur keyup', function() {
+    const phoneNumber = phoneInput.val().trim();
+    if (!phoneNumber) {
+      errorDiv.hide();
+      phoneInput.removeClass('is-invalid');
+      return;
+    }
+
+    $.get('/users/check_phone', { phone_number: phoneNumber, user_id: userId }, function(data) {
+      if (data.exists) {
+        errorDiv.show();
+        phoneInput.addClass('is-invalid');
+      } else {
+        errorDiv.hide();
+        phoneInput.removeClass('is-invalid');
+      }
+    });
+  });
+}
+
+// Apply validation to Create form
+validatePhoneUnique('phoneInputCreate', 'phoneErrorCreate');
+
+// Apply validation to Edit form after modal loads
+$(document).on('shown.bs.modal', '#editUserModal', function() {
+  const userId = $('#editForm').attr('action').match(/update\/(\d+)/)[1];
+  validatePhoneUnique('phoneInputEdit', 'phoneErrorEdit', userId);
+});
+
+// Prevent submission if invalid
+$('#createUserModal form, #editUserModal form').on('submit', function(e) {
+  if ($(this).find('.is-invalid').length > 0) {
+    e.preventDefault();
+    alert('Please fix errors before submitting.');
+  }
+});
+
 $(document).ready(function() {
   let currentPage = {{ pagination.page|default(1) }};
   let perPage = {{ pagination.per_page|default(7) }};

@@ -127,14 +127,14 @@ def get_user(user_id):
         'image_url': user.get_image_url()
     })
 
-@users_bp.route("/check_phone", methods=["POST"])
+@users_bp.route("/check_phone", methods=["GET"])
 @login_required
 def check_phone():
-    if not current_user.has_role('Admin'):
+    if not (current_user.has_role('Admin') or current_user.has_role('Manager')):
         return jsonify({'error': 'Unauthorized'}), 403
 
-    phone_number = request.form.get("phone_number").strip() if request.form.get("phone_number") else None
-    user_id = request.form.get("user_id", type=int)
+    phone_number = request.args.get("phone_number", "").strip()
+    user_id = request.args.get("user_id", type=int)
 
     if not phone_number:
         return jsonify({'exists': False})
@@ -142,7 +142,7 @@ def check_phone():
     query = User.query.filter_by(phone_number=phone_number)
     if user_id:
         query = query.filter(User.id != user_id)
-    
+
     exists = query.first() is not None
     return jsonify({'exists': exists})
 
