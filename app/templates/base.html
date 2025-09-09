@@ -214,7 +214,8 @@
         color: #dc3545;
       }
       @media (min-width: 992px) {
-        .nav-item.dropdown:hover .dropdown-menu {
+        /* Apply hover only to non-notification dropdowns */
+        .nav-item.dropdown:not(.notification-dropdown):hover .dropdown-menu {
           display: block;
           margin-top: 0;
         }
@@ -243,109 +244,211 @@
       .navbar .dropdown-menu .dropdown-item:hover::before {
         width: 100%;
       }
+      .dropdown-menu::-webkit-scrollbar {
+        width: 6px;
+      }
+      .dropdown-menu::-webkit-scrollbar-thumb {
+        background: #bbb;
+        border-radius: 4px;
+      }
+      .dropdown-menu::-webkit-scrollbar-thumb:hover {
+        background: #888;
+      }
     </style>
   </head>
 
   <body>
     <nav class="navbar navbar-expand-lg navbar-custom fixed-top mb-4">
       <div class="container">
-        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('main.dashboard') }}"><img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" width="140" height="80" class="me-2" /></a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
-        <!-- Left/Center Navigation -->
+        <!-- Brand -->
+        <a class="navbar-brand d-flex align-items-center" href="{{ url_for('main.dashboard') }}">
+          <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" width="140" height="80" class="me-2" />
+        </a>
+
+        <!-- Toggler -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+          aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Left / Center Navigation -->
         <ul class="navbar-nav ms-auto align-items-center">
           {% if current_user.is_authenticated %}
-            <!-- Dashboard -->
-            <li class="nav-item">
-              <a class="nav-link text {{ 'active' if request.endpoint == 'main.dashboard' }}" href="{{ url_for('main.dashboard') }}"><strong>Dashboard</strong></a>
-            </li>
+          <!-- Dashboard -->
+          <li class="nav-item">
+            <a class="nav-link text {{ 'active' if request.endpoint == 'main.dashboard' }}"
+              href="{{ url_for('main.dashboard') }}"><strong>Dashboard</strong></a>
+          </li>
 
-            <!-- Administration Dropdown -->
+          <!-- Administration Dropdown -->
+          {% if current_user.has_role('Admin') %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle text {{ 'active' if request.endpoint in ['roles.index', 'permissions.index', 'departments.index', 'users.index'] }}"
+              href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><strong>Administration</strong></a>
+            <ul class="dropdown-menu dropdown-menu-end card-1">
+              {% if current_user.has_role('Admin') %}
+              <li><a class="dropdown-item" href="{{ url_for('roles.index') }}">Roles</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('permissions.index') }}">Permissions</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('departments.index') }}">Departments</a></li>
+              {% endif %}
+              <li><a class="dropdown-item" href="{{ url_for('users.index') }}">Users</a></li>
+            </ul>
+          </li>
+          {% endif %}
+
+          <!-- My Department -->
+          {% if current_user.has_role('Admin') or current_user.has_role('Manager') %}
+          <li class="nav-item">
+            <a class="nav-link text {{ 'active' if request.endpoint == 'mydepartments.index' }}"
+              href="{{ url_for('mydepartments.index') }}"><strong>My Department</strong></a>
+          </li>
+          {% endif %}
+
+          <!-- Contract Dropdown -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle text {{ 'active' if request.endpoint in ['contracts.index', 'contracts.create'] }}"
+              href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><strong>Contract</strong></a>
+            <ul class="dropdown-menu dropdown-menu-end card-1">
+              <li><a class="dropdown-item" href="{{ url_for('contracts.index') }}">List of Contract</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('contracts.create') }}">Request Contract</a></li>
+              <li><a class="dropdown-item" href="#">Report Contract</a></li>
+            </ul>
+          </li>
+
+          <!-- Create Contract Button -->
+          <li class="nav-item">
+            <a class="nav-link {{ 'active' if request.endpoint == 'contracts.create' }}"
+              href="{{ url_for('contracts.create') }}">
+              <button class="button">
+                <span class="button_lg">
+                  <span class="button_sl"></span>
+                  <span class="button_text">Create Contract</span>
+                </span>
+              </button>
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+
+        <!-- Right-side Profile / Auth Links -->
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto align-items-center">
+            {% if current_user.is_authenticated %}
+
+            <!-- 🔔 Notification Dropdown (Visible only to Admins) -->
             {% if current_user.has_role('Admin') %}
-              <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle text {{ 'active' if request.endpoint in ['roles.index', 'permissions.index', 'departments.index', 'users.index'] }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><strong>Administration</strong></a>
-                <ul class="dropdown-menu dropdown-menu-end card-1">
-                  {% if current_user.has_role('Admin') %}
-                    <li>
-                      <a class="dropdown-item" href="{{ url_for('roles.index') }}">Roles</a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item" href="{{ url_for('permissions.index') }}">Permissions</a>
-                    </li>
-                    <li>
-                      <a class="dropdown-item" href="{{ url_for('departments.index') }}">Departments</a>
-                    </li>
-                  {% endif %}
-                  <li>
-                    <a class="dropdown-item" href="{{ url_for('users.index') }}">Users</a>
-                  </li>
-                </ul>
-              </li>
+            <li class="nav-item dropdown notification-dropdown me-3">
+              <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-bell fs-4"></i>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                  6
+                  <span class="visually-hidden">unread notifications</span>
+                </span>
+              </a>
+
+              <div class="dropdown-menu dropdown-menu-end card-1 p-0"
+                style="width: 360px; max-height: 420px; overflow-y: auto; overflow-x: hidden;">
+                
+                <!-- Notification Items -->
+                <a href="#" class="dropdown-item d-flex align-items-start gap-3 py-3 border-bottom">
+                  <img src="{{ url_for('static', filename='img/chhea.jpg') }}" 
+                       class="rounded-circle flex-shrink-0" width="45" height="45">
+                  <div class="text-wrap flex-grow-1" style="white-space: normal;">
+                    <strong>John Doe</strong>
+                    <div class="small text-muted">Lorem ipsum dolor sit amet, consectetur adipisicing elit…</div>
+                  </div>
+                </a>
+
+                <a href="#" class="dropdown-item d-flex align-items-start gap-3 py-3 border-bottom">
+                  <img src="{{ url_for('static', filename='img/chhea.jpg') }}" 
+                       class="rounded-circle flex-shrink-0" width="45" height="45">
+                  <div class="text-wrap flex-grow-1" style="white-space: normal;">
+                    <strong>Lea R. Frith</strong>
+                    <div class="small text-muted">Nemo enim ipsam voluptatem quia voluptas sit aspernatur…</div>
+                  </div>
+                </a>
+
+                <a href="#" class="dropdown-item d-flex align-items-start gap-3 py-3 border-bottom">
+                  <img src="{{ url_for('static', filename='img/chhea.jpg') }}" 
+                       class="rounded-circle flex-shrink-0" width="45" height="45">
+                  <div class="text-wrap flex-grow-1" style="white-space: normal;">
+                    <strong>Erik L. Richards</strong>
+                    <div class="small text-muted">Ut enim ad minima veniam, quis nostrum exercitationem ullam…</div>
+                  </div>
+                </a>
+
+                <a href="#" class="dropdown-item d-flex align-items-start gap-3 py-3 border-bottom">
+                  <img src="{{ url_for('static', filename='img/chhea.jpg') }}" 
+                       class="rounded-circle flex-shrink-0" width="45" height="45">
+                  <div class="text-wrap flex-grow-1" style="white-space: normal;">
+                    <strong>Jane Doe</strong>
+                    <div class="small text-muted">Quis autem vel eum iure reprehenderit qui in ea voluptate velit…</div>
+                  </div>
+                </a>
+
+                <a href="#" class="dropdown-item d-flex align-items-start gap-3 py-3 border-bottom">
+                  <img src="{{ url_for('static', filename='img/chhea.jpg') }}" 
+                       class="rounded-circle flex-shrink-0" width="45" height="45">
+                  <div class="text-wrap flex-grow-1" style="white-space: normal;">
+                    <strong>Michael S.</strong>
+                    <div class="small text-muted">Vel illum qui dolorem eum fugiat quo voluptas nulla pariatur…</div>
+                  </div>
+                </a>
+
+                <a href="#" class="dropdown-item d-flex align-items-start gap-3 py-3 border-bottom">
+                  <img src="{{ url_for('static', filename='img/chhea.jpg') }}" 
+                       class="rounded-circle flex-shrink-0" width="45" height="45">
+                  <div class="text-wrap flex-grow-1" style="white-space: normal;">
+                    <strong>Sophia T.</strong>
+                    <div class="small text-muted">Excepteur sint occaecat cupidatat non proident…</div>
+                  </div>
+                </a>
+
+                <!-- Extra (scrollable) -->
+                <a href="#" class="dropdown-item d-flex align-items-start gap-3 py-3">
+                  <img src="{{ url_for('static', filename='img/chhea.jpg') }}" 
+                       class="rounded-circle flex-shrink-0" width="45" height="45">
+                  <div class="text-wrap flex-grow-1" style="white-space: normal;">
+                    <strong>Extra User</strong>
+                    <div class="small text-muted">This one appears only when scrolling down…</div>
+                  </div>
+                </a>
+              </div>
+            </li>
             {% endif %}
-            <!-- My Department Link (Restricted to Admin and Manager) -->
-            {% if current_user.has_role('Admin') or current_user.has_role('Manager') %}
-              <li class="nav-item">
-                <a class="nav-link text {{ 'active' if request.endpoint == 'mydepartments.index' }}" href="{{ url_for('mydepartments.index') }}"><strong>My Department</strong></a>
-              </li>
-            {% endif %}
-            <!-- Contract Dropdown -->
-            <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle text {{ 'active' if request.endpoint in ['contracts.index', 'contracts.create'] }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><strong>Contract</strong></a>
+
+            <!-- 👤 Profile Dropdown -->
+            <li class="nav-item dropdown profile-dropdown">
+              <a class="nav-link dropdown-toggle text {{ 'active' if request.endpoint == 'users.profile' }}" href="#"
+                role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <img src="{{ current_user.get_image_url()|default('https://via.placeholder.com/45') }}" 
+                     alt="Profile" class="circle" width="55" height="55" />
+                <span class="d-none d-lg-inline"><strong>{{ current_user.username|default('N/A') }}</strong></span>
+              </a>
               <ul class="dropdown-menu dropdown-menu-end card-1">
                 <li>
-                  <a class="dropdown-item" href="{{ url_for('contracts.index') }}">List of Contract</a>
+                  <a class="dropdown-item" href="{{ url_for('users.profile', user_id=current_user.id|default(0)) }}">
+                    <img src="{{ current_user.get_image_url()|default('https://via.placeholder.com/20') }}" 
+                         alt="Profile" class="circle" /> View Profile
+                  </a>
                 </li>
                 <li>
-                  <a class="dropdown-item" href="{{ url_for('contracts.create') }}">Request Contract</a>
-                </li>
-                <li>
-                  <a class="dropdown-item" href="#">Report Contract</a>
+                  <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#logoutModal">
+                    <i class="bi bi-box-arrow-right me-2"></i> Logout
+                  </a>
                 </li>
               </ul>
             </li>
-
-            <!-- Create Contract Button -->
-            <li class="nav-item">
-              <a class="nav-link {{ 'active' if request.endpoint == 'contracts.create' }}" href="{{ url_for('contracts.create') }}">
-                <button class="button">
-                  <span class="button_lg">
-                    <span class="button_sl"></span>
-                    <span class="button_text">Create Contract</span>
-                  </span>
-                </button>
-              </a>
-            </li>
-          {% endif %}
-        </ul>
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <!-- Right-side Profile / Auth Links -->
-          <ul class="navbar-nav ms-auto align-items-center">
-            {% if current_user.is_authenticated %}
-              <!-- Profile Dropdown -->
-              <li class="nav-item dropdown profile-dropdown">
-                <a class="nav-link dropdown-toggle text {{ 'active' if request.endpoint == 'users.profile' }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                  <img src="{{ current_user.get_image_url()|default('https://via.placeholder.com/45') }}" alt="Profile" class="circle" width="55" height="55" />
-                  <span class="d-none d-lg-inline"><strong>{{ current_user.username|default('N/A') }}</strong></span>
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end card-1">
-                  <li>
-                    <a class="dropdown-item" href="{{ url_for('users.profile', user_id=current_user.id|default(0)) }}">
-                      <img src="{{ current_user.get_image_url()|default('https://via.placeholder.com/20') }}" alt="Profile" class="circle" />
-                      View Profile
-                    </a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#logoutModal"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
-                  </li>
-                </ul>
-              </li>
             {% else %}
-              <!-- Login and Register Links -->
-              <li class="nav-item">
-                <a class="nav-link text {{ 'active' if request.endpoint == 'auth.login' }}" href="{{ url_for('auth.login') }}"><i class="bi bi-box-arrow-in-right"></i> Login</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link text {{ 'active' if request.endpoint == 'auth.register' }}" href="{{ url_for('auth.register') }}"><i class="bi bi-person-plus"></i> Register</a>
-              </li>
+            <!-- Login / Register -->
+            <li class="nav-item">
+              <a class="nav-link text {{ 'active' if request.endpoint == 'auth.login' }}"
+                href="{{ url_for('auth.login') }}"><i class="bi bi-box-arrow-in-right"></i> Login</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link text {{ 'active' if request.endpoint == 'auth.register' }}"
+                href="{{ url_for('auth.register') }}"><i class="bi bi-person-plus"></i> Register</a>
+            </li>
             {% endif %}
           </ul>
         </div>
