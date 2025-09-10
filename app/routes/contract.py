@@ -213,7 +213,6 @@ def index():
             is_admin=current_user.has_role('admin')
         )
 
-    
 # Create contract
 @contracts_bp.route('/create', methods=['GET', 'POST'])
 @login_required
@@ -263,6 +262,13 @@ def create():
             payment_gross = f"${total_gross:.2f} USD"
             payment_net = f"${total_net:.2f} USD"
 
+            # Handle focal person selection
+            focal_person_select = request.form.get('focal_person_a_select', '').strip()
+            focal_person_a_name = request.form.get('focal_person_a_name', '').strip()
+            focal_person_a_position = request.form.get('focal_person_a_position', '').strip()
+            focal_person_a_phone = request.form.get('focal_person_a_phone', '').strip()
+            focal_person_a_email = request.form.get('focal_person_a_email', '').strip()
+
             # Collect form data
             form_data = {
                 'project_title': request.form.get('project_title', '').strip(),
@@ -278,10 +284,11 @@ def create():
                 'party_b_phone': request.form.get('party_b_phone', '').strip(),
                 'party_b_email': request.form.get('party_b_email', '').strip(),
                 'party_b_address': request.form.get('party_b_address', '').strip(),
-                'focal_person_a_name': request.form.get('focal_person_a_name', '').strip(),
-                'focal_person_a_position': request.form.get('focal_person_a_position', '').strip(),
-                'focal_person_a_phone': request.form.get('focal_person_a_phone', '').strip(),
-                'focal_person_a_email': request.form.get('focal_person_a_email', '').strip(),
+                'focal_person_a_select': focal_person_select,
+                'focal_person_a_name': focal_person_a_name,
+                'focal_person_a_position': focal_person_a_position,
+                'focal_person_a_phone': focal_person_a_phone,
+                'focal_person_a_email': focal_person_a_email,
                 'agreement_start_date': request.form.get('agreement_start_date', '').strip(),
                 'agreement_end_date': request.form.get('agreement_end_date', '').strip(),
                 'total_fee_usd': total_fee_usd,
@@ -309,7 +316,8 @@ def create():
                 ('party_b_signature_name', 'Party B signature name is required.'),
                 ('agreement_start_date', 'Agreement start date is required.'),
                 ('agreement_end_date', 'Agreement end date is required.'),
-                ('total_fee_usd', 'Total fee USD is required.')
+                ('total_fee_usd', 'Total fee USD is required.'),
+                ('focal_person_a_name', 'Focal person name is required.')
             ]
             for field, message in required_fields:
                 if not form_data[field]:
@@ -444,6 +452,7 @@ def update(contract_id):
 
     if request.method == 'POST':
         try:
+            # Process custom articles
             articles = [
                 {'article_number': num.strip(), 'custom_sentence': sent.strip()}
                 for num, sent in zip(request.form.getlist('articleNumber[]'), request.form.getlist('customSentence[]'))
@@ -451,6 +460,7 @@ def update(contract_id):
             ]
             custom_article_sentences = {str(article['article_number']): article['custom_sentence'] for article in articles}
 
+            # Process payment installments
             payment_installments = [
                 {
                     'description': desc.strip(),
@@ -470,6 +480,7 @@ def update(contract_id):
 
             deliverables = '; '.join([inst['deliverables'] for inst in payment_installments])
 
+            # Extract and validate total_fee_usd and tax_percentage
             total_fee_usd = float(request.form.get('total_fee_usd', '0.0').strip() or 0.0)
             tax_percentage = float(request.form.get('tax_percentage', '15.0').strip() or 15.0)
             gross_amount_usd = total_fee_usd
@@ -477,6 +488,14 @@ def update(contract_id):
             payment_gross = f"${total_gross:.2f} USD"
             payment_net = f"${total_net:.2f} USD"
 
+            # Handle focal person selection
+            focal_person_select = request.form.get('focal_person_a_select', '').strip()
+            focal_person_a_name = request.form.get('focal_person_a_name', '').strip()
+            focal_person_a_position = request.form.get('focal_person_a_position', '').strip()
+            focal_person_a_phone = request.form.get('focal_person_a_phone', '').strip()
+            focal_person_a_email = request.form.get('focal_person_a_email', '').strip()
+
+            # Collect form data
             form_data = {
                 'id': contract_id,
                 'project_title': request.form.get('project_title', '').strip(),
@@ -492,10 +511,11 @@ def update(contract_id):
                 'party_b_phone': request.form.get('party_b_phone', '').strip(),
                 'party_b_email': request.form.get('party_b_email', '').strip(),
                 'party_b_address': request.form.get('party_b_address', '').strip(),
-                'focal_person_a_name': request.form.get('focal_person_a_name', '').strip(),
-                'focal_person_a_position': request.form.get('focal_person_a_position', '').strip(),
-                'focal_person_a_phone': request.form.get('focal_person_a_phone', '').strip(),
-                'focal_person_a_email': request.form.get('focal_person_a_email', '').strip(),
+                'focal_person_a_select': focal_person_select,
+                'focal_person_a_name': focal_person_a_name,
+                'focal_person_a_position': focal_person_a_position,
+                'focal_person_a_phone': focal_person_a_phone,
+                'focal_person_a_email': focal_person_a_email,
                 'agreement_start_date': request.form.get('agreement_start_date', '').strip(),
                 'agreement_end_date': request.form.get('agreement_end_date', '').strip(),
                 'total_fee_usd': total_fee_usd,
@@ -511,6 +531,7 @@ def update(contract_id):
                 'deliverables': deliverables
             }
 
+            # Validate required fields
             required_fields = [
                 ('project_title', 'Project title is required.'),
                 ('contract_number', 'Contract number is required.'),
@@ -522,13 +543,15 @@ def update(contract_id):
                 ('party_b_signature_name', 'Party B signature name is required.'),
                 ('agreement_start_date', 'Agreement start date is required.'),
                 ('agreement_end_date', 'Agreement end date is required.'),
-                ('total_fee_usd', 'Total fee USD is required.')
+                ('total_fee_usd', 'Total fee USD is required.'),
+                ('focal_person_a_name', 'Focal person name is required.')
             ]
             for field, message in required_fields:
                 if not form_data[field]:
                     flash(message, 'danger')
                     return render_template('contracts/update.html', form_data=form_data)
 
+            # Validate contract number format
             if not re.match(r"NGOF/\d{4}-\d{3}", form_data['contract_number']):
                 flash('Contract number must follow the format NGOF/YYYY-NNN (e.g., NGOF/2025-005).', 'danger')
                 return render_template('contracts/update.html', form_data=form_data)
@@ -545,6 +568,7 @@ def update(contract_id):
                 flash('Contract number already exists for your account.', 'danger')
                 return render_template('contracts/update.html', form_data=form_data)
 
+            # Validate dates
             start_date = form_data['agreement_start_date']
             end_date = form_data['agreement_end_date']
             if start_date and end_date:
@@ -556,6 +580,7 @@ def update(contract_id):
                     flash('Invalid date format for agreement start or end date.', 'danger')
                     return render_template('contracts/update.html', form_data=form_data)
 
+            # Validate total_fee_usd
             try:
                 if total_fee_usd < 0:
                     flash('Total fee USD cannot be negative.', 'danger')
@@ -564,6 +589,7 @@ def update(contract_id):
                 flash('Total fee USD must be a valid number.', 'danger')
                 return render_template('contracts/update.html', form_data=form_data)
 
+            # Validate tax_percentage
             try:
                 if tax_percentage not in [0, 5, 10, 15, 20]:
                     flash('Tax percentage must be one of 0, 5, 10, 15, or 20.', 'danger')
@@ -572,6 +598,7 @@ def update(contract_id):
                 flash('Tax percentage must be a valid number.', 'danger')
                 return render_template('contracts/update.html', form_data=form_data)
 
+            # Validate payment installment percentages
             total_percentage = 0.0
             for installment in form_data['payment_installments']:
                 match = re.search(r'\((\d+\.?\d*)\%\)', installment['description'])
@@ -594,6 +621,7 @@ def update(contract_id):
                 flash('Total percentage of payment installments must equal 100%.', 'danger')
                 return render_template('contracts/update.html', form_data=form_data)
 
+            # Update contract
             contract.project_title = form_data['project_title']
             contract.contract_number = form_data['contract_number']
             contract.organization_name = form_data['organization_name']
@@ -636,6 +664,7 @@ def update(contract_id):
             flash("An error occurred while updating the contract.", 'danger')
             return render_template('contracts/update.html', form_data=form_data)
 
+    # Prepare form_data for GET request
     form_data = contract.to_dict()
     if 'custom_article_sentences' not in form_data or form_data['custom_article_sentences'] is None:
         form_data['custom_article_sentences'] = []

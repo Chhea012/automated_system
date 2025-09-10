@@ -4,7 +4,7 @@
 <!-- Add Bootstrap Icons CDN for the calendar icon -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-<!-- Custom CSS for date input styling -->
+<!-- Custom CSS for date input styling and focal person fields -->
 <style>
     input[type="date"] {
         position: relative;
@@ -29,6 +29,12 @@
     input[type="date"]:focus {
         outline: 2px solid #0d6efd;
         outline-offset: 2px;
+    }
+    .focal-person-field {
+        transition: background-color 0.3s;
+    }
+    .focal-person-field[readonly] {
+        background-color: #e9ecef;
     }
 </style>
 
@@ -107,7 +113,7 @@
                 </div>
                 <div class="col-md-6">
                     <label for="party_b_position" class="form-label">Party B Position</label>
-                    <input type="text" class="form-control" id="party_b_position" name="party_b_position" value="{{ form_data.party_b_position | default('Freelance Consultant') }}">
+                    <input type="text" class="form-control" id="party_b_position" name="party_b_position" value="{{ form_data.party_b_position | default('Freelance Consultant') }}" placeholder="e.g., Freelance Consultant">
                 </div>
                 <div class="col-md-6">
                     <label for="party_b_phone" class="form-label">Party B Phone</label>
@@ -121,21 +127,34 @@
                     <label for="party_b_address" class="form-label">Party B Address</label>
                     <textarea class="form-control" id="party_b_address" name="party_b_address" rows="3" placeholder="e.g., # F22 st. 113 Trapaeng Krosang, Porsenchey, Phnom Penh">{{ form_data.party_b_address | default('') }}</textarea>
                 </div>
+                <!-- Focal Person Selection -->
                 <div class="col-md-6">
-                    <label for="focal_person_a_name" class="form-label">Focal Person A Name</label>
-                    <input type="text" class="form-control" id="focal_person_a_name" name="focal_person_a_name" value="{{ form_data.focal_person_a_name | default('') }}" placeholder="e.g., Mr. Mar Sophal">
+                    <label for="focal_person_a_select" class="form-label">Focal Person</label>
+                    <select class="form-select" id="focal_person_a_select" name="focal_person_a_select" required>
+                        <option value="" {{ 'selected' if not form_data.focal_person_a_name }} disabled>Select Focal Person</option>
+                        <option value="Mr. Mar Sophal" {{ 'selected' if form_data.focal_person_a_name == 'Mr. Mar Sophal' }}>Mr. Mar Sophal</option>
+                        <option value="Ms. Oum Somaly" {{ 'selected' if form_data.focal_person_a_name == 'Ms. Oum Somaly' }}>Ms. Oum Somaly</option>
+                        <option value="Custom" {{ 'selected' if form_data.focal_person_a_name and form_data.focal_person_a_name not in ['Mr. Mar Sophal', 'Ms. Oum Somaly'] }}>Custom</option>
+                    </select>
+                    <div class="invalid-feedback">Please select a focal person.</div>
                 </div>
                 <div class="col-md-6">
-                    <label for="focal_person_a_position" class="form-label">Focal Person A Position</label>
-                    <input type="text" class="form-control" id="focal_person_a_position" name="focal_person_a_position" value="{{ form_data.focal_person_a_position | default('') }}" placeholder="e.g., PALI Program Manager">
+                    <label for="focal_person_a_name" class="form-label">Focal Person Name</label>
+                    <input type="text" class="form-control focal-person-field" id="focal_person_a_name" name="focal_person_a_name" value="{{ form_data.focal_person_a_name | default('') }}" placeholder="e.g., Mr. Mar Sophal" required>
+                    <div class="invalid-feedback">Please enter the focal person name.</div>
                 </div>
                 <div class="col-md-6">
-                    <label for="focal_person_a_phone" class="form-label">Focal Person A Phone</label>
-                    <input type="tel" class="form-control" id="focal_person_a_phone" name="focal_person_a_phone" value="{{ form_data.focal_person_a_phone | default('') }}" placeholder="e.g., 012 845 091">
+                    <label for="focal_person_a_position" class="form-label">Focal Person Position</label>
+                    <input type="text" class="form-control focal-person-field" id="focal_person_a_position" name="focal_person_a_position" value="{{ form_data.focal_person_a_position | default('') }}" placeholder="e.g., PALI Program Manager">
+                    <div class="invalid-feedback">Please enter the focal person position.</div>
                 </div>
                 <div class="col-md-6">
-                    <label for="focal_person_a_email" class="form-label">Focal Person A Email</label>
-                    <input type="email" class="form-control" id="focal_person_a_email" name="focal_person_a_email" value="{{ form_data.focal_person_a_email | default('') }}" placeholder="e.g., sophal@ngoforum.org.kh">
+                    <label for="focal_person_a_phone" class="form-label">Focal Person Phone</label>
+                    <input type="tel" class="form-control focal-person-field" id="focal_person_a_phone" name="focal_person_a_phone" value="{{ form_data.focal_person_a_phone | default('') }}" placeholder="e.g., 012 845 091">
+                </div>
+                <div class="col-md-6">
+                    <label for="focal_person_a_email" class="form-label">Focal Person Email</label>
+                    <input type="email" class="form-control focal-person-field" id="focal_person_a_email" name="focal_person_a_email" value="{{ form_data.focal_person_a_email | default('') }}" placeholder="e.g., sophal@ngoforum.org.kh">
                 </div>
             </div>
 
@@ -285,8 +304,27 @@
     </div>
 </div>
 
-<!-- JavaScript for Dynamic Fields, Form Validation, Number-to-Words Conversion, and Date Picker -->
+<!-- JavaScript for Dynamic Fields, Form Validation, Number-to-Words Conversion, Date Picker, and Focal Person -->
 <script>
+    // Focal Person Data
+    const focalPersons = {
+        "Mr. Mar Sophal": {
+            position: "PALI Program Manager",
+            phone: "012 845 091",
+            email: "sophal@ngoforum.org.kh"
+        },
+        "Ms. Oum Somaly": {
+            position: "SACHAS Program Manager",
+            phone: "081 647 963",
+            email: "somaly@ngoforum.org.kh"
+        },
+        "Custom": {
+            position: "",
+            phone: "",
+            email: ""
+        }
+    };
+
     // Number-to-Words Conversion Function
     function numberToWords(num) {
         if (!num || isNaN(num) || num < 0) return '';
@@ -354,6 +392,50 @@
         const partyBSignatureNameConfirm = document.getElementById('party_b_signature_name_confirm');
         partyBSignatureNameConfirm.value = partyBSignatureName;
     });
+
+    // Handle Focal Person Selection
+    function handleFocalPersonSelection() {
+        const select = document.getElementById('focal_person_a_select');
+        const nameInput = document.getElementById('focal_person_a_name');
+        const positionInput = document.getElementById('focal_person_a_position');
+        const phoneInput = document.getElementById('focal_person_a_phone');
+        const emailInput = document.getElementById('focal_person_a_email');
+
+        // Update fields based on selection
+        function updateFields() {
+            const selectedPerson = select.value;
+            const data = focalPersons[selectedPerson] || focalPersons["Custom"];
+            nameInput.value = selectedPerson !== "Custom" ? selectedPerson : nameInput.value;
+            positionInput.value = data.position;
+            phoneInput.value = data.phone;
+            emailInput.value = data.email;
+
+            // Toggle readonly state and styling
+            const fields = [nameInput, positionInput, phoneInput, emailInput];
+            fields.forEach(field => {
+                if (selectedPerson !== "Custom") {
+                    field.setAttribute('readonly', 'readonly');
+                    field.classList.add('focal-person-field');
+                } else {
+                    field.removeAttribute('readonly');
+                    field.classList.remove('focal-person-field');
+                }
+            });
+        }
+
+        // Initialize fields based on current selection
+        updateFields();
+
+        // Update fields when selection changes
+        select.addEventListener('change', updateFields);
+
+        // Allow editing when Custom is selected
+        nameInput.addEventListener('input', function () {
+            if (select.value === "Custom") {
+                select.value = "Custom"; // Ensure Custom remains selected
+            }
+        });
+    }
 
     // Bootstrap Form Validation
     (function () {
@@ -541,7 +623,7 @@
         container.appendChild(newArticle);
     }
 
-    // Initialize Date Pickers, Remove Buttons, and total_fee_words
+    // Initialize Date Pickers, Remove Buttons, total_fee_words, and Focal Person
     document.addEventListener('DOMContentLoaded', function () {
         // Initialize date pickers
         const dateInputs = document.querySelectorAll('input[type="date"]');
@@ -589,6 +671,9 @@
         if (partyBSignatureName) {
             document.getElementById('party_b_signature_name_confirm').value = partyBSignatureName;
         }
+
+        // Initialize focal person selection
+        handleFocalPersonSelection();
 
         // Initialize percentages
         assignPercentages();
