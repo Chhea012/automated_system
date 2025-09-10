@@ -180,9 +180,15 @@
                             <div class="col-12">
                                 <label class="form-label">Installment Description</label>
                                 <div class="input-group">
-                                    <input type="text" class="form-control" name="paymentInstallmentDesc[]" value="{{ installment.description | default('') }}" placeholder="e.g., Installment #1 (40%)" pattern=".*\(\d+\.?\d*%\)$" title="Please include a percentage, e.g., Installment #1 (50%)" required>
+                                    <input type="text" class="form-control installment-desc" name="paymentInstallmentDesc[]" value="{{ installment.description | default('') }}" placeholder="e.g., Installment #1 (40%)" readonly>
+                                    <select class="form-select installment-percentage" name="paymentInstallmentPercentage[]" required>
+                                        <option value="" disabled {{ 'selected' if not installment.description }}>Select Percentage</option>
+                                        {% for percentage in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] %}
+                                        <option value="{{ percentage }}" {{ 'selected' if installment.description and percentage | string in installment.description }}>{{ percentage }}%</option>
+                                        {% endfor %}
+                                    </select>
                                     <button type="button" class="btn btn-danger btn-remove-installment {{ 'd-none' if loop.first and loop.length == 1 else '' }}">Remove</button>
-                                    <div class="invalid-feedback">Please include a percentage, e.g., Installment #1 (50%).</div>
+                                    <div class="invalid-feedback">Please select a percentage.</div>
                                 </div>
                             </div>
                             <div class="col-12">
@@ -221,7 +227,7 @@
                         <label class="form-label">Article Number</label>
                         <select class="form-select" name="articleNumber[]">
                             {% for i in range(1, 17) %}
-                            <option value="{{ i }}">{{ i }}</option>
+                            <option value="{{ i }}">ARTICLE {{ i }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -239,7 +245,7 @@
                         <label class="form-label">Article Number</label>
                         <select class="form-select" name="articleNumber[]">
                             {% for i in range(1, 17) %}
-                            <option value="{{ i }}" {{ 'selected' if article.article_number == i | string else '' }}>{{ i }}</option>
+                            <option value="{{ i }}" {{ 'selected' if article.article_number == i | string else '' }}>ARTICLE {{ i }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -358,9 +364,90 @@
                 event.preventDefault();
                 event.stopPropagation();
             }
+            // Validate total percentage
+            const percentages = Array.from(document.querySelectorAll('.installment-percentage')).map(select => parseFloat(select.value) || 0);
+            const totalPercentage = percentages.reduce((sum, val) => sum + val, 0);
+            if (totalPercentage !== 100) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Total percentage of payment installments must equal 100%.');
+            }
             form.classList.add('was-validated');
         }, false);
     })();
+
+    // Update Installment Descriptions
+    function updateInstallmentDescriptions() {
+        const containers = document.querySelectorAll('.installment-container');
+        containers.forEach((container, index) => {
+            const select = container.querySelector('.installment-percentage');
+            const descInput = container.querySelector('.installment-desc');
+            const percentage = select.value ? `${select.value}%` : '';
+            descInput.value = `Installment #${index + 1} (${percentage})`;
+        });
+    }
+
+    // Auto-assign Percentages
+    function assignPercentages() {
+        const containers = document.querySelectorAll('.installment-container');
+        const count = containers.length;
+        const availablePercentages = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+        let percentages = [];
+
+        // Try to preserve existing percentages if they sum to 100
+        let currentPercentages = Array.from(containers).map(container => {
+            const select = container.querySelector('.installment-percentage');
+            return parseFloat(select.value) || 0;
+        });
+        const currentTotal = currentPercentages.reduce((sum, val) => sum + val, 0);
+
+        if (currentTotal === 100 && currentPercentages.every(p => availablePercentages.includes(p))) {
+            percentages = currentPercentages;
+        } else {
+            // Calculate base percentage and distribute remainder
+            const base = Math.floor(100 / count);
+            percentages = Array(count).fill(base);
+            const remainder = 100 - base * count;
+            for (let i = 0; i < remainder; i++) {
+                percentages[i]++;
+            }
+
+            // Adjust to nearest available percentage
+            percentages = percentages.map(p => {
+                return availablePercentages.reduce((prev, curr) =>
+                    Math.abs(curr - p) < Math.abs(prev - p) ? curr : prev
+                );
+            });
+
+            // Ensure total is exactly 100 by adjusting the last percentage if needed
+            let total = percentages.reduce((sum, val) => sum + val, 0);
+            if (total !== 100) {
+                const diff = 100 - total;
+                const lastIndex = percentages.length - 1;
+                const newLast = percentages[lastIndex] + diff;
+                // Find closest available percentage for the adjusted last value
+                percentages[lastIndex] = availablePercentages.reduce((prev, curr) =>
+                    Math.abs(curr - newLast) < Math.abs(prev - newLast) ? curr : prev
+                );
+                // Recalculate total to ensure it's 100
+                total = percentages.reduce((sum, val) => sum + val, 0);
+                if (total !== 100) {
+                    // If still not 100, adjust first percentage
+                    percentages[0] += 100 - total;
+                    percentages[0] = availablePercentages.reduce((prev, curr) =>
+                        Math.abs(curr - percentages[0]) < Math.abs(prev - percentages[0]) ? curr : prev
+                    );
+                }
+            }
+        }
+
+        containers.forEach((container, index) => {
+            const select = container.querySelector('.installment-percentage');
+            select.value = percentages[index] || availablePercentages[0];
+        });
+
+        updateInstallmentDescriptions();
+    }
 
     // Add Installment Field
     function addInstallmentField() {
@@ -375,6 +462,7 @@
         newInstallment.querySelector('input[name="paymentInstallmentDesc[]"]').value = '';
         newInstallment.querySelector('textarea[name="paymentInstallmentDeliverables[]"]').value = '';
         newInstallment.querySelector('input[name="paymentInstallmentDueDate[]"]').value = '';
+        newInstallment.querySelector('select[name="paymentInstallmentPercentage[]"]').value = '';
 
         // Update IDs for textarea and date input
         newInstallment.querySelector('textarea').id = `paymentInstallmentDeliverables${timestamp}`;
@@ -391,7 +479,11 @@
         removeButton.addEventListener('click', function () {
             newInstallment.remove();
             updateRemoveButtons();
+            assignPercentages();
         });
+
+        // Add event listener to percentage select
+        newInstallment.querySelector('.installment-percentage').addEventListener('change', updateInstallmentDescriptions);
 
         // Add event listener to calendar icon
         const dateInput = newInstallment.querySelector('input[type="date"]');
@@ -407,8 +499,9 @@
         // Append new field
         container.appendChild(newInstallment);
 
-        // Update Remove buttons
+        // Update Remove buttons and assign percentages
         updateRemoveButtons();
+        assignPercentages();
     }
 
     // Update Remove Buttons for Installments
@@ -476,7 +569,13 @@
             button.addEventListener('click', function () {
                 button.closest('.installment-container').remove();
                 updateRemoveButtons();
+                assignPercentages();
             });
+        });
+
+        // Initialize percentage selects
+        document.querySelectorAll('.installment-percentage').forEach(select => {
+            select.addEventListener('change', updateInstallmentDescriptions);
         });
 
         // Initialize total_fee_words if total_fee_usd has a value
@@ -490,6 +589,9 @@
         if (partyBSignatureName) {
             document.getElementById('party_b_signature_name_confirm').value = partyBSignatureName;
         }
+
+        // Initialize percentages
+        assignPercentages();
     });
 </script>
 {% endblock %}
