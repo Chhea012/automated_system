@@ -213,7 +213,6 @@ def index():
             is_admin=current_user.has_role('admin')
         )
 
-    
 # Create contract
 @contracts_bp.route('/create', methods=['GET', 'POST'])
 @login_required
@@ -255,6 +254,26 @@ def create():
 
             deliverables = '; '.join([inst['deliverables'] for inst in payment_installments])
 
+            # Process focal persons
+            focal_person_info = [
+                {
+                    'name': name.strip(),
+                    'position': pos.strip(),
+                    'phone': phone.strip(),
+                    'email': email.strip()
+                }
+                for name, pos, phone, email in zip(
+                    request.form.getlist('focal_person_name[]'),
+                    request.form.getlist('focal_person_position[]'),
+                    request.form.getlist('focal_person_phone[]'),
+                    request.form.getlist('focal_person_email[]')
+                )
+                if name.strip() and pos.strip() and phone.strip() and email.strip()
+            ]
+            if not focal_person_info:
+                flash('At least one focal person is required.', 'danger')
+                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
+
             # Extract and validate total_fee_usd and tax_percentage
             total_fee_usd = float(request.form.get('total_fee_usd', '0.0').strip() or 0.0)
             tax_percentage = float(request.form.get('tax_percentage', '15.0').strip() or 15.0)
@@ -278,10 +297,6 @@ def create():
                 'party_b_phone': request.form.get('party_b_phone', '').strip(),
                 'party_b_email': request.form.get('party_b_email', '').strip(),
                 'party_b_address': request.form.get('party_b_address', '').strip(),
-                'focal_person_a_name': request.form.get('focal_person_a_name', '').strip(),
-                'focal_person_a_position': request.form.get('focal_person_a_position', '').strip(),
-                'focal_person_a_phone': request.form.get('focal_person_a_phone', '').strip(),
-                'focal_person_a_email': request.form.get('focal_person_a_email', '').strip(),
                 'agreement_start_date': request.form.get('agreement_start_date', '').strip(),
                 'agreement_end_date': request.form.get('agreement_end_date', '').strip(),
                 'total_fee_usd': total_fee_usd,
@@ -294,7 +309,8 @@ def create():
                 'custom_article_sentences': custom_article_sentences,
                 'party_b_signature_name': request.form.get('party_b_signature_name', '').strip(),
                 'title': request.form.get('title', '').strip(),
-                'deliverables': deliverables
+                'deliverables': deliverables,
+                'focal_person_info': focal_person_info
             }
 
             # Validate required fields
@@ -379,6 +395,21 @@ def create():
                 flash('Total percentage of payment installments must equal 100%.', 'danger')
                 return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
 
+            # Validate focal person info
+            for person in focal_person_info:
+                if not re.match(r'^[a-zA-Z\s\.]+$', person['name']):
+                    flash(f"Invalid focal person name: {person['name']}. Only letters, spaces, and periods are allowed.", 'danger')
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
+                if not re.match(r'^[a-zA-Z\s]+$', person['position']):
+                    flash(f"Invalid focal person position: {person['position']}. Only letters and spaces are allowed.", 'danger')
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
+                if not re.match(r'^\+?\d{1,4}([-.\s]?\d{1,4}){2,3}$', person['phone']):
+                    flash(f"Invalid focal person phone: {person['phone']}. Use format like 012 845 091, +855 12 845 091, or +85512845091.", 'danger')
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
+                if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', person['email']):
+                    flash(f"Invalid focal person email: {person['email']}.", 'danger')
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number)
+
             # Create new contract
             contract = Contract(
                 id=str(uuid.uuid4()),
@@ -403,10 +434,7 @@ def create():
                 payment_gross=form_data['payment_gross'],
                 payment_net=form_data['payment_net'],
                 workshop_description=form_data['workshop_description'],
-                focal_person_a_name=form_data['focal_person_a_name'],
-                focal_person_a_position=form_data['focal_person_a_position'],
-                focal_person_a_phone=form_data['focal_person_a_phone'],
-                focal_person_a_email=form_data['focal_person_a_email'],
+                focal_person_info=form_data['focal_person_info'],
                 party_a_signature_name='Mr. SOEUNG Saroeun',
                 party_b_signature_name=form_data['party_b_signature_name'],
                 party_b_position=form_data['party_b_position'],
@@ -434,7 +462,6 @@ def create():
 @login_required
 def update(contract_id):
     contract = Contract.query.get_or_404(contract_id)
-    # Allow admins to update any contract, non-admins only their own
     if not current_user.has_role('admin') and contract.user_id != current_user.id:
         flash("You are not authorized to update this contract.", 'danger')
         return redirect(url_for('contracts.index'))
@@ -466,9 +493,28 @@ def update(contract_id):
             ]
             if not payment_installments:
                 flash('At least one payment installment is required.', 'danger')
-                return render_template('contracts/update.html', form_data=form_data)
+                return render_template('contracts/update.html', form_data=contract.to_dict())
 
             deliverables = '; '.join([inst['deliverables'] for inst in payment_installments])
+
+            focal_person_info = [
+                {
+                    'name': name.strip(),
+                    'position': pos.strip(),
+                    'phone': phone.strip(),
+                    'email': email.strip()
+                }
+                for name, pos, phone, email in zip(
+                    request.form.getlist('focal_person_name[]'),
+                    request.form.getlist('focal_person_position[]'),
+                    request.form.getlist('focal_person_phone[]'),
+                    request.form.getlist('focal_person_email[]')
+                )
+                if name.strip() and pos.strip() and phone.strip() and email.strip()
+            ]
+            if not focal_person_info:
+                flash('At least one focal person is required.', 'danger')
+                return render_template('contracts/update.html', form_data=contract.to_dict())
 
             total_fee_usd = float(request.form.get('total_fee_usd', '0.0').strip() or 0.0)
             tax_percentage = float(request.form.get('tax_percentage', '15.0').strip() or 15.0)
@@ -492,10 +538,6 @@ def update(contract_id):
                 'party_b_phone': request.form.get('party_b_phone', '').strip(),
                 'party_b_email': request.form.get('party_b_email', '').strip(),
                 'party_b_address': request.form.get('party_b_address', '').strip(),
-                'focal_person_a_name': request.form.get('focal_person_a_name', '').strip(),
-                'focal_person_a_position': request.form.get('focal_person_a_position', '').strip(),
-                'focal_person_a_phone': request.form.get('focal_person_a_phone', '').strip(),
-                'focal_person_a_email': request.form.get('focal_person_a_email', '').strip(),
                 'agreement_start_date': request.form.get('agreement_start_date', '').strip(),
                 'agreement_end_date': request.form.get('agreement_end_date', '').strip(),
                 'total_fee_usd': total_fee_usd,
@@ -508,7 +550,8 @@ def update(contract_id):
                 'custom_article_sentences': custom_article_sentences,
                 'party_b_signature_name': request.form.get('party_b_signature_name', '').strip(),
                 'title': request.form.get('title', '').strip(),
-                'deliverables': deliverables
+                'deliverables': deliverables,
+                'focal_person_info': focal_person_info
             }
 
             required_fields = [
@@ -533,7 +576,6 @@ def update(contract_id):
                 flash('Contract number must follow the format NGOF/YYYY-NNN (e.g., NGOF/2025-005).', 'danger')
                 return render_template('contracts/update.html', form_data=form_data)
 
-            # Check for contract number uniqueness, considering admin scope
             existing_contract_query = Contract.query.filter(
                 Contract.contract_number == form_data['contract_number'],
                 Contract.id != contract_id,
@@ -594,6 +636,20 @@ def update(contract_id):
                 flash('Total percentage of payment installments must equal 100%.', 'danger')
                 return render_template('contracts/update.html', form_data=form_data)
 
+            for person in focal_person_info:
+                if not re.match(r'^[a-zA-Z\s\.]+$', person['name']):
+                    flash(f"Invalid focal person name: {person['name']}. Only letters, spaces, and periods are allowed.", 'danger')
+                    return render_template('contracts/update.html', form_data=form_data)
+                if not re.match(r'^[a-zA-Z\s]+$', person['position']):
+                    flash(f"Invalid focal person position: {person['position']}. Only letters and spaces are allowed.", 'danger')
+                    return render_template('contracts/update.html', form_data=form_data)
+                if not re.match(r'^\+?\d{1,4}([-.\s]?\d{1,4}){2,3}$', person['phone']):
+                    flash(f"Invalid focal person phone: {person['phone']}. Use format like 012 845 091, +855 12 845 091, or +85512845091.", 'danger')
+                    return render_template('contracts/update.html', form_data=form_data)
+                if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', person['email']):
+                    flash(f"Invalid focal person email: {person['email']}.", 'danger')
+                    return render_template('contracts/update.html', form_data=form_data)
+
             contract.project_title = form_data['project_title']
             contract.contract_number = form_data['contract_number']
             contract.organization_name = form_data['organization_name']
@@ -614,10 +670,7 @@ def update(contract_id):
             contract.payment_gross = form_data['payment_gross']
             contract.payment_net = form_data['payment_net']
             contract.workshop_description = form_data['workshop_description']
-            contract.focal_person_a_name = form_data['focal_person_a_name']
-            contract.focal_person_a_position = form_data['focal_person_a_position']
-            contract.focal_person_a_phone = form_data['focal_person_a_phone']
-            contract.focal_person_a_email = form_data['focal_person_a_email']
+            contract.focal_person_info = form_data['focal_person_info']
             contract.party_a_signature_name = 'Mr. SOEUNG Saroeun'
             contract.party_b_signature_name = form_data['party_b_signature_name']
             contract.party_b_position = form_data['party_b_position']
@@ -639,6 +692,8 @@ def update(contract_id):
     form_data = contract.to_dict()
     if 'custom_article_sentences' not in form_data or form_data['custom_article_sentences'] is None:
         form_data['custom_article_sentences'] = []
+    if 'focal_person_info' not in form_data or form_data['focal_person_info'] is None:
+        form_data['focal_person_info'] = [{'name': '', 'position': '', 'phone': '', 'email': ''}]
     return render_template('contracts/update.html', form_data=form_data)
 
 # Export contract to excel (original, user-specific)
@@ -1032,7 +1087,6 @@ def export_excel_all():
         flash("An error occurred while exporting all contracts to Excel.", 'danger')
         return redirect(url_for('contracts.index'))
 
-# View contract
 @contracts_bp.route('/view/<contract_id>')
 @login_required
 def view(contract_id):
@@ -1151,12 +1205,14 @@ def view(contract_id):
                 'title': 'MONITORING and COORDINATION',
                 'content': (
                     f'“Party A” shall monitor and evaluate the progress of the agreement toward its objective, '
-                    f'including the activities implemented. <strong>{contract_data.get("focal_person_a_name", "N/A")}</strong>, '
-                    f'<strong>{contract_data.get("focal_person_a_position", "N/A")}</strong> (Telephone {contract_data.get("focal_person_a_phone", "N/A")} '
-                    f'Email: <span style="color: blue; text-decoration: underline;">{contract_data.get("focal_person_a_email", "N/A")}</span>) is the focal contact person of “Party A” and '
-                    f'<strong>{contract_data.get("party_b_signature_name", "N/A")}</strong>, <strong>Freelance Consultant</strong> '
+                    f'including the activities implemented. '
+                    f'{" and ".join([f"<strong>{person['name']}</strong>, <strong>{person['position']}</strong> "
+                    f"(Telephone {person['phone']} Email: <span style='color: blue; text-decoration: underline;'>{person['email']}</span>)" 
+                    for person in contract_data.get("focal_person_info", [])]) or "<strong>N/A</strong>, <strong>N/A</strong> (Telephone N/A Email: N/A)"} '
+                    f'is the focal contact person(s) of “Party A” and '
+                    f'<strong>{contract_data.get("party_b_signature_name", "N/A")}</strong>, <strong>{contract_data.get("party_b_position", "Freelance Consultant")}</strong> '
                     f'(HP. {contract_data.get("party_b_phone", "N/A")}, E-mail: <span style="color: blue; text-decoration: underline;">{contract_data.get("party_b_email", "N/A")}</span>) '
-                    f'the focal contact person of the “Party B”. The focal contact person of “Party A” and “Party B” will work together '
+                    f'the focal contact person of the “Party B”. The focal contact person(s) of “Party A” and “Party B” will work together '
                     f'for overall coordination including reviewing and meeting discussions during the assignment process.'
                 ),
                 'table': None
@@ -1567,12 +1623,12 @@ def export_docx(contract_id):
                 'title': 'MONITORING and COORDINATION',
                 'content': (
                     f'“Party A” shall monitor and evaluate the progress of the agreement toward its objective, '
-                    f'including the activities implemented. {contract_data.get("focal_person_a_name", "N/A")}, '
-                    f'{contract_data.get("focal_person_a_position", "N/A")} (Telephone {contract_data.get("focal_person_a_phone", "N/A")} '
-                    f'Email: {contract_data.get("focal_person_a_email", "N/A")}) is the focal contact person of “Party A” and '
-                    f'{contract_data.get("party_b_signature_name", "N/A")}, Freelance Consultant '
+                    f'including the activities implemented. '
+                    f'{" and ".join([f"{person['name']}, {person['position']} (Telephone {person['phone']} Email: {person['email']})" for person in contract_data.get("focal_person_info", [])]) or "N/A, N/A (Telephone N/A Email: N/A)"} '
+                    f'is the focal contact person(s) of “Party A” and '
+                    f'{contract_data.get("party_b_signature_name", "N/A")}, {contract_data.get("party_b_position", "Freelance Consultant")} '
                     f'(HP. {contract_data.get("party_b_phone", "N/A")}, E-mail: {contract_data.get("party_b_email", "N/A")}) '
-                    f'the focal contact person of the “Party B”. The focal contact person of “Party A” and “Party B” will work together '
+                    f'the focal contact person of the “Party B”. The focal contact person(s) of “Party A” and “Party B” will work together '
                     f'for overall coordination including reviewing and meeting discussions during the assignment process.'
                 ),
                 'table': None
@@ -1784,17 +1840,13 @@ def export_docx(contract_id):
                     bold_size=12
                 )
             elif article['number'] == 6:
-                email_addresses = [
-                    contract_data.get("focal_person_a_email", "N/A"),
-                    contract_data.get("party_b_email", "N/A")
-                ]
-                bold_segments = [
-                    contract_data.get("focal_person_a_name", "N/A"),
-                    contract_data.get("focal_person_a_position", "N/A"),
-                    f"Telephone {contract_data.get('focal_person_a_phone', 'N/A')}",
-                    f"{contract_data.get('party_b_signature_name', 'N/A')}, Freelance Consultant",
-                    f"HP. {contract_data.get('party_b_phone', 'N/A')}"
-                ]
+                email_addresses = [person['email'] for person in contract_data.get("focal_person_info", [])] + [contract_data.get("party_b_email", "N/A")]
+                bold_segments = (
+                    [f"{person['name']}, {person['position']}" for person in contract_data.get("focal_person_info", [])] +
+                    [f"Telephone {person['phone']}" for person in contract_data.get("focal_person_info", [])] +
+                    [f"{contract_data.get('party_b_signature_name', 'N/A')}, {contract_data.get('party_b_position', 'Freelance Consultant')}",
+                     f"HP. {contract_data.get('party_b_phone', 'N/A')}"]
+                )
                 add_paragraph(article['content'], size=11, email_addresses=email_addresses, bold_segments=bold_segments)
             elif article['number'] == 7:
                 bold_segments = [
@@ -2162,12 +2214,12 @@ def export_all_docx():
                         'title': 'MONITORING and COORDINATION',
                         'content': (
                             f'“Party A” shall monitor and evaluate the progress of the agreement toward its objective, '
-                            f'including the activities implemented. {contract_data.get("focal_person_a_name", "N/A")}, '
-                            f'{contract_data.get("focal_person_a_position", "N/A")} (Telephone {contract_data.get("focal_person_a_phone", "N/A")} '
-                            f'Email: {contract_data.get("focal_person_a_email", "N/A")}) is the focal contact person of “Party A” and '
-                            f'{contract_data.get("party_b_signature_name", "N/A")}, Freelance Consultant '
+                            f'including the activities implemented. '
+                            f'{" and ".join([f"{person['name']}, {person['position']} (Telephone {person['phone']} Email: {person['email']})" for person in contract_data.get("focal_person_info", [])]) or "N/A, N/A (Telephone N/A Email: N/A)"} '
+                            f'is the focal contact person(s) of “Party A” and '
+                            f'{contract_data.get("party_b_signature_name", "N/A")}, {contract_data.get("party_b_position", "Freelance Consultant")} '
                             f'(HP. {contract_data.get("party_b_phone", "N/A")}, E-mail: {contract_data.get("party_b_email", "N/A")}) '
-                            f'the focal contact person of the “Party B”. The focal contact person of “Party A” and “Party B” will work together '
+                            f'the focal contact person of the “Party B”. The focal contact person(s) of “Party A” and “Party B” will work together '
                             f'for overall coordination including reviewing and meeting discussions during the assignment process.'
                         ),
                         'table': None
@@ -2379,17 +2431,13 @@ def export_all_docx():
                             bold_size=12
                         )
                     elif article['number'] == 6:
-                        email_addresses = [
-                            contract_data.get("focal_person_a_email", "N/A"),
-                            contract_data.get("party_b_email", "N/A")
-                        ]
-                        bold_segments = [
-                            contract_data.get("focal_person_a_name", "N/A"),
-                            contract_data.get("focal_person_a_position", "N/A"),
-                            f"Telephone {contract_data.get('focal_person_a_phone', 'N/A')}",
-                            f"{contract_data.get('party_b_signature_name', 'N/A')}, Freelance Consultant",
-                            f"HP. {contract_data.get('party_b_phone', 'N/A')}"
-                        ]
+                        email_addresses = [person['email'] for person in contract_data.get("focal_person_info", [])] + [contract_data.get("party_b_email", "N/A")]
+                        bold_segments = (
+                            [f"{person['name']}, {person['position']}" for person in contract_data.get("focal_person_info", [])] +
+                            [f"Telephone {person['phone']}" for person in contract_data.get("focal_person_info", [])] +
+                            [f"{contract_data.get('party_b_signature_name', 'N/A')}, {contract_data.get('party_b_position', 'Freelance Consultant')}",
+                             f"HP. {contract_data.get('party_b_phone', 'N/A')}"]
+                        )
                         add_paragraph(article['content'], size=11, email_addresses=email_addresses, bold_segments=bold_segments)
                     elif article['number'] == 7:
                         bold_segments = [

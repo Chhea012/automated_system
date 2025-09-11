@@ -1,3 +1,4 @@
+
 from app import db
 from datetime import datetime
 import uuid
@@ -28,10 +29,7 @@ class Contract(db.Model):
     payment_gross = db.Column(db.String(50), default='')
     payment_net = db.Column(db.String(50), default='')
     workshop_description = db.Column(db.String(255), default='')
-    focal_person_a_name = db.Column(db.String(100), default='')
-    focal_person_a_position = db.Column(db.String(100), default='')
-    focal_person_a_phone = db.Column(db.String(20), default='')
-    focal_person_a_email = db.Column(db.String(100), default='')
+    focal_person_info = db.Column(db.JSON, default=lambda: [])  # New JSON column
     party_a_signature_name = db.Column(db.String(100), default='Mr. SOEUNG Saroeun')
     party_b_signature_name = db.Column(db.String(100), default='')
     party_b_position = db.Column(db.String(100), default='')
@@ -53,10 +51,11 @@ class Contract(db.Model):
     def to_dict(self):
         custom_sentences = self.custom_article_sentences if isinstance(self.custom_article_sentences, dict) else {}
         payment_installments = self.payment_installments if isinstance(self.payment_installments, list) else []
+        focal_person_info = self.focal_person_info if isinstance(self.focal_person_info, list) else []
         return {
             'id': self.id or '',
             'user_id': self.user_id or 0,
-            'username': self.user.username if self.user else 'N/A',  # Add username
+            'username': self.user.username if self.user else 'N/A',
             'project_title': self.project_title or '',
             'contract_number': self.contract_number or '',
             'organization_name': self.organization_name or '',
@@ -78,10 +77,7 @@ class Contract(db.Model):
             'payment_gross': self.payment_gross or '',
             'payment_net': self.payment_net or '',
             'workshop_description': self.workshop_description or '',
-            'focal_person_a_name': self.focal_person_a_name or '',
-            'focal_person_a_position': self.focal_person_a_position or '',
-            'focal_person_a_phone': self.focal_person_a_phone or '',
-            'focal_person_a_email': self.focal_person_a_email or '',
+            'focal_person_info': focal_person_info,
             'party_a_signature_name': self.party_a_signature_name or 'Mr. SOEUNG Saroeun',
             'party_b_signature_name': self.party_b_signature_name or '',
             'party_b_position': self.party_b_position or '',

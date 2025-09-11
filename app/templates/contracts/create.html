@@ -1,10 +1,11 @@
+
 {% extends "base.html" %}
 {% block title %}Create Contract{% endblock %}
 {% block content %}
 <!-- Add Bootstrap Icons CDN for the calendar icon -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-<!-- Custom CSS for date input styling -->
+<!-- Custom CSS for date input styling and focal person section -->
 <style>
     input[type="date"] {
         position: relative;
@@ -29,6 +30,18 @@
     input[type="date"]:focus {
         outline: 2px solid #0d6efd;
         outline-offset: 2px;
+    }
+    .focal-person-container {
+        border: 1px solid #ced4da;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+    }
+    .focal-person-container .row {
+        margin-bottom: 10px;
+    }
+    .focal-person-select {
+        margin-bottom: 10px;
     }
 </style>
 
@@ -111,32 +124,64 @@
                 </div>
                 <div class="col-md-6">
                     <label for="party_b_phone" class="form-label">Party B Phone</label>
-                    <input type="tel" class="form-control" id="party_b_phone" name="party_b_phone" value="{{ form_data.party_b_phone | default('') }}" placeholder="e.g., (+855) 11 535 354">
+                    <input type="tel" class="form-control" id="party_b_phone" name="party_b_phone" value="{{ form_data.party_b_phone | default('') }}" placeholder="e.g., 012 845 091 or +855 12 845 091" pattern="\+?\d{1,4}([-.\s]?\d{1,4}){2,3}">
+                    <div class="invalid-feedback">Please enter a valid phone number (e.g., 012 845 091 or +855 12 845 091).</div>
                 </div>
                 <div class="col-md-6">
                     <label for="party_b_email" class="form-label">Party B Email</label>
                     <input type="email" class="form-control" id="party_b_email" name="party_b_email" value="{{ form_data.party_b_email | default('') }}" placeholder="e.g., Seanbunrith@gmail.com">
+                    <div class="invalid-feedback">Please enter a valid email address.</div>
                 </div>
                 <div class="col-12">
                     <label for="party_b_address" class="form-label">Party B Address</label>
                     <textarea class="form-control" id="party_b_address" name="party_b_address" rows="3" placeholder="e.g., # F22 st. 113 Trapaeng Krosang, Porsenchey, Phnom Penh">{{ form_data.party_b_address | default('') }}</textarea>
                 </div>
-                <div class="col-md-6">
-                    <label for="focal_person_a_name" class="form-label">Focal Person A Name</label>
-                    <input type="text" class="form-control" id="focal_person_a_name" name="focal_person_a_name" value="{{ form_data.focal_person_a_name | default('') }}" placeholder="e.g., Mr. Mar Sophal">
+            </div>
+
+            <!-- Focal Person Information -->
+            <div class="section-header">Focal Person Information</div>
+            <div class="col-12" id="focalPersonContainer">
+                <label class="form-label">Focal Persons (At least one required)</label>
+                {% for person in form_data.focal_person_info | default([{'name': '', 'position': '', 'phone': '', 'email': ''}]) %}
+                <div class="focal-person-container mb-3">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Select Focal Person</label>
+                            <select class="form-select focal-person-select" name="focal_person_select[]" onchange="populateFocalPerson(this)">
+                                <option value="" {{ 'selected' if not person.name }}>Select a focal person or enter manually</option>
+                                <option value="mar_sophal" {{ 'selected' if person.name == 'Mr. Mar Sophal' }}>Mr. Mar Sophal</option>
+                                <option value="oum_somaly" {{ 'selected' if person.name == 'Ms. Oum Somaly' }}>Ms. Oum Somaly</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="focal_person_name_{{ loop.index0 }}" class="form-label">Name</label>
+                            <input type="text" class="form-control focal-person-name" id="focal_person_name_{{ loop.index0 }}" name="focal_person_name[]" value="{{ person.name | default('') }}" placeholder="e.g., Mr. Mar Sophal" pattern="[a-zA-Z\s\.]+" required>
+                            <div class="invalid-feedback">Please enter a valid name (letters, spaces, and periods only).</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="focal_person_position_{{ loop.index0 }}" class="form-label">Position</label>
+                            <input type="text" class="form-control focal-person-position" id="focal_person_position_{{ loop.index0 }}" name="focal_person_position[]" value="{{ person.position | default('') }}" placeholder="e.g., PALI Program Manager" pattern="[a-zA-Z\s]+" required>
+                            <div class="invalid-feedback">Please enter a valid position (letters and spaces only).</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="focal_person_phone_{{ loop.index0 }}" class="form-label">Phone</label>
+                            <input type="tel" class="form-control focal-person-phone" id="focal_person_phone_{{ loop.index0 }}" name="focal_person_phone[]" value="{{ person.phone | default('') }}" placeholder="e.g., 012 845 091 or +855 12 845 091" pattern="\+?\d{1,4}([-.\s]?\d{1,4}){2,3}" required>
+                            <div class="invalid-feedback">Please enter a valid phone number (e.g., 012 845 091 or +855 12 845 091).</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="focal_person_email_{{ loop.index0 }}" class="form-label">Email</label>
+                            <input type="email" class="form-control focal-person-email" id="focal_person_email_{{ loop.index0 }}" name="focal_person_email[]" value="{{ person.email | default('') }}" placeholder="e.g., sophal@ngoforum.org.kh" required>
+                            <div class="invalid-feedback">Please enter a valid email address.</div>
+                        </div>
+                        <div class="col-12">
+                            <button type="button" class="btn btn-danger btn-remove-focal-person {{ 'd-none' if loop.first and loop.length == 1 else '' }}">Remove</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <label for="focal_person_a_position" class="form-label">Focal Person A Position</label>
-                    <input type="text" class="form-control" id="focal_person_a_position" name="focal_person_a_position" value="{{ form_data.focal_person_a_position | default('') }}" placeholder="e.g., PALI Program Manager">
-                </div>
-                <div class="col-md-6">
-                    <label for="focal_person_a_phone" class="form-label">Focal Person A Phone</label>
-                    <input type="tel" class="form-control" id="focal_person_a_phone" name="focal_person_a_phone" value="{{ form_data.focal_person_a_phone | default('') }}" placeholder="e.g., 012 845 091">
-                </div>
-                <div class="col-md-6">
-                    <label for="focal_person_a_email" class="form-label">Focal Person A Email</label>
-                    <input type="email" class="form-control" id="focal_person_a_email" name="focal_person_a_email" value="{{ form_data.focal_person_a_email | default('') }}" placeholder="e.g., sophal@ngoforum.org.kh">
-                </div>
+                {% endfor %}
+            </div>
+            <div class="col-12">
+                <button type="button" class="btn btn-primary btn-add-focal-person" onclick="addFocalPersonField()">Add Focal Person</button>
             </div>
 
             <!-- Agreement Details -->
@@ -285,8 +330,24 @@
     </div>
 </div>
 
-<!-- JavaScript for Dynamic Fields, Form Validation, Number-to-Words Conversion, and Date Picker -->
+<!-- JavaScript for Dynamic Fields, Form Validation, Number-to-Words Conversion, and Focal Person Handling -->
 <script>
+    // Predefined focal persons
+    const focalPersons = {
+        'mar_sophal': {
+            name: 'Mr. Mar Sophal',
+            position: 'PALI Program Manager',
+            phone: '012 845 091',
+            email: 'sophal@ngoforum.org.kh'
+        },
+        'oum_somaly': {
+            name: 'Ms. Oum Somaly',
+            position: 'SACHAS Program Manager',
+            phone: '081 647 963',
+            email: 'somaly@ngoforum.org.kh'
+        }
+    };
+
     // Number-to-Words Conversion Function
     function numberToWords(num) {
         if (!num || isNaN(num) || num < 0) return '';
@@ -355,6 +416,88 @@
         partyBSignatureNameConfirm.value = partyBSignatureName;
     });
 
+    // Populate focal person fields based on selection
+    function populateFocalPerson(select) {
+        const container = select.closest('.focal-person-container');
+        const nameInput = container.querySelector('.focal-person-name');
+        const positionInput = container.querySelector('.focal-person-position');
+        const phoneInput = container.querySelector('.focal-person-phone');
+        const emailInput = container.querySelector('.focal-person-email');
+
+        const selectedValue = select.value;
+        if (selectedValue && focalPersons[selectedValue]) {
+            const person = focalPersons[selectedValue];
+            nameInput.value = person.name;
+            positionInput.value = person.position;
+            phoneInput.value = person.phone;
+            emailInput.value = person.email;
+        } else {
+            nameInput.value = '';
+            positionInput.value = '';
+            phoneInput.value = '';
+            emailInput.value = '';
+        }
+    }
+
+    // Add Focal Person Field
+    function addFocalPersonField() {
+        const container = document.getElementById('focalPersonContainer');
+        const firstFocalPerson = container.querySelector('.focal-person-container');
+        const newFocalPerson = firstFocalPerson.cloneNode(true);
+
+        // Generate unique ID for new fields
+        const timestamp = Date.now();
+
+        // Clear input values
+        newFocalPerson.querySelector('.focal-person-select').value = '';
+        newFocalPerson.querySelector('.focal-person-name').value = '';
+        newFocalPerson.querySelector('.focal-person-position').value = '';
+        newFocalPerson.querySelector('.focal-person-phone').value = '';
+        newFocalPerson.querySelector('.focal-person-email').value = '';
+
+        // Update IDs for inputs
+        newFocalPerson.querySelector('.focal-person-name').id = `focal_person_name_${timestamp}`;
+        newFocalPerson.querySelector('label[for^="focal_person_name"]').setAttribute('for', `focal_person_name_${timestamp}`);
+        newFocalPerson.querySelector('.focal-person-position').id = `focal_person_position_${timestamp}`;
+        newFocalPerson.querySelector('label[for^="focal_person_position"]').setAttribute('for', `focal_person_position_${timestamp}`);
+        newFocalPerson.querySelector('.focal-person-phone').id = `focal_person_phone_${timestamp}`;
+        newFocalPerson.querySelector('label[for^="focal_person_phone"]').setAttribute('for', `focal_person_phone_${timestamp}`);
+        newFocalPerson.querySelector('.focal-person-email').id = `focal_person_email_${timestamp}`;
+        newFocalPerson.querySelector('label[for^="focal_person_email"]').setAttribute('for', `focal_person_email_${timestamp}`);
+
+        // Show Remove button
+        const removeButton = newFocalPerson.querySelector('.btn-remove-focal-person');
+        removeButton.classList.remove('d-none');
+
+        // Add event listeners
+        newFocalPerson.querySelector('.focal-person-select').addEventListener('change', function() {
+            populateFocalPerson(this);
+        });
+        removeButton.addEventListener('click', function() {
+            newFocalPerson.remove();
+            updateFocalPersonRemoveButtons();
+        });
+
+        // Append new field
+        container.appendChild(newFocalPerson);
+
+        // Update Remove buttons
+        updateFocalPersonRemoveButtons();
+    }
+
+    // Update Remove Buttons for Focal Persons
+    function updateFocalPersonRemoveButtons() {
+        const container = document.getElementById('focalPersonContainer');
+        const focalPersons = container.querySelectorAll('.focal-person-container');
+        if (focalPersons.length === 1) {
+            focalPersons[0].querySelector('.btn-remove-focal-person').classList.add('d-none');
+        } else {
+            focalPersons.forEach(person => {
+                person.querySelector('.btn-remove-focal-person').classList.remove('d-none');
+            });
+        }
+    }
+
     // Bootstrap Form Validation
     (function () {
         'use strict';
@@ -371,6 +514,13 @@
                 event.preventDefault();
                 event.stopPropagation();
                 alert('Total percentage of payment installments must equal 100%.');
+            }
+            // Validate at least one focal person
+            const focalPersons = document.querySelectorAll('.focal-person-container');
+            if (focalPersons.length === 0) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('At least one focal person is required.');
             }
             form.classList.add('was-validated');
         }, false);
@@ -558,8 +708,9 @@
             }
         });
 
-        // Initialize Remove buttons for articles and installments
+        // Initialize Remove buttons for articles, installments, and focal persons
         updateRemoveButtons();
+        updateFocalPersonRemoveButtons();
         document.querySelectorAll('.btn-remove-article').forEach(button => {
             button.addEventListener('click', function () {
                 button.closest('.article-container').remove();
@@ -572,10 +723,23 @@
                 assignPercentages();
             });
         });
+        document.querySelectorAll('.btn-remove-focal-person').forEach(button => {
+            button.addEventListener('click', function () {
+                button.closest('.focal-person-container').remove();
+                updateFocalPersonRemoveButtons();
+            });
+        });
 
         // Initialize percentage selects
         document.querySelectorAll('.installment-percentage').forEach(select => {
             select.addEventListener('change', updateInstallmentDescriptions);
+        });
+
+        // Initialize focal person selects
+        document.querySelectorAll('.focal-person-select').forEach(select => {
+            select.addEventListener('change', function() {
+                populateFocalPerson(this);
+            });
         });
 
         // Initialize total_fee_words if total_fee_usd has a value
