@@ -28,16 +28,16 @@
         outline: 2px solid #0d6efd;
         outline-offset: 2px;
     }
-    .focal-person-container {
+    .party-a-container, .focal-person-container {
         border: 1px solid #ced4da;
         padding: 15px;
         border-radius: 5px;
         margin-bottom: 15px;
     }
-    .focal-person-container .row {
+    .party-a-container .row, .focal-person-container .row {
         margin-bottom: 10px;
     }
-    .focal-person-select {
+    .party-a-select, .focal-person-select {
         margin-bottom: 10px;
     }
     #party_b_new_name_container {
@@ -64,7 +64,7 @@
                 </div>
                 <div class="col-md-6">
                     <label for="output_description" class="form-label">Output Description</label>
-                    <input type="text" class="form-control" id="output_description" name="output_description" value="{{ form_data.output_description | default('') }}" placeholder="e.g., Budget Analysis on MAFF’s Budget Allocation" required>
+                    <input type="text" class="form-control" id="output_description" name="output_description" value="{{ form_data.output_description | default('') }}" placeholder="e.g., Budget Analysis on MAFF's Budget Allocation" required>
                     <div class="invalid-feedback">Please enter the output description.</div>
                 </div>
                 <div class="col-md-6">
@@ -86,27 +86,67 @@
             </div>
 
             <!-- Party A Information -->
-            <div class="section-header">Party A Information</div>
+            <div class="section-header">Party A Information (At least one required)</div>
             <div class="row g-3">
-                <div class="col-md-6">
+                <div class="col-md-12">
                     <label for="organization_name" class="form-label">Organization Name</label>
                     <input type="text" class="form-control" id="organization_name" name="organization_name" value="{{ form_data.organization_name | default('The NGO Forum on Cambodia') }}" placeholder="e.g., The NGO Forum on Cambodia" required>
                     <div class="invalid-feedback">Please enter the organization name.</div>
                 </div>
-                <div class="col-md-6">
-                    <label for="party_a_name" class="form-label">Party A Name</label>
-                    <input type="text" class="form-control" id="party_a_name" name="party_a_name" value="{{ form_data.party_a_name | default('Mr. SOEUNG Saroeun') }}" placeholder="e.g., Mr. SOEUNG Saroeun" required>
-                    <div class="invalid-feedback">Please enter Party A name.</div>
+            </div>
+            <div class="col-12" id="partyAContainer">
+                <label class="form-label">Party A Representatives</label>
+                {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia'}]) %}
+                <div class="party-a-container mb-3">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Select Party A</label>
+                            <select class="form-select party-a-select" name="party_a_select[]">
+                                <option value="" {{ 'selected' if not person.name }}>Select a Party A or enter manually</option>
+                                <option value="new" {{ 'selected' if person.name and person.name not in party_a_data.values() | map(attribute='name') | list }}>Enter new Party A</option>
+                                {% for person_data in party_a_data.values() %}
+                                <option value="{{ person_data.name }}" {{ 'selected' if person.name == person_data.name }}>{{ person_data.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="party_a_name_{{ loop.index0 }}" class="form-label">Name</label>
+                            <input type="text" class="form-control party-a-name" id="party_a_name_{{ loop.index0 }}" name="party_a_name[]" value="{{ person.name | default('') }}" placeholder="e.g., Mr. SOEUNG Saroeun" pattern="[a-zA-Z\s\.]+" required>
+                            <div class="invalid-feedback">Please enter a valid name (letters, spaces, and periods only).</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="party_a_position_{{ loop.index0 }}" class="form-label">Position</label>
+                            <input type="text" class="form-control party-a-position" id="party_a_position_{{ loop.index0 }}" name="party_a_position[]" value="{{ person.position | default('') }}" placeholder="e.g., Executive Director" pattern="[a-zA-Z\s]+" required>
+                            <div class="invalid-feedback">Please enter a valid position (letters and spaces only).</div>
+                        </div>
+                        <div class="col-12">
+                            <label for="party_a_address_{{ loop.index0 }}" class="form-label">Address</label>
+                            <textarea class="form-control party-a-address" id="party_a_address_{{ loop.index0 }}" name="party_a_address[]" rows="3" placeholder="e.g., #9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia" required>{{ person.address | default('') }}</textarea>
+                            <div class="invalid-feedback">Please enter a valid address.</div>
+                        </div>
+                        <div class="col-12">
+                            <button type="button" class="btn btn-danger btn-remove-party-a {{ 'd-none' if loop.first and (form_data.party_a_info | default([])) | length == 1 else '' }}">Remove</button>
+                        </div>
+                    </div>
                 </div>
+                {% endfor %}
+            </div>
+            <div class="col-12">
+                <button type="button" class="btn btn-primary btn-add-party-a" onclick="addPartyAField()">Add Party A Representative</button>
+            </div>
+
+            <!-- Party A Signer Selection -->
+            <div class="section-header">Party A Signer</div>
+            <div class="row g-3">
                 <div class="col-md-6">
-                    <label for="party_a_position" class="form-label">Party A Position</label>
-                    <input type="text" class="form-control" id="party_a_position" name="party_a_position" value="{{ form_data.party_a_position | default('Executive Director') }}" placeholder="e.g., Executive Director" required>
-                    <div class="invalid-feedback">Please enter Party A position.</div>
-                </div>
-                <div class="col-md-6">
-                    <label for="party_a_address" class="form-label">Party A Address</label>
-                    <input type="text" class="form-control" id="party_a_address" name="party_a_address" value="{{ form_data.party_a_address | default('#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia') }}" placeholder="e.g., #9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia" required>
-                    <div class="invalid-feedback">Please enter Party A address.</div>
+                    <label for="party_a_signer" class="form-label">Select Party A Signer</label>
+                    <select class="form-select" id="party_a_signer" name="party_a_signer" required>
+                        <option value="" disabled {{ 'selected' if not form_data.party_a_signer }}>Select a signer</option>
+                        {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia'}]) %}
+                        <option value="{{ person.name }}" {{ 'selected' if form_data.party_a_signer == person.name }}>{{ person.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="invalid-feedback">Please select a Party A signer.</div>
                 </div>
             </div>
 
@@ -344,6 +384,7 @@
 </div>
 
 <script>
+    const partyAData = {{ party_a_data | tojson | safe }};
     const partyBData = {{ party_b_data | tojson | safe }};
     const focalPersonData = {{ focal_person_data | tojson | safe }};
 
@@ -434,6 +475,36 @@
         }
     }
 
+    function populatePartyA(select) {
+        const container = select.closest('.party-a-container');
+        const nameInput = container.querySelector('.party-a-name');
+        const positionInput = container.querySelector('.party-a-position');
+        const addressInput = container.querySelector('.party-a-address');
+
+        const selectedValue = select.value;
+        if (selectedValue === 'new' || !selectedValue) {
+            nameInput.value = '';
+            positionInput.value = '';
+            addressInput.value = '';
+            nameInput.required = selectedValue === 'new';
+        } else {
+            const normalizedName = selectedValue.toLowerCase();
+            const person = partyAData[normalizedName];
+            if (person) {
+                nameInput.value = person.name;
+                positionInput.value = person.position;
+                addressInput.value = person.address;
+                nameInput.required = true;
+            } else {
+                nameInput.value = '';
+                positionInput.value = '';
+                addressInput.value = '';
+                nameInput.required = false;
+            }
+        }
+        updatePartyASignerOptions();
+    }
+
     function populateFocalPerson(select) {
         const container = select.closest('.focal-person-container');
         const nameInput = container.querySelector('.focal-person-name');
@@ -467,6 +538,31 @@
         }
     }
 
+    function updatePartyASignerOptions() {
+        const partyANames = Array.from(document.querySelectorAll('.party-a-name')).map(input => input.value).filter(v => v);
+        const signerSelect = document.getElementById('party_a_signer');
+        const currentValue = signerSelect.value;
+
+        // Clear existing options
+        signerSelect.innerHTML = '<option value="" disabled>Select a signer</option>';
+
+        // Add new options
+        partyANames.forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.text = name;
+            if (name === currentValue) option.selected = true;
+            signerSelect.appendChild(option);
+        });
+
+        // If current value is no longer valid, reset to first or empty
+        if (!partyANames.includes(currentValue) && partyANames.length > 0) {
+            signerSelect.value = partyANames[0];
+        } else if (!partyANames.length) {
+            signerSelect.value = '';
+        }
+    }
+
     document.getElementById('total_fee_usd').addEventListener('input', function () {
         const totalFeeUSD = parseFloat(this.value);
         const totalFeeWordsInput = document.getElementById('total_fee_words');
@@ -476,6 +572,61 @@
     document.getElementById('party_b_select').addEventListener('change', function () {
         handlePartyBSelect(this);
     });
+
+    // Listen for changes in Party A name fields to update signer options
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('party-a-name')) {
+            updatePartyASignerOptions();
+        }
+    });
+
+    function addPartyAField() {
+        const container = document.getElementById('partyAContainer');
+        const firstPartyA = container.querySelector('.party-a-container');
+        const newPartyA = firstPartyA.cloneNode(true);
+
+        const timestamp = Date.now();
+
+        newPartyA.querySelector('.party-a-select').value = '';
+        newPartyA.querySelector('.party-a-name').value = '';
+        newPartyA.querySelector('.party-a-position').value = '';
+        newPartyA.querySelector('.party-a-address').value = '';
+
+        newPartyA.querySelector('.party-a-name').id = `party_a_name_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_name"]').setAttribute('for', `party_a_name_${timestamp}`);
+        newPartyA.querySelector('.party-a-position').id = `party_a_position_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_position"]').setAttribute('for', `party_a_position_${timestamp}`);
+        newPartyA.querySelector('.party-a-address').id = `party_a_address_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_address"]').setAttribute('for', `party_a_address_${timestamp}`);
+
+        const removeButton = newPartyA.querySelector('.btn-remove-party-a');
+        removeButton.classList.remove('d-none');
+
+        newPartyA.querySelector('.party-a-select').addEventListener('change', function() {
+            populatePartyA(this);
+        });
+        removeButton.addEventListener('click', function() {
+            newPartyA.remove();
+            updatePartyARemoveButtons();
+            updatePartyASignerOptions();
+        });
+
+        container.appendChild(newPartyA);
+        updatePartyARemoveButtons();
+        updatePartyASignerOptions();
+    }
+
+    function updatePartyARemoveButtons() {
+        const container = document.getElementById('partyAContainer');
+        const partyAs = container.querySelectorAll('.party-a-container');
+        if (partyAs.length === 1) {
+            partyAs[0].querySelector('.btn-remove-party-a').classList.add('d-none');
+        } else {
+            partyAs.forEach(partyA => {
+                partyA.querySelector('.btn-remove-party-a').classList.remove('d-none');
+            });
+        }
+    }
 
     function addFocalPersonField() {
         const container = document.getElementById('focalPersonContainer');
@@ -547,12 +698,24 @@
                 event.stopPropagation();
                 alert('At least one focal person is required.');
             }
+            const partyAs = document.querySelectorAll('.party-a-container');
+            if (partyAs.length === 0) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('At least one Party A representative is required.');
+            }
             const partyBSelect = document.getElementById('party_b_select').value;
             const partyBName = document.getElementById('party_b_signature_name').value;
             if (!partyBSelect || (partyBSelect === 'new' && !partyBName)) {
                 event.preventDefault();
                 event.stopPropagation();
                 alert('Please select a Party B name or enter a new one.');
+            }
+            const partyASigner = document.getElementById('party_a_signer').value;
+            if (!partyASigner) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Please select a Party A signer.');
             }
             form.classList.add('was-validated');
         }, false);
@@ -709,6 +872,9 @@
 
         updateRemoveButtons();
         updateFocalPersonRemoveButtons();
+        updatePartyARemoveButtons();
+        updatePartyASignerOptions();
+
         document.querySelectorAll('.btn-remove-article').forEach(button => {
             button.addEventListener('click', function () {
                 button.closest('.article-container').remove();
@@ -727,6 +893,13 @@
                 updateFocalPersonRemoveButtons();
             });
         });
+        document.querySelectorAll('.btn-remove-party-a').forEach(button => {
+            button.addEventListener('click', function () {
+                button.closest('.party-a-container').remove();
+                updatePartyARemoveButtons();
+                updatePartyASignerOptions();
+            });
+        });
 
         document.querySelectorAll('.installment-percentage').forEach(select => {
             select.addEventListener('change', updateInstallmentDescriptions);
@@ -735,6 +908,12 @@
         document.querySelectorAll('.focal-person-select').forEach(select => {
             select.addEventListener('change', function() {
                 populateFocalPerson(this);
+            });
+        });
+
+        document.querySelectorAll('.party-a-select').forEach(select => {
+            select.addEventListener('change', function() {
+                populatePartyA(this);
             });
         });
 

@@ -11,9 +11,7 @@ class Contract(db.Model):
     project_title = db.Column(db.String(255), nullable=False, default='')
     contract_number = db.Column(db.String(50), nullable=False, default='')
     organization_name = db.Column(db.String(100), default='')
-    party_a_name = db.Column(db.String(100), default='')
-    party_a_position = db.Column(db.String(100), default='')
-    party_a_address = db.Column(db.Text, default='')
+    party_a_info = db.Column(db.JSON, default=lambda: [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia'}])
     party_b_full_name_with_title = db.Column(db.String(255), default='')
     party_b_address = db.Column(db.Text, default='')
     party_b_phone = db.Column(db.String(20), default='')
@@ -28,7 +26,7 @@ class Contract(db.Model):
     payment_gross = db.Column(db.String(50), default='')
     payment_net = db.Column(db.String(50), default='')
     workshop_description = db.Column(db.String(255), default='')
-    focal_person_info = db.Column(db.JSON, default=lambda: [])  # New JSON column
+    focal_person_info = db.Column(db.JSON, default=lambda: [])
     party_a_signature_name = db.Column(db.String(100), default='Mr. SOEUNG Saroeun')
     party_b_signature_name = db.Column(db.String(100), default='')
     party_b_position = db.Column(db.String(100), default='')
@@ -41,7 +39,6 @@ class Contract(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     deleted_at = db.Column(db.DateTime, nullable=True)
 
-    # Add relationship to User model
     user = db.relationship('User', backref=db.backref('contracts', lazy='dynamic'), lazy='joined')
 
     def __repr__(self):
@@ -51,6 +48,7 @@ class Contract(db.Model):
         custom_sentences = self.custom_article_sentences if isinstance(self.custom_article_sentences, dict) else {}
         payment_installments = self.payment_installments if isinstance(self.payment_installments, list) else []
         focal_person_info = self.focal_person_info if isinstance(self.focal_person_info, list) else []
+        party_a_info = self.party_a_info if isinstance(self.party_a_info, list) else []
         return {
             'id': self.id or '',
             'user_id': self.user_id or 0,
@@ -58,9 +56,7 @@ class Contract(db.Model):
             'project_title': self.project_title or '',
             'contract_number': self.contract_number or '',
             'organization_name': self.organization_name or '',
-            'party_a_name': self.party_a_name or '',
-            'party_a_position': self.party_a_position or '',
-            'party_a_address': self.party_a_address or '',
+            'party_a_info': party_a_info,
             'party_b_full_name_with_title': self.party_b_full_name_with_title or '',
             'party_b_address': self.party_b_address or '',
             'party_b_phone': self.party_b_phone or '',
