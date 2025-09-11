@@ -1209,10 +1209,10 @@ def view(contract_id):
                     f'{" and ".join([f"<strong>{person['name']}</strong>, <strong>{person['position']}</strong> "
                     f"(Telephone {person['phone']} Email: <span style='color: blue; text-decoration: underline;'>{person['email']}</span>)" 
                     for person in contract_data.get("focal_person_info", [])]) or "<strong>N/A</strong>, <strong>N/A</strong> (Telephone N/A Email: N/A)"} '
-                    f'is the focal contact person(s) of “Party A” and '
+                    f'is the focal contact person of “Party A” and '
                     f'<strong>{contract_data.get("party_b_signature_name", "N/A")}</strong>, <strong>{contract_data.get("party_b_position", "Freelance Consultant")}</strong> '
                     f'(HP. {contract_data.get("party_b_phone", "N/A")}, E-mail: <span style="color: blue; text-decoration: underline;">{contract_data.get("party_b_email", "N/A")}</span>) '
-                    f'the focal contact person of the “Party B”. The focal contact person(s) of “Party A” and “Party B” will work together '
+                    f'the focal contact person of the “Party B”. The focal contact person of “Party A” and “Party B” will work together '
                     f'for overall coordination including reviewing and meeting discussions during the assignment process.'
                 ),
                 'table': None
@@ -1625,10 +1625,10 @@ def export_docx(contract_id):
                     f'“Party A” shall monitor and evaluate the progress of the agreement toward its objective, '
                     f'including the activities implemented. '
                     f'{" and ".join([f"{person['name']}, {person['position']} (Telephone {person['phone']} Email: {person['email']})" for person in contract_data.get("focal_person_info", [])]) or "N/A, N/A (Telephone N/A Email: N/A)"} '
-                    f'is the focal contact person(s) of “Party A” and '
+                    f'is the focal contact person of “Party A” and '
                     f'{contract_data.get("party_b_signature_name", "N/A")}, {contract_data.get("party_b_position", "Freelance Consultant")} '
                     f'(HP. {contract_data.get("party_b_phone", "N/A")}, E-mail: {contract_data.get("party_b_email", "N/A")}) '
-                    f'the focal contact person of the “Party B”. The focal contact person(s) of “Party A” and “Party B” will work together '
+                    f'the focal contact person of the “Party B”. The focal contact person of “Party A” and “Party B” will work together '
                     f'for overall coordination including reviewing and meeting discussions during the assignment process.'
                 ),
                 'table': None
@@ -2216,10 +2216,10 @@ def export_all_docx():
                             f'“Party A” shall monitor and evaluate the progress of the agreement toward its objective, '
                             f'including the activities implemented. '
                             f'{" and ".join([f"{person['name']}, {person['position']} (Telephone {person['phone']} Email: {person['email']})" for person in contract_data.get("focal_person_info", [])]) or "N/A, N/A (Telephone N/A Email: N/A)"} '
-                            f'is the focal contact person(s) of “Party A” and '
+                            f'is the focal contact person of “Party A” and '
                             f'{contract_data.get("party_b_signature_name", "N/A")}, {contract_data.get("party_b_position", "Freelance Consultant")} '
                             f'(HP. {contract_data.get("party_b_phone", "N/A")}, E-mail: {contract_data.get("party_b_email", "N/A")}) '
-                            f'the focal contact person of the “Party B”. The focal contact person(s) of “Party A” and “Party B” will work together '
+                            f'the focal contact person of the “Party B”. The focal contact person of “Party A” and “Party B” will work together '
                             f'for overall coordination including reviewing and meeting discussions during the assignment process.'
                         ),
                         'table': None
