@@ -1,11 +1,8 @@
-
 {% extends "base.html" %}
 {% block title %}Create Contract{% endblock %}
 {% block content %}
-<!-- Add Bootstrap Icons CDN for the calendar icon -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-<!-- Custom CSS for date input styling and focal person section -->
 <style>
     input[type="date"] {
         position: relative;
@@ -42,6 +39,9 @@
     }
     .focal-person-select {
         margin-bottom: 10px;
+    }
+    #party_b_new_name_container {
+        display: none;
     }
 </style>
 
@@ -114,9 +114,20 @@
             <div class="section-header">Party B Information</div>
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label for="party_b_signature_name" class="form-label">Party B Signature Name</label>
-                    <input type="text" class="form-control" id="party_b_signature_name" name="party_b_signature_name" value="{{ form_data.party_b_signature_name | default('') }}" placeholder="e.g., Mr. SEAN Bunrith" required>
-                    <div class="invalid-feedback">Please enter Party B signature name.</div>
+                    <label for="party_b_select" class="form-label">Party B Signature Name</label>
+                    <select class="form-select" id="party_b_select" name="party_b_select" onchange="handlePartyBSelect(this)">
+                        <option value="" {{ 'selected' if not form_data.party_b_select }}>Select Party B or enter new name</option>
+                        <option value="new" {{ 'selected' if form_data.party_b_select == 'new' }}>Enter new name</option>
+                        {% for name in party_b_data.values() %}
+                        <option value="{{ name.original_name }}" {{ 'selected' if form_data.party_b_signature_name == name.original_name }}>{{ name.original_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="invalid-feedback">Please select or enter a Party B name.</div>
+                </div>
+                <div class="col-md-6" id="party_b_new_name_container">
+                    <label for="party_b_signature_name" class="form-label">New Party B Signature Name</label>
+                    <input type="text" class="form-control" id="party_b_signature_name" name="party_b_signature_name" value="{{ form_data.party_b_signature_name if form_data.party_b_select == 'new' else '' }}" placeholder="e.g., Mr. SEAN Bunrith" pattern="[a-zA-Z\s\.]+">
+                    <div class="invalid-feedback">Please enter a valid name (letters, spaces, and periods only).</div>
                 </div>
                 <div class="col-md-6">
                     <label for="party_b_position" class="form-label">Party B Position</label>
@@ -174,7 +185,7 @@
                             <div class="invalid-feedback">Please enter a valid email address.</div>
                         </div>
                         <div class="col-12">
-                            <button type="button" class="btn btn-danger btn-remove-focal-person {{ 'd-none' if loop.first and loop.length == 1 else '' }}">Remove</button>
+                            <button type="button" class="btn btn-danger btn-remove-focal-person {{ 'd-none' if loop.first and (form_data.focal_person_info | default([])) | length == 1 else '' }}">Remove</button>
                         </div>
                     </div>
                 </div>
@@ -232,7 +243,7 @@
                                         <option value="{{ percentage }}" {{ 'selected' if installment.description and percentage | string in installment.description }}>{{ percentage }}%</option>
                                         {% endfor %}
                                     </select>
-                                    <button type="button" class="btn btn-danger btn-remove-installment {{ 'd-none' if loop.first and loop.length == 1 else '' }}">Remove</button>
+                                    <button type="button" class="btn btn-danger btn-remove-installment {{ 'd-none' if loop.first and (form_data.payment_installments | default([])) | length == 1 else '' }}">Remove</button>
                                     <div class="invalid-feedback">Please select a percentage.</div>
                                 </div>
                             </div>
@@ -330,9 +341,9 @@
     </div>
 </div>
 
-<!-- JavaScript for Dynamic Fields, Form Validation, Number-to-Words Conversion, and Focal Person Handling -->
 <script>
-    // Predefined focal persons
+    const partyBData = {{ party_b_data | tojson | safe }};
+
     const focalPersons = {
         'mar_sophal': {
             name: 'Mr. Mar Sophal',
@@ -348,7 +359,6 @@
         }
     };
 
-    // Number-to-Words Conversion Function
     function numberToWords(num) {
         if (!num || isNaN(num) || num < 0) return '';
 
@@ -402,21 +412,50 @@
         return words ? words + ' US Dollars only' : 'Zero US Dollars only';
     }
 
-    // Update total_fee_words on input
+    function handlePartyBSelect(select) {
+        const newNameContainer = document.getElementById('party_b_new_name_container');
+        const newNameInput = document.getElementById('party_b_signature_name');
+        const fields = {
+            'party_b_position': document.getElementById('party_b_position'),
+            'party_b_phone': document.getElementById('party_b_phone'),
+            'party_b_email': document.getElementById('party_b_email'),
+            'party_b_address': document.getElementById('party_b_address'),
+            'party_b_signature_name_confirm': document.getElementById('party_b_signature_name_confirm')
+        };
+
+        if (select.value === 'new') {
+            newNameContainer.style.display = 'block';
+            newNameInput.required = true;
+            Object.values(fields).forEach(field => field.value = '');
+            newNameInput.value = '';
+        } else {
+            newNameContainer.style.display = 'none';
+            newNameInput.required = false;
+            newNameInput.value = '';
+            if (select.value) {
+                const normalizedName = select.value.toLowerCase();
+                const data = partyBData[normalizedName];
+                fields.party_b_position.value = data ? data.position : '';
+                fields.party_b_phone.value = data ? data.phone : '';
+                fields.party_b_email.value = data ? data.email : '';
+                fields.party_b_address.value = data ? data.address : '';
+                fields.party_b_signature_name_confirm.value = select.value;
+            } else {
+                Object.values(fields).forEach(field => field.value = '');
+            }
+        }
+    }
+
     document.getElementById('total_fee_usd').addEventListener('input', function () {
         const totalFeeUSD = parseFloat(this.value);
         const totalFeeWordsInput = document.getElementById('total_fee_words');
         totalFeeWordsInput.value = numberToWords(totalFeeUSD);
     });
 
-    // Auto-update party_b_signature_name_confirm on input
-    document.getElementById('party_b_signature_name').addEventListener('input', function () {
-        const partyBSignatureName = this.value;
-        const partyBSignatureNameConfirm = document.getElementById('party_b_signature_name_confirm');
-        partyBSignatureNameConfirm.value = partyBSignatureName;
+    document.getElementById('party_b_select').addEventListener('change', function () {
+        handlePartyBSelect(this);
     });
 
-    // Populate focal person fields based on selection
     function populateFocalPerson(select) {
         const container = select.closest('.focal-person-container');
         const nameInput = container.querySelector('.focal-person-name');
@@ -439,23 +478,19 @@
         }
     }
 
-    // Add Focal Person Field
     function addFocalPersonField() {
         const container = document.getElementById('focalPersonContainer');
         const firstFocalPerson = container.querySelector('.focal-person-container');
         const newFocalPerson = firstFocalPerson.cloneNode(true);
 
-        // Generate unique ID for new fields
         const timestamp = Date.now();
 
-        // Clear input values
         newFocalPerson.querySelector('.focal-person-select').value = '';
         newFocalPerson.querySelector('.focal-person-name').value = '';
         newFocalPerson.querySelector('.focal-person-position').value = '';
         newFocalPerson.querySelector('.focal-person-phone').value = '';
         newFocalPerson.querySelector('.focal-person-email').value = '';
 
-        // Update IDs for inputs
         newFocalPerson.querySelector('.focal-person-name').id = `focal_person_name_${timestamp}`;
         newFocalPerson.querySelector('label[for^="focal_person_name"]').setAttribute('for', `focal_person_name_${timestamp}`);
         newFocalPerson.querySelector('.focal-person-position').id = `focal_person_position_${timestamp}`;
@@ -465,11 +500,9 @@
         newFocalPerson.querySelector('.focal-person-email').id = `focal_person_email_${timestamp}`;
         newFocalPerson.querySelector('label[for^="focal_person_email"]').setAttribute('for', `focal_person_email_${timestamp}`);
 
-        // Show Remove button
         const removeButton = newFocalPerson.querySelector('.btn-remove-focal-person');
         removeButton.classList.remove('d-none');
 
-        // Add event listeners
         newFocalPerson.querySelector('.focal-person-select').addEventListener('change', function() {
             populateFocalPerson(this);
         });
@@ -478,14 +511,10 @@
             updateFocalPersonRemoveButtons();
         });
 
-        // Append new field
         container.appendChild(newFocalPerson);
-
-        // Update Remove buttons
         updateFocalPersonRemoveButtons();
     }
 
-    // Update Remove Buttons for Focal Persons
     function updateFocalPersonRemoveButtons() {
         const container = document.getElementById('focalPersonContainer');
         const focalPersons = container.querySelectorAll('.focal-person-container');
@@ -498,7 +527,6 @@
         }
     }
 
-    // Bootstrap Form Validation
     (function () {
         'use strict';
         const form = document.getElementById('contractForm');
@@ -507,7 +535,6 @@
                 event.preventDefault();
                 event.stopPropagation();
             }
-            // Validate total percentage
             const percentages = Array.from(document.querySelectorAll('.installment-percentage')).map(select => parseFloat(select.value) || 0);
             const totalPercentage = percentages.reduce((sum, val) => sum + val, 0);
             if (totalPercentage !== 100) {
@@ -515,18 +542,23 @@
                 event.stopPropagation();
                 alert('Total percentage of payment installments must equal 100%.');
             }
-            // Validate at least one focal person
             const focalPersons = document.querySelectorAll('.focal-person-container');
             if (focalPersons.length === 0) {
                 event.preventDefault();
                 event.stopPropagation();
                 alert('At least one focal person is required.');
             }
+            const partyBSelect = document.getElementById('party_b_select').value;
+            const partyBName = document.getElementById('party_b_signature_name').value;
+            if (!partyBSelect || (partyBSelect === 'new' && !partyBName)) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Please select a Party B name or enter a new one.');
+            }
             form.classList.add('was-validated');
         }, false);
     })();
 
-    // Update Installment Descriptions
     function updateInstallmentDescriptions() {
         const containers = document.querySelectorAll('.installment-container');
         containers.forEach((container, index) => {
@@ -537,14 +569,12 @@
         });
     }
 
-    // Auto-assign Percentages
     function assignPercentages() {
         const containers = document.querySelectorAll('.installment-container');
         const count = containers.length;
         const availablePercentages = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
         let percentages = [];
 
-        // Try to preserve existing percentages if they sum to 100
         let currentPercentages = Array.from(containers).map(container => {
             const select = container.querySelector('.installment-percentage');
             return parseFloat(select.value) || 0;
@@ -554,35 +584,27 @@
         if (currentTotal === 100 && currentPercentages.every(p => availablePercentages.includes(p))) {
             percentages = currentPercentages;
         } else {
-            // Calculate base percentage and distribute remainder
             const base = Math.floor(100 / count);
             percentages = Array(count).fill(base);
             const remainder = 100 - base * count;
             for (let i = 0; i < remainder; i++) {
                 percentages[i]++;
             }
-
-            // Adjust to nearest available percentage
             percentages = percentages.map(p => {
                 return availablePercentages.reduce((prev, curr) =>
                     Math.abs(curr - p) < Math.abs(prev - p) ? curr : prev
                 );
             });
-
-            // Ensure total is exactly 100 by adjusting the last percentage if needed
             let total = percentages.reduce((sum, val) => sum + val, 0);
             if (total !== 100) {
                 const diff = 100 - total;
                 const lastIndex = percentages.length - 1;
                 const newLast = percentages[lastIndex] + diff;
-                // Find closest available percentage for the adjusted last value
                 percentages[lastIndex] = availablePercentages.reduce((prev, curr) =>
                     Math.abs(curr - newLast) < Math.abs(prev - newLast) ? curr : prev
                 );
-                // Recalculate total to ensure it's 100
                 total = percentages.reduce((sum, val) => sum + val, 0);
                 if (total !== 100) {
-                    // If still not 100, adjust first percentage
                     percentages[0] += 100 - total;
                     percentages[0] = availablePercentages.reduce((prev, curr) =>
                         Math.abs(curr - percentages[0]) < Math.abs(prev - percentages[0]) ? curr : prev
@@ -599,43 +621,35 @@
         updateInstallmentDescriptions();
     }
 
-    // Add Installment Field
     function addInstallmentField() {
         const container = document.getElementById('installmentContainer');
         const firstInstallment = container.querySelector('.installment-container');
         const newInstallment = firstInstallment.cloneNode(true);
 
-        // Generate unique ID for new fields
         const timestamp = Date.now();
 
-        // Clear input values
         newInstallment.querySelector('input[name="paymentInstallmentDesc[]"]').value = '';
         newInstallment.querySelector('textarea[name="paymentInstallmentDeliverables[]"]').value = '';
         newInstallment.querySelector('input[name="paymentInstallmentDueDate[]"]').value = '';
         newInstallment.querySelector('select[name="paymentInstallmentPercentage[]"]').value = '';
 
-        // Update IDs for textarea and date input
         newInstallment.querySelector('textarea').id = `paymentInstallmentDeliverables${timestamp}`;
         newInstallment.querySelector('label[for^="paymentInstallmentDeliverables"]').setAttribute('for', `paymentInstallmentDeliverables${timestamp}`);
         newInstallment.querySelector('label[for^="paymentInstallmentDeliverables"]').setAttribute('aria-label', `Deliverables for installment ${timestamp}`);
         newInstallment.querySelector('input[name="paymentInstallmentDueDate[]"]').setAttribute('aria-describedby', `paymentInstallmentDueDateIcon${timestamp}`);
         newInstallment.querySelector('.input-group-text').id = `paymentInstallmentDueDateIcon${timestamp}`;
 
-        // Show Remove button for new field
         const removeButton = newInstallment.querySelector('.btn-remove-installment');
         removeButton.classList.remove('d-none');
 
-        // Add event listener to Remove button
         removeButton.addEventListener('click', function () {
             newInstallment.remove();
             updateRemoveButtons();
             assignPercentages();
         });
 
-        // Add event listener to percentage select
         newInstallment.querySelector('.installment-percentage').addEventListener('change', updateInstallmentDescriptions);
 
-        // Add event listener to calendar icon
         const dateInput = newInstallment.querySelector('input[type="date"]');
         const calendarIcon = newInstallment.querySelector('.input-group-text');
         dateInput.addEventListener('click', function () {
@@ -646,15 +660,11 @@
             dateInput.showPicker();
         });
 
-        // Append new field
         container.appendChild(newInstallment);
-
-        // Update Remove buttons and assign percentages
         updateRemoveButtons();
         assignPercentages();
     }
 
-    // Update Remove Buttons for Installments
     function updateRemoveButtons() {
         const container = document.getElementById('installmentContainer');
         const installments = container.querySelectorAll('.installment-container');
@@ -667,33 +677,23 @@
         }
     }
 
-    // Add Article Field
     function addArticleField() {
         const container = document.getElementById('articleContainer');
         const template = container.querySelector('.article-container.d-none');
         const newArticle = template.cloneNode(true);
 
-        // Remove d-none to make it visible
         newArticle.classList.remove('d-none');
-
-        // Clear input value
         newArticle.querySelector('input').value = '';
-
-        // Reset select to first option
         newArticle.querySelector('select').selectedIndex = 0;
 
-        // Add event listener to Remove button
         newArticle.querySelector('.btn-remove-article').addEventListener('click', function () {
             newArticle.remove();
         });
 
-        // Append new field
         container.appendChild(newArticle);
     }
 
-    // Initialize Date Pickers, Remove Buttons, and total_fee_words
     document.addEventListener('DOMContentLoaded', function () {
-        // Initialize date pickers
         const dateInputs = document.querySelectorAll('input[type="date"]');
         dateInputs.forEach(input => {
             input.addEventListener('click', function () {
@@ -708,7 +708,6 @@
             }
         });
 
-        // Initialize Remove buttons for articles, installments, and focal persons
         updateRemoveButtons();
         updateFocalPersonRemoveButtons();
         document.querySelectorAll('.btn-remove-article').forEach(button => {
@@ -730,31 +729,26 @@
             });
         });
 
-        // Initialize percentage selects
         document.querySelectorAll('.installment-percentage').forEach(select => {
             select.addEventListener('change', updateInstallmentDescriptions);
         });
 
-        // Initialize focal person selects
         document.querySelectorAll('.focal-person-select').forEach(select => {
             select.addEventListener('change', function() {
                 populateFocalPerson(this);
             });
         });
 
-        // Initialize total_fee_words if total_fee_usd has a value
         const totalFeeUSD = document.getElementById('total_fee_usd').value;
         if (totalFeeUSD) {
             document.getElementById('total_fee_words').value = numberToWords(parseFloat(totalFeeUSD));
         }
 
-        // Initialize party_b_signature_name_confirm if party_b_signature_name has a value
-        const partyBSignatureName = document.getElementById('party_b_signature_name').value;
-        if (partyBSignatureName) {
-            document.getElementById('party_b_signature_name_confirm').value = partyBSignatureName;
+        const partyBSelect = document.getElementById('party_b_select');
+        if (partyBSelect.value) {
+            handlePartyBSelect(partyBSelect);
         }
 
-        // Initialize percentages
         assignPercentages();
     });
 </script>
