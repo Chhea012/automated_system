@@ -158,10 +158,12 @@
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label">Select Focal Person</label>
-                            <select class="form-select focal-person-select" name="focal_person_select[]" onchange="populateFocalPerson(this)">
+                            <select class="form-select focal-person-select" name="focal_person_select[]">
                                 <option value="" {{ 'selected' if not person.name }}>Select a focal person or enter manually</option>
-                                <option value="mar_sophal" {{ 'selected' if person.name == 'Mr. Mar Sophal' }}>Mr. Mar Sophal</option>
-                                <option value="oum_somaly" {{ 'selected' if person.name == 'Ms. Oum Somaly' }}>Ms. Oum Somaly</option>
+                                <option value="new" {{ 'selected' if person.name and person.name not in focal_person_data.values() | map(attribute='name') | list }}>Enter new focal person</option>
+                                {% for person_data in focal_person_data.values() %}
+                                <option value="{{ person_data.name }}" {{ 'selected' if person.name == person_data.name }}>{{ person_data.name }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -343,21 +345,7 @@
 
 <script>
     const partyBData = {{ party_b_data | tojson | safe }};
-
-    const focalPersons = {
-        'mar_sophal': {
-            name: 'Mr. Mar Sophal',
-            position: 'PALI Program Manager',
-            phone: '012 845 091',
-            email: 'sophal@ngoforum.org.kh'
-        },
-        'oum_somaly': {
-            name: 'Ms. Oum Somaly',
-            position: 'SACHAS Program Manager',
-            phone: '081 647 963',
-            email: 'somaly@ngoforum.org.kh'
-        }
-    };
+    const focalPersonData = {{ focal_person_data | tojson | safe }};
 
     function numberToWords(num) {
         if (!num || isNaN(num) || num < 0) return '';
@@ -446,6 +434,39 @@
         }
     }
 
+    function populateFocalPerson(select) {
+        const container = select.closest('.focal-person-container');
+        const nameInput = container.querySelector('.focal-person-name');
+        const positionInput = container.querySelector('.focal-person-position');
+        const phoneInput = container.querySelector('.focal-person-phone');
+        const emailInput = container.querySelector('.focal-person-email');
+
+        const selectedValue = select.value;
+        if (selectedValue === 'new' || !selectedValue) {
+            nameInput.value = '';
+            positionInput.value = '';
+            phoneInput.value = '';
+            emailInput.value = '';
+            nameInput.required = selectedValue === 'new';
+        } else {
+            const normalizedName = selectedValue.toLowerCase();
+            const person = focalPersonData[normalizedName];
+            if (person) {
+                nameInput.value = person.name;
+                positionInput.value = person.position;
+                phoneInput.value = person.phone;
+                emailInput.value = person.email;
+                nameInput.required = true;
+            } else {
+                nameInput.value = '';
+                positionInput.value = '';
+                phoneInput.value = '';
+                emailInput.value = '';
+                nameInput.required = false;
+            }
+        }
+    }
+
     document.getElementById('total_fee_usd').addEventListener('input', function () {
         const totalFeeUSD = parseFloat(this.value);
         const totalFeeWordsInput = document.getElementById('total_fee_words');
@@ -455,28 +476,6 @@
     document.getElementById('party_b_select').addEventListener('change', function () {
         handlePartyBSelect(this);
     });
-
-    function populateFocalPerson(select) {
-        const container = select.closest('.focal-person-container');
-        const nameInput = container.querySelector('.focal-person-name');
-        const positionInput = container.querySelector('.focal-person-position');
-        const phoneInput = container.querySelector('.focal-person-phone');
-        const emailInput = container.querySelector('.focal-person-email');
-
-        const selectedValue = select.value;
-        if (selectedValue && focalPersons[selectedValue]) {
-            const person = focalPersons[selectedValue];
-            nameInput.value = person.name;
-            positionInput.value = person.position;
-            phoneInput.value = person.phone;
-            emailInput.value = person.email;
-        } else {
-            nameInput.value = '';
-            positionInput.value = '';
-            phoneInput.value = '';
-            emailInput.value = '';
-        }
-    }
 
     function addFocalPersonField() {
         const container = document.getElementById('focalPersonContainer');
