@@ -1927,21 +1927,19 @@ def export_docx(contract_id):
         add_paragraph('BETWEEN', WD_ALIGN_PARAGRAPH.CENTER, size=12)
 
         # Party A
-        party_a_name = contract_data.get('party_a_signature_name', 'Mr. Soeung Saroeun')
-        party_a_position = contract_data.get('party_a_position', 'Executive Director')
-        party_a_address = contract_data.get('party_a_address', '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia')
+        party_a_info = contract_data.get('party_a_info', [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia'}])
+        # Create the representative string dynamically
+        representatives = [f"{person['name']}, {person['position']}" for person in party_a_info]
+        representative_text = ", represented by " + "; ".join(representatives) + "."
         party_a_text_parts = [
             "The NGO Forum on Cambodia",
-            ", represented by ",
-            party_a_name,
-            ", ",
-            party_a_position,
-            ".\nAddress: ",
-            party_a_address,
+            representative_text,
+            "\nAddress: ",
+            party_a_info[0]['address'] if party_a_info else '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia',
             ".\nhereinafter called the ",
             "“Party A”"
         ]
-        party_a_bold_parts = ["The NGO Forum on Cambodia", party_a_name, "“Party A”"]
+        party_a_bold_parts = ["The NGO Forum on Cambodia", "“Party A”"] + [person['name'] for person in party_a_info]
         add_paragraph_with_bold(party_a_text_parts, party_a_bold_parts, WD_ALIGN_PARAGRAPH.CENTER, default_size=12, bold_size=12)
 
         add_paragraph('AND', WD_ALIGN_PARAGRAPH.CENTER, size=12)
@@ -2070,16 +2068,21 @@ def export_docx(contract_id):
         p.runs[0].font.size = Pt(11)
 
         cell3 = table.cell(2, 0)
-        p = cell3.add_paragraph(f"{contract_data.get('party_a_signature_name', 'Mr. Soeung Saroeun')}")
+        # Use the party_a_signature_name directly for the signature
+        p = cell3.add_paragraph(contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun'))
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.runs[0].bold = True
-        p.runs[0].font.size = Pt(11)
+        for run in p.runs:
+            run.bold = True
+            run.font.size = Pt(11)
 
         cell4 = table.cell(3, 0)
-        p = cell4.add_paragraph(f"{contract_data.get('party_a_position', 'Executive Director')}")
+        # Find the position of the signer from party_a_info
+        signer_position = next((person['position'] for person in party_a_info if person['name'] == contract_data.get('party_a_signature_name')), 'Executive Director')
+        p = cell4.add_paragraph(signer_position)
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.runs[0].bold = True
-        p.runs[0].font.size = Pt(11)
+        for run in p.runs:
+            run.bold = True
+            run.font.size = Pt(11)
 
         cell5 = table.cell(0, 1)
         p = cell5.add_paragraph("For “Party B”")
@@ -2094,16 +2097,18 @@ def export_docx(contract_id):
         p.runs[0].font.size = Pt(11)
 
         cell7 = table.cell(2, 1)
-        p = cell7.add_paragraph(f"{contract_data.get('party_b_signature_name', 'N/A')}")
+        p = cell7.add_paragraph(contract_data.get('party_b_signature_name', 'N/A'))
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.runs[0].bold = True
-        p.runs[0].font.size = Pt(11)
+        for run in p.runs:
+            run.bold = True
+            run.font.size = Pt(11)
 
         cell8 = table.cell(3, 1)
-        p = cell8.add_paragraph(f"{contract_data.get('party_b_position', 'N/A')}")
+        p = cell8.add_paragraph(contract_data.get('party_b_position', 'N/A'))
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.runs[0].bold = True
-        p.runs[0].font.size = Pt(11)
+        for run in p.runs:
+            run.bold = True
+            run.font.size = Pt(11)
 
         # Save the document to a BytesIO stream
         output = BytesIO()
@@ -2518,21 +2523,19 @@ def export_all_docx():
                 add_paragraph('BETWEEN', WD_ALIGN_PARAGRAPH.CENTER, size=12)
 
                 # Party A
-                party_a_name = contract_data.get('party_a_signature_name', 'Mr. Soeung Saroeun')
-                party_a_position = contract_data.get('party_a_position', 'Executive Director')
-                party_a_address = contract_data.get('party_a_address', '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia')
+                party_a_info = contract_data.get('party_a_info', [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia'}])
+                # Create the representative string dynamically
+                representatives = [f"{person['name']}, {person['position']}" for person in party_a_info]
+                representative_text = ", represented by " + "; ".join(representatives) + "."
                 party_a_text_parts = [
                     "The NGO Forum on Cambodia",
-                    ", represented by ",
-                    party_a_name,
-                    ", ",
-                    party_a_position,
-                    ".\nAddress: ",
-                    party_a_address,
+                    representative_text,
+                    "\nAddress: ",
+                    party_a_info[0]['address'] if party_a_info else '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia',
                     ".\nhereinafter called the ",
                     "“Party A”"
                 ]
-                party_a_bold_parts = ["The NGO Forum on Cambodia", party_a_name, "“Party A”"]
+                party_a_bold_parts = ["The NGO Forum on Cambodia", "“Party A”"] + [person['name'] for person in party_a_info]
                 add_paragraph_with_bold(party_a_text_parts, party_a_bold_parts, WD_ALIGN_PARAGRAPH.CENTER, default_size=12, bold_size=12)
 
                 add_paragraph('AND', WD_ALIGN_PARAGRAPH.CENTER, size=12)
@@ -2661,16 +2664,21 @@ def export_all_docx():
                 p.runs[0].font.size = Pt(11)
 
                 cell3 = table.cell(2, 0)
-                p = cell3.add_paragraph(f"{contract_data.get('party_a_signature_name', 'Mr. Soeung Saroeun')}")
+                p = cell3.add_paragraph(contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun'))
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                p.runs[0].bold = True
-                p.runs[0].font.size = Pt(11)
+                for run in p.runs:
+                    run.bold = True
+                    run.font.size = Pt(11)
 
                 cell4 = table.cell(3, 0)
-                p = cell4.add_paragraph(f"{contract_data.get('party_a_position', 'Executive Director')}")
+                # Find the position of the signer from party_a_info
+                party_a_info = contract_data.get('party_a_info', [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director'}])
+                signer_position = next((person['position'] for person in party_a_info if person['name'] == contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun')), 'Executive Director')
+                p = cell4.add_paragraph(signer_position)
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                p.runs[0].bold = True
-                p.runs[0].font.size = Pt(11)
+                for run in p.runs:
+                    run.bold = True
+                    run.font.size = Pt(11)
 
                 cell5 = table.cell(0, 1)
                 p = cell5.add_paragraph("For “Party B”")
@@ -2685,16 +2693,18 @@ def export_all_docx():
                 p.runs[0].font.size = Pt(11)
 
                 cell7 = table.cell(2, 1)
-                p = cell7.add_paragraph(f"{contract_data.get('party_b_signature_name', 'N/A')}")
+                p = cell7.add_paragraph(contract_data.get('party_b_signature_name', 'N/A'))
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                p.runs[0].bold = True
-                p.runs[0].font.size = Pt(11)
+                for run in p.runs:
+                    run.bold = True
+                    run.font.size = Pt(11)
 
                 cell8 = table.cell(3, 1)
-                p = cell8.add_paragraph(f"{contract_data.get('party_b_position', 'N/A')}")
+                p = cell8.add_paragraph(contract_data.get('party_b_position', 'N/A'))
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                p.runs[0].bold = True
-                p.runs[0].font.size = Pt(11)
+                for run in p.runs:
+                    run.bold = True
+                    run.font.size = Pt(11)
 
                 # Save the DOCX to a BytesIO buffer
                 doc_buffer = BytesIO()

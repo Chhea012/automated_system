@@ -18,8 +18,12 @@
 
         <!-- Party A -->
         <p class="text-center" style="font-size: 16px;">
-            <strong>The NGO Forum on Cambodia</strong>, represented by <strong>{{ contract.party_a_signature_name or 'Mr. Soeung Saroeun' }}</strong>, {{ contract.party_a_position or 'Executive Director' }}.<br>
-            Address: {{ contract.party_a_address or '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia' }}..<br>
+            <strong>The NGO Forum on Cambodia</strong>, represented by 
+            {% for person in contract.party_a_info %}
+                <strong>{{ person.name or 'Mr. Soeung Saroeun' }}</strong>, {{ person.position or 'Executive Director' }}
+                {% if not loop.last %}; {% endif %}
+            {% endfor %}.<br>
+            Address: {{ contract.party_a_info[0].address or '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia' }}.<br>
             hereinafter called the “<strong>Party A</strong>”
         </p>
 
@@ -27,9 +31,18 @@
 
         <!-- Party B -->
         <p class="text-center" style="font-size: 16px;">
-            <strong>{{ contract.party_b_position or 'Freelance Consultant' }} {{ contract.party_b_signature_name or 'N/A' }}</strong>,<br>
-            Address: {{ contract.party_b_address or 'N/A' }}<br>
-            H/P: {{ contract.party_b_phone or 'N/A' }}, E-mail: <span style="color: blue; text-decoration: underline;">{{ contract.party_b_email or 'N/A' }}</span><br>
+            {% if contract.party_b_info %}
+                {% for person in contract.party_b_info %}
+                    <strong>{{ person.position or 'Freelance Consultant' }} {{ person.name or 'N/A' }}</strong>
+                    {% if not loop.last %}; {% endif %}
+                {% endfor %},<br>
+                Address: {{ contract.party_b_info[0].address or 'N/A' }}<br>
+                H/P: {{ contract.party_b_info[0].phone or 'N/A' }}, E-mail: <span style="color: blue; text-decoration: underline;">{{ contract.party_b_info[0].email or 'N/A' }}</span><br>
+            {% else %}
+                <strong>{{ contract.party_b_position or 'Freelance Consultant' }} {{ contract.party_b_signature_name or 'N/A' }}</strong>,<br>
+                Address: {{ contract.party_b_address or 'N/A' }}<br>
+                H/P: {{ contract.party_b_phone or 'N/A' }}, E-mail: <span style="color: blue; text-decoration: underline;">{{ contract.party_b_email or 'N/A' }}</span><br>
+            {% endif %}
             hereinafter called the “<strong>Party B</strong>”
         </p>
 
@@ -90,16 +103,29 @@
                         <strong>For “Party A”</strong>
                     </div>
                     _________________<br>
-                    <strong>{{ contract.party_a_signature_name or 'Mr. SOEUNG Saroeun' }}</strong><br>
-                    <strong>{{ contract.party_a_position or 'Executive Director' }}</strong>
+                    {% for person in contract.party_a_info %}
+                        {% if person.name == contract.party_a_signature_name %}
+                            <strong>{{ person.name or 'Mr. SOEUNG Saroeun' }}</strong><br>
+                            <strong>{{ person.position or 'Executive Director' }}</strong>
+                        {% endif %}
+                    {% endfor %}
                 </td>
                 <td class="text-start" style="width: 50%;">
                     <div style="margin-bottom: 40px;">
                         <strong>For “Party B”</strong>
                     </div>
                     _________________<br>
-                    <strong>{{ contract.party_b_signature_name or 'N/A' }}</strong><br>
-                    <strong>{{ contract.party_b_position or 'N/A' }}</strong>
+                    {% if contract.party_b_info %}
+                        {% for person in contract.party_b_info %}
+                            {% if person.name == contract.party_b_signature_name %}
+                                <strong>{{ person.name or 'N/A' }}</strong><br>
+                                <strong>{{ person.position or 'N/A' }}</strong>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <strong>{{ contract.party_b_signature_name or 'N/A' }}</strong><br>
+                        <strong>{{ contract.party_b_position or 'N/A' }}</strong>
+                    {% endif %}
                 </td>
             </tr>
         </table>        
