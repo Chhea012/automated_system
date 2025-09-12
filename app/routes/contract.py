@@ -191,6 +191,7 @@ def index():
             last_contract_number=None,
             is_admin=current_user.has_role('admin')
         )
+    
 
 @contracts_bp.route('/create', methods=['GET', 'POST'])
 @login_required
@@ -2127,7 +2128,7 @@ def export_docx(contract_id):
         logger.error(f"Error exporting contract {contract_id} to DOCX: {str(e)}")
         flash("An error occurred while exporting the contract.", 'danger')
         return redirect(url_for('contracts.index'))
-    
+
 # Export all contracts to DOCX
 @contracts_bp.route('/export_all_docx', methods=['GET'])
 @login_required
