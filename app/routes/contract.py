@@ -1538,6 +1538,7 @@ def delete(contract_id):
     return redirect(url_for('contracts.index'))
 
 #export docx contract file
+#export docx contract file
 @contracts_bp.route('/export_docx/<contract_id>')
 @login_required
 def export_docx(contract_id):
@@ -1723,15 +1724,13 @@ def export_docx(contract_id):
                     f' (',
                     f'{contract_data["total_fee_words"]} ',
                     f') including tax for the whole assignment period.\n\n',
-                    f'Total Service Fee: ',
-                    contract_data["total_gross"],
-                    f'\n',
-                    f'Withholding Tax {tax_percentage}%: ',
-                    f'USD{total_gross_amount * (tax_percentage/100):.2f}',
-                    f'\n',
-                    f'Net amount: ',
-                    contract_data["total_net"],
-                    f'\n\n',
+                ],
+                'financial_lines': [
+                    f'Total Service Fee: {contract_data["total_gross"]}\n',
+                    f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}\n',
+                    f'Net amount: {contract_data["total_net"]}\n\n',
+                ],
+                'remaining_content': [
                     f'“Party B” is responsible to issue the Invoice (net amount) and receipt (when receiving the payment) '
                     f'with the total amount as stipulated in each instalment as in the Article 4 after having done the '
                     f'agreed deliverable tasks, for payment request. The payment will be processed after the satisfaction '
@@ -1741,12 +1740,9 @@ def export_docx(contract_id):
                 'bold_parts': [
                     contract_data["total_gross"],
                     f'{contract_data["total_fee_words"]} ',
-                    f'Total Service Fee: ',
-                    contract_data["total_gross"],
-                    f'Withholding Tax {tax_percentage}%: ',
-                    f'USD{total_gross_amount * (tax_percentage/100):.2f}',
-                    f'Net amount: ',
-                    contract_data["total_net"],
+                    f'Total Service Fee: {contract_data["total_gross"]}',
+                    f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}',
+                    f'Net amount: {contract_data["total_net"]}',
                     '“Party A”',
                     '“Party B”'
                 ],
@@ -1766,7 +1762,7 @@ def export_docx(contract_id):
                                 f'· Tax {tax_percentage}%: ${installment["tax_amount"]:.2f}\n'
                                 f'· Net pay: ${installment["net_amount"]:.2f}'
                             ),
-                            'Deliverable': installment['deliverables'].replace('; ', '\n· '),
+                            'Deliverable': '\n·'.join([d.strip() for d in installment['deliverables'].split(';') if d.strip()]),
                             'Due date': installment['dueDate_display']
                         }
                         for installment in contract_data.get('payment_installments', [])
@@ -1942,7 +1938,6 @@ def export_docx(contract_id):
 
         # Party A
         party_a_info = contract_data.get('party_a_info', [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia'}])
-        # Create the representative string dynamically
         representatives = [f"{person['name']}, {person['position']}" for person in party_a_info]
         representative_text = ", represented by " + "; ".join(representatives) + "."
         party_a_text_parts = [
@@ -1995,8 +1990,25 @@ def export_docx(contract_id):
             add_heading(article['number'], article['title'], level=3, size=12)
 
             if article['number'] == 3:
+                # First part (justified)
                 add_paragraph_with_bold(
                     article['content'],
+                    article['bold_parts'],
+                    WD_ALIGN_PARAGRAPH.JUSTIFY,
+                    default_size=11,
+                    bold_size=12
+                )
+                # Financial lines (left-aligned)
+                add_paragraph_with_bold(
+                    article['financial_lines'],
+                    article['bold_parts'],
+                    WD_ALIGN_PARAGRAPH.LEFT,
+                    default_size=11,
+                    bold_size=12
+                )
+                # Remaining content (justified)
+                add_paragraph_with_bold(
+                    article['remaining_content'],
                     article['bold_parts'],
                     WD_ALIGN_PARAGRAPH.JUSTIFY,
                     default_size=11,
@@ -2043,17 +2055,21 @@ def export_docx(contract_id):
                         cell = row_cells[j]
                         cell.text = row_data[key]
                         for paragraph in cell.paragraphs:
+                            paragraph.paragraph_format.space_after = Pt(0)  # Set spacing after to 0 pt
                             if i == 0:
-                                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER  # Header row: all centered
                             else:
-                                paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                                if key == 'Deliverable':
+                                    paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT  # Data rows: Deliverable left-aligned
+                                else:
+                                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER  # Other columns (Installment, Total Amount, Due date) centered
                             for run in paragraph.runs:
                                 run.font.size = Pt(11)
                                 run.font.name = 'Calibri'
                                 if i == 0:
-                                    run.bold = True
+                                    run.bold = True  # Header bold
                                 if key == 'Total Amount (USD)' and i > 0:
-                                    run.bold = True
+                                    run.bold = True  # Total Amount data bold
 
             for custom in custom_articles:
                 if custom['article_number'] == str(article['number']):
@@ -2088,7 +2104,6 @@ def export_docx(contract_id):
         p.runs[0].font.size = Pt(11)
 
         cell3 = table.cell(2, 0)
-        # Use the party_a_signature_name directly for the signature
         p = cell3.add_paragraph(contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun'))
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         for run in p.runs:
@@ -2096,7 +2111,6 @@ def export_docx(contract_id):
             run.font.size = Pt(11)
 
         cell4 = table.cell(3, 0)
-        # Find the position of the signer from party_a_info
         signer_position = next((person['position'] for person in party_a_info if person['name'] == contract_data.get('party_a_signature_name')), 'Executive Director')
         p = cell4.add_paragraph(signer_position)
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
