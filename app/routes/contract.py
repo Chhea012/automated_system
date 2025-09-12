@@ -1537,7 +1537,6 @@ def delete(contract_id):
         flash("An error occurred while deleting the contract.", 'danger')
     return redirect(url_for('contracts.index'))
 
-# Export contract to DOCX
 @contracts_bp.route('/export_docx/<contract_id>')
 @login_required
 def export_docx(contract_id):
@@ -1606,55 +1605,68 @@ def export_docx(contract_id):
 
         # Helper function to add paragraph with selective bolding, email formatting, and custom bold segments
         def add_paragraph(text, alignment=WD_ALIGN_PARAGRAPH.LEFT, bold=False, size=11, underline=False, email_addresses=None, bold_segments=None):
-            p = doc.add_paragraph()
-            p.alignment = alignment
             email_addresses = email_addresses or []
             bold_segments = bold_segments or []
             pattern_parts = [re.escape(segment) for segment in email_addresses + bold_segments + ['“Party A”', '“Party B”']]
             pattern = r'(' + '|'.join(pattern_parts) + r')' if pattern_parts else r'(“Party A”|“Party B”)'
-            parts = re.split(pattern, text)
-            for part in parts:
-                run = p.add_run(part)
-                run.font.size = Pt(size)
-                run.bold = bold or part in bold_segments or part in ['“Party A”', '“Party B”']
-                if part in email_addresses:
-                    run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
-                    run.underline = WD_UNDERLINE.SINGLE
-                elif underline:
-                    run.underline = WD_UNDERLINE.SINGLE
-            return p
+            paragraphs = text.split('\n\n')
+            ps = []
+            for para_text in paragraphs:
+                p = doc.add_paragraph()
+                p.alignment = alignment
+                parts = re.split(pattern, para_text)
+                for part in parts:
+                    run = p.add_run(part)
+                    run.font.size = Pt(size)
+                    run.bold = bold or part in bold_segments or part in ['“Party A”', '“Party B”']
+                    if part in email_addresses:
+                        run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
+                        run.underline = WD_UNDERLINE.SINGLE
+                    elif underline:
+                        run.underline = WD_UNDERLINE.SINGLE
+                ps.append(p)
+            return ps
 
         # Helper function to add paragraph with selective bold and size
         def add_paragraph_with_bold(text_parts, bold_parts, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12):
-            p = doc.add_paragraph()
-            p.alignment = alignment
-            for part in text_parts:
+            text = ''.join(text_parts)
+            paragraphs = text.split('\n\n')
+            ps = []
+            for para_text in paragraphs:
+                p = doc.add_paragraph()
+                p.alignment = alignment
                 pattern_parts = [re.escape(bp) for bp in bold_parts] + ['“Party A”', '“Party B”']
                 pattern = r'(' + '|'.join(pattern_parts) + r')'
-                sub_parts = re.split(pattern, part)
+                sub_parts = re.split(pattern, para_text)
                 for sub_part in sub_parts:
                     run = p.add_run(sub_part)
                     run.bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
                     run.font.size = Pt(bold_size if sub_part in bold_parts else default_size)
-            return p
+                ps.append(p)
+            return ps
 
         # Helper function to add paragraph with selective formatting for Party B email
         def add_paragraph_with_email_formatting(text_parts, bold_parts, email_text, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12):
-            p = doc.add_paragraph()
-            p.alignment = alignment
-            for part in text_parts:
-                if part == email_text:
-                    run = p.add_run(part)
-                    run.font.size = Pt(default_size)
-                    run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
-                    run.underline = WD_UNDERLINE.SINGLE
-                else:
+            text = ''.join(text_parts)
+            paragraphs = text.split('\n\n')
+            ps = []
+            for para_text in paragraphs:
+                p = doc.add_paragraph()
+                p.alignment = alignment
+                parts = para_text.split(email_text)
+                for i, part in enumerate(parts):
                     sub_parts = re.split(r'(“Party A”|“Party B”)', part)
                     for sub_part in sub_parts:
                         run = p.add_run(sub_part)
                         run.bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
                         run.font.size = Pt(bold_size if sub_part in bold_parts else default_size)
-            return p
+                    if i < len(parts) - 1:
+                        run = p.add_run(email_text)
+                        run.font.size = Pt(default_size)
+                        run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
+                        run.underline = WD_UNDERLINE.SINGLE
+                ps.append(p)
+            return ps
 
         # Helper function to add heading with selective underlining
         def add_heading(number, title, level, size=12):
@@ -1801,8 +1813,8 @@ def export_docx(contract_id):
                 'title': 'ANTI-CORRUPTION and CONFLICT OF INTEREST',
                 'content': (
                     '“Party B” shall not participate in any practice that is or could be construed as an illegal or corrupt '
-                    'practice in Cambodia. The “Party A” is committed to fighting all types of corruption and expects this same '
-                    'commitment from the consultant it reserves the rights and believes based on the declaration of “Party B” '
+                    'practice in Cambodia.\n\nThe “Party A” is committed to fighting all types of corruption and expects this same '
+                    'commitment from the consultant. It reserves the rights and believes based on the declaration of “Party B” '
                     'that it is an independent social enterprise firm operating in Cambodia and it does not involve any conflict '
                     'of interest with other parties that may be affected to the “Party A”.'
                 ),
@@ -1828,9 +1840,9 @@ def export_docx(contract_id):
                     'this objective, NGOF will not knowingly or recklessly provide funds, economic goods, or material support to any '
                     'entity or individual designated as a “terrorist” by the international community or affiliate domestic governments '
                     'and will take all reasonable steps to safeguard and protect its assets from such illicit use and to comply with '
-                    'host government laws.\nNGOF respects its contracts with its donors and puts procedures in place for compliance '
-                    'with these contracts.\n“Illicit use” refers to terrorist financing, sanctions, money laundering, and export '
-                    'control regulations.'
+                    'host government laws.\n\n'
+                    'NGOF respects its contracts with its donors and puts procedures in place for compliance with these contracts.\n\n'
+                    '“Illicit use” refers to terrorist financing, sanctions, money laundering, and export control regulations.'
                 ),
                 'table': None
             },
@@ -1848,8 +1860,8 @@ def export_docx(contract_id):
                 'title': 'ASSIGNMENT',
                 'content': (
                     '“Party B” shall have the right to assign individuals within its organization to carry out the tasks herein '
-                    'named in the attached Technical Proposal. The “Party B” shall not assign, or transfer any of its rights or '
-                    'obligations under this agreement hereunder without the prior written consent of “Party A”. Any attempt by '
+                    'named in the attached Technical Proposal.\n\nThe “Party B” shall not assign, or transfer any of its rights or '
+                    'obligations under this agreement without the prior written consent of “Party A”. Any attempt by '
                     '“Party B” to assign or transfer any of its rights and obligations without the prior written consent of “Party A” '
                     'shall render this agreement subject to immediate termination by “Party A”.'
                 ),
@@ -1859,10 +1871,10 @@ def export_docx(contract_id):
                 'number': 13,
                 'title': 'RESOLUTION OF CONFLICTS/DISPUTES',
                 'content': (
-                    'Conflicts between any of these agreements shall be resolved by the following methods:\n'
+                    'Conflicts between any of these agreements shall be resolved by the following methods:\n\n'
                     'In the case of a disagreement arising between “Party A” and the “Party B” regarding the implementation of '
                     'any part of, or any other substantive question arising under or relating to this agreement, the parties shall '
-                    'use their best efforts to arrive at an agreeable resolution by mutual consultation.\n'
+                    'use their best efforts to arrive at an agreeable resolution by mutual consultation.\n\n'
                     'Unresolved issues may, upon the option of either party and written notice to the other party, be referred to '
                     'for arbitration. Failure by the “Party B” or “Party A” to dispute a decision arising from such arbitration in '
                     'writing within thirty (30) calendar days of receipt of a final decision shall result in such final decision '
@@ -1908,7 +1920,7 @@ def export_docx(contract_id):
                 'title': 'CONTROLLING OF LAW',
                 'content': (
                     'This agreement shall be governed and construed following the law of the Kingdom of Cambodia. '
-                    'The Simultaneous Interpretation Agreement is prepared in two original copies.'
+                    'This Agreement is prepared in two original copies.'
                 ),
                 'table': None
             }
@@ -1969,11 +1981,11 @@ def export_docx(contract_id):
         add_paragraph(
             f"Whereas NGOF is a legal entity registered with the Ministry of Interior (MOI) "
             f"{contract_data.get('registration_number', '#304 សជណ')} dated {contract_data.get('registration_date', '07 March 2012')}.",
-            size=11
+            WD_ALIGN_PARAGRAPH.JUSTIFY, size=11
         )
         add_paragraph(
             f"Whereas NGOF will engage the services of “Party B” which accepts the engagement under the following terms and conditions.",
-            size=11
+            WD_ALIGN_PARAGRAPH.JUSTIFY, size=11
         )
         add_paragraph("Both Parties Agreed as follows:", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)
 
@@ -1985,9 +1997,12 @@ def export_docx(contract_id):
                 add_paragraph_with_bold(
                     article['content'],
                     article['bold_parts'],
+                    WD_ALIGN_PARAGRAPH.JUSTIFY,
                     default_size=11,
                     bold_size=12
                 )
+            elif article['number'] == 4:
+                add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
             elif article['number'] == 6:
                 email_addresses = [person['email'] for person in contract_data.get("focal_person_info", [])] + [contract_data.get("party_b_email", "N/A")]
                 bold_segments = (
@@ -1996,14 +2011,14 @@ def export_docx(contract_id):
                     [f"{contract_data.get('party_b_signature_name', 'N/A')}, {contract_data.get('party_b_position', 'Freelance Consultant')}",
                      f"HP. {contract_data.get('party_b_phone', 'N/A')}"]
                 )
-                add_paragraph(article['content'], size=11, email_addresses=email_addresses, bold_segments=bold_segments)
+                add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11, email_addresses=email_addresses, bold_segments=bold_segments)
             elif article['number'] == 7:
                 bold_segments = [
                     f"“{contract_data.get('project_title', 'N/A')}”"
                 ]
-                add_paragraph(article['content'], size=11, bold_segments=bold_segments)
+                add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11, bold_segments=bold_segments)
             else:
-                add_paragraph(article['content'], size=11)
+                add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
 
             if article['table']:
                 table = doc.add_table(rows=len(article['table']), cols=len(article['table'][0]))
@@ -2026,19 +2041,22 @@ def export_docx(contract_id):
                     for j, key in enumerate(row_data.keys()):
                         cell = row_cells[j]
                         cell.text = row_data[key]
-                        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.LEFT
-                        for run in cell.paragraphs[0].runs:
-                            run.font.size = Pt(11)
-                            run.font.name = 'Calibri'
+                        for paragraph in cell.paragraphs:
                             if i == 0:
-                                run.bold = True
-                                cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                            if key == 'Total Amount (USD)' and i > 0:
-                                run.bold = True
+                                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                            else:
+                                paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                            for run in paragraph.runs:
+                                run.font.size = Pt(11)
+                                run.font.name = 'Calibri'
+                                if i == 0:
+                                    run.bold = True
+                                if key == 'Total Amount (USD)' and i > 0:
+                                    run.bold = True
 
             for custom in custom_articles:
                 if custom['article_number'] == str(article['number']):
-                    add_paragraph(custom['custom_sentence'], size=11)
+                    add_paragraph(custom['custom_sentence'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
 
         # Signatures
         add_paragraph(
@@ -2169,55 +2187,68 @@ def export_all_docx():
 
                 # Helper function to add paragraph with selective bolding, email formatting, and custom bold segments
                 def add_paragraph(text, alignment=WD_ALIGN_PARAGRAPH.LEFT, bold=False, size=11, underline=False, email_addresses=None, bold_segments=None):
-                    p = doc.add_paragraph()
-                    p.alignment = alignment
                     email_addresses = email_addresses or []
                     bold_segments = bold_segments or []
                     pattern_parts = [re.escape(segment) for segment in email_addresses + bold_segments + ['“Party A”', '“Party B”']]
                     pattern = r'(' + '|'.join(pattern_parts) + r')' if pattern_parts else r'(“Party A”|“Party B”)'
-                    parts = re.split(pattern, text)
-                    for part in parts:
-                        run = p.add_run(part)
-                        run.font.size = Pt(size)
-                        run.bold = bold or part in bold_segments or part in ['“Party A”', '“Party B”']
-                        if part in email_addresses:
-                            run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
-                            run.underline = WD_UNDERLINE.SINGLE
-                        elif underline:
-                            run.underline = WD_UNDERLINE.SINGLE
-                    return p
+                    paragraphs = text.split('\n\n')
+                    ps = []
+                    for para_text in paragraphs:
+                        p = doc.add_paragraph()
+                        p.alignment = alignment
+                        parts = re.split(pattern, para_text)
+                        for part in parts:
+                            run = p.add_run(part)
+                            run.font.size = Pt(size)
+                            run.bold = bold or part in bold_segments or part in ['“Party A”', '“Party B”']
+                            if part in email_addresses:
+                                run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
+                                run.underline = WD_UNDERLINE.SINGLE
+                            elif underline:
+                                run.underline = WD_UNDERLINE.SINGLE
+                        ps.append(p)
+                    return ps
 
                 # Helper function to add paragraph with selective bold and size
                 def add_paragraph_with_bold(text_parts, bold_parts, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12):
-                    p = doc.add_paragraph()
-                    p.alignment = alignment
-                    for part in text_parts:
+                    text = ''.join(text_parts)
+                    paragraphs = text.split('\n\n')
+                    ps = []
+                    for para_text in paragraphs:
+                        p = doc.add_paragraph()
+                        p.alignment = alignment
                         pattern_parts = [re.escape(bp) for bp in bold_parts] + ['“Party A”', '“Party B”']
                         pattern = r'(' + '|'.join(pattern_parts) + r')'
-                        sub_parts = re.split(pattern, part)
+                        sub_parts = re.split(pattern, para_text)
                         for sub_part in sub_parts:
                             run = p.add_run(sub_part)
                             run.bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
                             run.font.size = Pt(bold_size if sub_part in bold_parts else default_size)
-                    return p
+                        ps.append(p)
+                    return ps
 
                 # Helper function to add paragraph with selective formatting for Party B email
                 def add_paragraph_with_email_formatting(text_parts, bold_parts, email_text, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12):
-                    p = doc.add_paragraph()
-                    p.alignment = alignment
-                    for part in text_parts:
-                        if part == email_text:
-                            run = p.add_run(part)
-                            run.font.size = Pt(default_size)
-                            run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
-                            run.underline = WD_UNDERLINE.SINGLE
-                        else:
+                    text = ''.join(text_parts)
+                    paragraphs = text.split('\n\n')
+                    ps = []
+                    for para_text in paragraphs:
+                        p = doc.add_paragraph()
+                        p.alignment = alignment
+                        parts = para_text.split(email_text)
+                        for i, part in enumerate(parts):
                             sub_parts = re.split(r'(“Party A”|“Party B”)', part)
                             for sub_part in sub_parts:
                                 run = p.add_run(sub_part)
                                 run.bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
                                 run.font.size = Pt(bold_size if sub_part in bold_parts else default_size)
-                    return p
+                            if i < len(parts) - 1:
+                                run = p.add_run(email_text)
+                                run.font.size = Pt(default_size)
+                                run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
+                                run.underline = WD_UNDERLINE.SINGLE
+                        ps.append(p)
+                    return ps
 
                 # Helper function to add heading with selective underlining
                 def add_heading(number, title, level, size=12):
@@ -2388,7 +2419,7 @@ def export_all_docx():
                             f'which is a contribution from, and to be claimed as a public document by the main author and co-author '
                             f'in associated, and/or under this agreement, shall be the property of “Party A”. The “Party B” agrees '
                             f'to not disclose any confidential information, of which he/she may take cognizance in the performance '
-                            f'under this contract, except with the prior written approval of the “Party A”.'
+                            f'under this contract, except with the prior written approval of “Party A”.'
                         ),
                         'table': None
                     },
@@ -2397,8 +2428,8 @@ def export_all_docx():
                         'title': 'ANTI-CORRUPTION and CONFLICT OF INTEREST',
                         'content': (
                             '“Party B” shall not participate in any practice that is or could be construed as an illegal or corrupt '
-                            'practice in Cambodia. The “Party A” is committed to fighting all types of corruption and expects this same '
-                            'commitment from the consultant it reserves the rights and believes based on the declaration of “Party B” '
+                            'practice in Cambodia.\n\nThe “Party A” is committed to fighting all types of corruption and expects this same '
+                            'commitment from the consultant. It reserves the rights and believes based on the declaration of “Party B” '
                             'that it is an independent social enterprise firm operating in Cambodia and it does not involve any conflict '
                             'of interest with other parties that may be affected to the “Party A”.'
                         ),
@@ -2424,9 +2455,9 @@ def export_all_docx():
                             'this objective, NGOF will not knowingly or recklessly provide funds, economic goods, or material support to any '
                             'entity or individual designated as a “terrorist” by the international community or affiliate domestic governments '
                             'and will take all reasonable steps to safeguard and protect its assets from such illicit use and to comply with '
-                            'host government laws.\nNGOF respects its contracts with its donors and puts procedures in place for compliance '
-                            'with these contracts.\n“Illicit use” refers to terrorist financing, sanctions, money laundering, and export '
-                            'control regulations.'
+                            'host government laws.\n\n'
+                            'NGOF respects its contracts with its donors and puts procedures in place for compliance with these contracts.\n\n'
+                            '“Illicit use” refers to terrorist financing, sanctions, money laundering, and export control regulations.'
                         ),
                         'table': None
                     },
@@ -2444,8 +2475,8 @@ def export_all_docx():
                         'title': 'ASSIGNMENT',
                         'content': (
                             '“Party B” shall have the right to assign individuals within its organization to carry out the tasks herein '
-                            'named in the attached Technical Proposal. The “Party B” shall not assign, or transfer any of its rights or '
-                            'obligations under this agreement hereunder without the prior written consent of “Party A”. Any attempt by '
+                            'named in the attached Technical Proposal.\n\nThe “Party B” shall not assign, or transfer any of its rights or '
+                            'obligations under this agreement without the prior written consent of “Party A”. Any attempt by '
                             '“Party B” to assign or transfer any of its rights and obligations without the prior written consent of “Party A” '
                             'shall render this agreement subject to immediate termination by “Party A”.'
                         ),
@@ -2455,10 +2486,10 @@ def export_all_docx():
                         'number': 13,
                         'title': 'RESOLUTION OF CONFLICTS/DISPUTES',
                         'content': (
-                            'Conflicts between any of these agreements shall be resolved by the following methods:\n'
+                            'Conflicts between any of these agreements shall be resolved by the following methods:\n\n'
                             'In the case of a disagreement arising between “Party A” and the “Party B” regarding the implementation of '
                             'any part of, or any other substantive question arising under or relating to this agreement, the parties shall '
-                            'use their best efforts to arrive at an agreeable resolution by mutual consultation.\n'
+                            'use their best efforts to arrive at an agreeable resolution by mutual consultation.\n\n'
                             'Unresolved issues may, upon the option of either party and written notice to the other party, be referred to '
                             'for arbitration. Failure by the “Party B” or “Party A” to dispute a decision arising from such arbitration in '
                             'writing within thirty (30) calendar days of receipt of a final decision shall result in such final decision '
@@ -2504,7 +2535,7 @@ def export_all_docx():
                         'title': 'CONTROLLING OF LAW',
                         'content': (
                             'This agreement shall be governed and construed following the law of the Kingdom of Cambodia. '
-                            'The Simultaneous Interpretation Agreement is prepared in two original copies.'
+                            'This Agreement is prepared in two original copies.'
                         ),
                         'table': None
                     }
@@ -2525,7 +2556,6 @@ def export_all_docx():
 
                 # Party A
                 party_a_info = contract_data.get('party_a_info', [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia'}])
-                # Create the representative string dynamically
                 representatives = [f"{person['name']}, {person['position']}" for person in party_a_info]
                 representative_text = ", represented by " + "; ".join(representatives) + "."
                 party_a_text_parts = [
@@ -2565,11 +2595,11 @@ def export_all_docx():
                 add_paragraph(
                     f"Whereas NGOF is a legal entity registered with the Ministry of Interior (MOI) "
                     f"{contract_data.get('registration_number', '#304 សជណ')} dated {contract_data.get('registration_date', '07 March 2012')}.",
-                    size=11
+                    WD_ALIGN_PARAGRAPH.JUSTIFY, size=11
                 )
                 add_paragraph(
                     f"Whereas NGOF will engage the services of “Party B” which accepts the engagement under the following terms and conditions.",
-                    size=11
+                    WD_ALIGN_PARAGRAPH.JUSTIFY, size=11
                 )
                 add_paragraph("Both Parties Agreed as follows:", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)
 
@@ -2581,9 +2611,12 @@ def export_all_docx():
                         add_paragraph_with_bold(
                             article['content'],
                             article['bold_parts'],
+                            WD_ALIGN_PARAGRAPH.JUSTIFY,
                             default_size=11,
                             bold_size=12
                         )
+                    elif article['number'] == 4:
+                        add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
                     elif article['number'] == 6:
                         email_addresses = [person['email'] for person in contract_data.get("focal_person_info", [])] + [contract_data.get("party_b_email", "N/A")]
                         bold_segments = (
@@ -2592,14 +2625,14 @@ def export_all_docx():
                             [f"{contract_data.get('party_b_signature_name', 'N/A')}, {contract_data.get('party_b_position', 'Freelance Consultant')}",
                              f"HP. {contract_data.get('party_b_phone', 'N/A')}"]
                         )
-                        add_paragraph(article['content'], size=11, email_addresses=email_addresses, bold_segments=bold_segments)
+                        add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11, email_addresses=email_addresses, bold_segments=bold_segments)
                     elif article['number'] == 7:
                         bold_segments = [
                             f"“{contract_data.get('project_title', 'N/A')}”"
                         ]
-                        add_paragraph(article['content'], size=11, bold_segments=bold_segments)
+                        add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11, bold_segments=bold_segments)
                     else:
-                        add_paragraph(article['content'], size=11)
+                        add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
 
                     if article['table']:
                         table = doc.add_table(rows=len(article['table']), cols=len(article['table'][0]))
@@ -2622,19 +2655,22 @@ def export_all_docx():
                             for j, key in enumerate(row_data.keys()):
                                 cell = row_cells[j]
                                 cell.text = row_data[key]
-                                cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.LEFT
-                                for run in cell.paragraphs[0].runs:
-                                    run.font.size = Pt(11)
-                                    run.font.name = 'Calibri'
+                                for paragraph in cell.paragraphs:
                                     if i == 0:
-                                        run.bold = True
-                                        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                                    if key == 'Total Amount (USD)' and i > 0:
-                                        run.bold = True
+                                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                    else:
+                                        paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                                    for run in paragraph.runs:
+                                        run.font.size = Pt(11)
+                                        run.font.name = 'Calibri'
+                                        if i == 0:
+                                            run.bold = True
+                                        if key == 'Total Amount (USD)' and i > 0:
+                                            run.bold = True
 
                     for custom in custom_articles:
                         if custom['article_number'] == str(article['number']):
-                            add_paragraph(custom['custom_sentence'], size=11)
+                            add_paragraph(custom['custom_sentence'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
 
                 # Signatures
                 add_paragraph(
@@ -2672,7 +2708,6 @@ def export_all_docx():
                     run.font.size = Pt(11)
 
                 cell4 = table.cell(3, 0)
-                # Find the position of the signer from party_a_info
                 party_a_info = contract_data.get('party_a_info', [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director'}])
                 signer_position = next((person['position'] for person in party_a_info if person['name'] == contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun')), 'Executive Director')
                 p = cell4.add_paragraph(signer_position)
