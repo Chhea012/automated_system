@@ -1536,7 +1536,8 @@ def delete(contract_id):
         logger.error(f"Error deleting contract: {str(e)}")
         flash("An error occurred while deleting the contract.", 'danger')
     return redirect(url_for('contracts.index'))
-#Export docx contract
+
+#export docx contract file
 @contracts_bp.route('/export_docx/<contract_id>')
 @login_required
 def export_docx(contract_id):
@@ -2146,7 +2147,7 @@ def export_docx(contract_id):
         logger.error(f"Error exporting contract {contract_id} to DOCX: {str(e)}")
         flash("An error occurred while exporting the contract.", 'danger')
         return redirect(url_for('contracts.index'))
-
+    
 # Export all contracts to DOCX
 @contracts_bp.route('/export_all_docx', methods=['GET'])
 @login_required
