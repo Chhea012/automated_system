@@ -1538,7 +1538,6 @@ def delete(contract_id):
     return redirect(url_for('contracts.index'))
 
 #export docx contract file
-#export docx contract file
 @contracts_bp.route('/export_docx/<contract_id>')
 @login_required
 def export_docx(contract_id):
@@ -2185,6 +2184,39 @@ def export_all_docx():
                 if 'custom_article_sentences' not in contract_data or contract_data['custom_article_sentences'] is None:
                     contract_data['custom_article_sentences'] = {}
 
+                # Format dates
+                contract_data['agreement_start_date_display'] = format_date(contract_data['agreement_start_date'])
+                contract_data['agreement_end_date_display'] = format_date(contract_data['agreement_end_date'])
+
+                # Get financial data as floats
+                try:
+                    total_fee_usd = float(contract_data['total_fee_usd']) if contract_data['total_fee_usd'] else 0.0
+                    tax_percentage = float(contract_data.get('tax_percentage', 15.0))
+                except (ValueError, TypeError) as e:
+                    logger.error(f"Error converting financial data for contract {contract.id}: {str(e)}")
+                    continue  # Skip this contract and proceed to the next
+
+                contract_data['total_fee_usd'] = total_fee_usd
+                contract_data['gross_amount_usd'] = total_fee_usd
+                contract_data['total_fee_words'] = contract_data.get('total_fee_words') or number_to_words(total_fee_usd)
+
+                # Calculate total gross and net
+                total_gross_amount, total_net_amount = calculate_payments(
+                    total_fee_usd, tax_percentage, contract_data.get('payment_installments', [])
+                )
+                contract_data['total_gross'] = f"USD{total_gross_amount:.2f}"
+                contract_data['total_net'] = f"USD{total_net_amount:.2f}"
+
+                # Process payment installments
+                for installment in contract_data.get('payment_installments', []):
+                    installment['dueDate_display'] = format_date(installment.get('dueDate', ''))
+                    match = re.search(r'\((\d+\.?\d*)\%\)', installment['description'])
+                    percentage = float(match.group(1)) if match else 0.0
+                    gross, tax, net = calculate_installment_payments(total_fee_usd, tax_percentage, percentage)
+                    installment['gross_amount'] = gross
+                    installment['tax_amount'] = tax
+                    installment['net_amount'] = net
+
                 # Create a new DOCX document for each contract
                 doc = Document()
 
@@ -2287,39 +2319,6 @@ def export_all_docx():
                     run3.font.color.rgb = RGBColor(0, 0, 0)
                     return p
 
-                # Format dates
-                contract_data['agreement_start_date_display'] = format_date(contract_data['agreement_start_date'])
-                contract_data['agreement_end_date_display'] = format_date(contract_data['agreement_end_date'])
-
-                # Get financial data as floats
-                try:
-                    total_fee_usd = float(contract_data['total_fee_usd']) if contract_data['total_fee_usd'] else 0.0
-                    tax_percentage = float(contract_data.get('tax_percentage', 15.0))
-                except (ValueError, TypeError) as e:
-                    logger.error(f"Error converting financial data for contract {contract.id}: {str(e)}")
-                    continue  # Skip this contract and proceed to the next
-
-                contract_data['total_fee_usd'] = total_fee_usd
-                contract_data['gross_amount_usd'] = total_fee_usd
-                contract_data['total_fee_words'] = contract_data.get('total_fee_words') or number_to_words(total_fee_usd)
-
-                # Calculate total gross and net
-                total_gross_amount, total_net_amount = calculate_payments(
-                    total_fee_usd, tax_percentage, contract_data.get('payment_installments', [])
-                )
-                contract_data['total_gross'] = f"USD{total_gross_amount:.2f}"
-                contract_data['total_net'] = f"USD{total_net_amount:.2f}"
-
-                # Process payment installments
-                for installment in contract_data.get('payment_installments', []):
-                    installment['dueDate_display'] = format_date(installment.get('dueDate', ''))
-                    match = re.search(r'\((\d+\.?\d*)\%\)', installment['description'])
-                    percentage = float(match.group(1)) if match else 0.0
-                    gross, tax, net = calculate_installment_payments(total_fee_usd, tax_percentage, percentage)
-                    installment['gross_amount'] = gross
-                    installment['tax_amount'] = tax
-                    installment['net_amount'] = net
-
                 # Define standard articles
                 standard_articles = [
                     {
@@ -2352,15 +2351,13 @@ def export_all_docx():
                             f' (',
                             f'{contract_data["total_fee_words"]} ',
                             f') including tax for the whole assignment period.\n\n',
-                            f'Total Service Fee: ',
-                            contract_data["total_gross"],
-                            f'\n',
-                            f'Withholding Tax {tax_percentage}%: ',
-                            f'USD{total_gross_amount * (tax_percentage/100):.2f}',
-                            f'\n',
-                            f'Net amount: ',
-                            contract_data["total_net"],
-                            f'\n\n',
+                        ],
+                        'financial_lines': [
+                            f'Total Service Fee: {contract_data["total_gross"]}\n',
+                            f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}\n',
+                            f'Net amount: {contract_data["total_net"]}\n\n',
+                        ],
+                        'remaining_content': [
                             f'“Party B” is responsible to issue the Invoice (net amount) and receipt (when receiving the payment) '
                             f'with the total amount as stipulated in each instalment as in the Article 4 after having done the '
                             f'agreed deliverable tasks, for payment request. The payment will be processed after the satisfaction '
@@ -2370,12 +2367,9 @@ def export_all_docx():
                         'bold_parts': [
                             contract_data["total_gross"],
                             f'{contract_data["total_fee_words"]} ',
-                            f'Total Service Fee: ',
-                            contract_data["total_gross"],
-                            f'Withholding Tax {tax_percentage}%: ',
-                            f'USD{total_gross_amount * (tax_percentage/100):.2f}',
-                            f'Net amount: ',
-                            contract_data["total_net"],
+                            f'Total Service Fee: {contract_data["total_gross"]}',
+                            f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}',
+                            f'Net amount: {contract_data["total_net"]}',
                             '“Party A”',
                             '“Party B”'
                         ],
@@ -2395,7 +2389,7 @@ def export_all_docx():
                                         f'· Tax {tax_percentage}%: ${installment["tax_amount"]:.2f}\n'
                                         f'· Net pay: ${installment["net_amount"]:.2f}'
                                     ),
-                                    'Deliverable': installment['deliverables'].replace('; ', '\n· '),
+                                    'Deliverable': '\n·'.join([d.strip() for d in installment['deliverables'].split(';') if d.strip()]),
                                     'Due date': installment['dueDate_display']
                                 }
                                 for installment in contract_data.get('payment_installments', [])
@@ -2623,8 +2617,25 @@ def export_all_docx():
                     add_heading(article['number'], article['title'], level=3, size=12)
 
                     if article['number'] == 3:
+                        # First part (justified)
                         add_paragraph_with_bold(
                             article['content'],
+                            article['bold_parts'],
+                            WD_ALIGN_PARAGRAPH.JUSTIFY,
+                            default_size=11,
+                            bold_size=12
+                        )
+                        # Financial lines (left-aligned)
+                        add_paragraph_with_bold(
+                            article['financial_lines'],
+                            article['bold_parts'],
+                            WD_ALIGN_PARAGRAPH.LEFT,
+                            default_size=11,
+                            bold_size=12
+                        )
+                        # Remaining content (justified)
+                        add_paragraph_with_bold(
+                            article['remaining_content'],
                             article['bold_parts'],
                             WD_ALIGN_PARAGRAPH.JUSTIFY,
                             default_size=11,
@@ -2671,17 +2682,21 @@ def export_all_docx():
                                 cell = row_cells[j]
                                 cell.text = row_data[key]
                                 for paragraph in cell.paragraphs:
+                                    paragraph.paragraph_format.space_after = Pt(0)  # Set spacing after to 0 pt
                                     if i == 0:
-                                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER  # Header row: all centered
                                     else:
-                                        paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+                                        if key == 'Deliverable':
+                                            paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT  # Data rows: Deliverable left-aligned
+                                        else:
+                                            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER  # Other columns centered
                                     for run in paragraph.runs:
                                         run.font.size = Pt(11)
                                         run.font.name = 'Calibri'
                                         if i == 0:
-                                            run.bold = True
+                                            run.bold = True  # Header bold
                                         if key == 'Total Amount (USD)' and i > 0:
-                                            run.bold = True
+                                            run.bold = True  # Total Amount data bold
 
                     for custom in custom_articles:
                         if custom['article_number'] == str(article['number']):
@@ -2723,8 +2738,7 @@ def export_all_docx():
                     run.font.size = Pt(11)
 
                 cell4 = table.cell(3, 0)
-                party_a_info = contract_data.get('party_a_info', [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director'}])
-                signer_position = next((person['position'] for person in party_a_info if person['name'] == contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun')), 'Executive Director')
+                signer_position = next((person['position'] for person in party_a_info if person['name'] == contract_data.get('party_a_signature_name')), 'Executive Director')
                 p = cell4.add_paragraph(signer_position)
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 for run in p.runs:
