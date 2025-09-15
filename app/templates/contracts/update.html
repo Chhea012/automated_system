@@ -28,19 +28,19 @@
         outline: 2px solid #0d6efd;
         outline-offset: 2px;
     }
-    .focal-person-container {
+    .party-a-container, .focal-person-container, .installment-container, .article-container {
         border: 1px solid #ced4da;
         padding: 15px;
         border-radius: 5px;
         margin-bottom: 15px;
     }
-    .focal-person-container .row {
+    .party-a-container .row, .focal-person-container .row, .installment-container .row, .article-container .row {
         margin-bottom: 10px;
     }
-    .focal-person-select {
+    .party-a-select, .focal-person-select {
         margin-bottom: 10px;
     }
-    #party_b_new_name_container {
+    #party_b_new_name_container, #deduct_tax_code_container {
         display: none;
     }
 </style>
@@ -64,49 +64,97 @@
                 </div>
                 <div class="col-md-6">
                     <label for="output_description" class="form-label">Output Description</label>
-                    <input type="text" class="form-control" id="output_description" name="output_description" value="{{ form_data.output_description | default('') }}" placeholder="e.g., Budget Analysis on MAFF’s Budget Allocation" required>
+                    <input type="text" class="form-control" id="output_description" name="output_description" value="{{ form_data.output_description | default('') }}" placeholder="e.g., Budget Analysis on MAFF's Budget Allocation" required>
                     <div class="invalid-feedback">Please enter the output description.</div>
                 </div>
                 <div class="col-md-6">
                     <label for="contract_number" class="form-label">Contract Number</label>
-                    <input type="text" class="form-control" id="contract_number" name="contract_number" value="{{ form_data.contract_number | default('') }}" placeholder="e.g., NGOF/2025-005" required>
-                    <div class="invalid-feedback">Please enter the contract number.</div>
+                    <input type="text" class="form-control" id="contract_number" name="contract_number" value="{{ form_data.contract_number | default('') }}" placeholder="e.g., NGOF/2025-005" pattern="NGOF/\d{4}-\d{3}" required>
+                    <div class="invalid-feedback">Please enter a valid contract number (e.g., NGOF/2025-005).</div>
                 </div>
                 <div class="col-md-6">
                     <label for="tax_percentage" class="form-label">Tax Percentage (%)</label>
-                    <select class="form-select" id="tax_percentage" name="tax_percentage" required>
-                        <option value="0" {{ 'selected' if form_data.tax_percentage | default('15') == 0 or form_data.tax_percentage == '0' else '' }}>0</option>
-                        <option value="5" {{ 'selected' if form_data.tax_percentage | default('15') == 5 or form_data.tax_percentage == '5' else '' }}>5</option>
-                        <option value="10" {{ 'selected' if form_data.tax_percentage | default('15') == 10 or form_data.tax_percentage == '10' else '' }}>10</option>
-                        <option value="15" {{ 'selected' if form_data.tax_percentage | default('15') == 15 or form_data.tax_percentage == '15' else '' }}>15</option>
-                        <option value="20" {{ 'selected' if form_data.tax_percentage | default('15') == 20 or form_data.tax_percentage == '20' else '' }}>20</option>
-                    </select>
-                    <div class="invalid-feedback">Please select a tax percentage.</div>
+                    <div class="input-group">
+                        <select class="form-select" id="tax_percentage" name="tax_percentage" required onchange="toggleDeductTaxCode()">
+                            <option value="0" {{ 'selected' if form_data.tax_percentage == 0 else '' }}>0</option>
+                            <option value="5" {{ 'selected' if form_data.tax_percentage == 5 else '' }}>5</option>
+                            <option value="10" {{ 'selected' if form_data.tax_percentage == 10 else '' }}>10</option>
+                            <option value="15" {{ 'selected' if form_data.tax_percentage == 15 else '' }}>15</option>
+                            <option value="20" {{ 'selected' if form_data.tax_percentage == 20 else '' }}>20</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a tax percentage.</div>
+                    </div>
+                    <div id="deduct_tax_code_container" class="mt-2">
+                        <label for="deduct_tax_code" class="form-label">Deduct TAX Code</label>
+                        <input type="text" class="form-control" id="deduct_tax_code" name="deduct_tax_code" value="{{ form_data.deduct_tax_code | default('') }}" placeholder="e.g., K002-100054102" pattern="[A-Z0-9\-]+" maxlength="50">
+                        <small class="form-text text-muted">Enter the tax exemption code (uppercase letters, numbers, and hyphens only, max 50 characters).</small>
+                        <div class="invalid-feedback">Please enter a valid Deduct TAX Code.</div>
+                    </div>
                 </div>
             </div>
 
             <!-- Party A Information -->
-            <div class="section-header">Party A Information</div>
+            <div class="section-header">Party A Information (At least one required)</div>
             <div class="row g-3">
-                <div class="col-md-6">
+                <div class="col-md-12">
                     <label for="organization_name" class="form-label">Organization Name</label>
                     <input type="text" class="form-control" id="organization_name" name="organization_name" value="{{ form_data.organization_name | default('The NGO Forum on Cambodia') }}" placeholder="e.g., The NGO Forum on Cambodia" required>
                     <div class="invalid-feedback">Please enter the organization name.</div>
                 </div>
-                <div class="col-md-6">
-                    <label for="party_a_name" class="form-label">Party A Name</label>
-                    <input type="text" class="form-control" id="party_a_name" name="party_a_name" value="{{ form_data.party_a_name | default('Mr. SOEUNG Saroeun') }}" placeholder="e.g., Mr. SOEUNG Saroeun" required>
-                    <div class="invalid-feedback">Please enter Party A name.</div>
+            </div>
+            <div class="col-12" id="partyAContainer">
+                <label class="form-label">Party A Representatives</label>
+                {% for person in form_data.party_a_info | default([{'name': '', 'position': '', 'address': ''}]) %}
+                <div class="party-a-container mb-3">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Select Party A</label>
+                            <select class="form-select party-a-select" name="party_a_select[]">
+                                <option value="" {{ 'selected' if not person.name else '' }}>Select a Party A or enter manually</option>
+                                <option value="new" {{ 'selected' if person.name and person.name|lower not in party_a_data else '' }}>Enter new Party A</option>
+                                {% for key, person_data in party_a_data.items() %}
+                                <option value="{{ person_data.name }}" {{ 'selected' if person.name == person_data.name else '' }}>{{ person_data.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="party_a_name_{{ loop.index0 }}" class="form-label">Name</label>
+                            <input type="text" class="form-control party-a-name" id="party_a_name_{{ loop.index0 }}" name="party_a_name[]" value="{{ person.name | default('') }}" placeholder="e.g., Mr. SOEUNG Saroeun" pattern="[a-zA-Z\s\.]+" required>
+                            <div class="invalid-feedback">Please enter a valid name (letters, spaces, and periods only).</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="party_a_position_{{ loop.index0 }}" class="form-label">Position</label>
+                            <input type="text" class="form-control party-a-position" id="party_a_position_{{ loop.index0 }}" name="party_a_position[]" value="{{ person.position | default('') }}" placeholder="e.g., Executive Director" pattern="[a-zA-Z\s]+" required>
+                            <div class="invalid-feedback">Please enter a valid position (letters and spaces only).</div>
+                        </div>
+                        <div class="col-12">
+                            <label for="party_a_address_{{ loop.index0 }}" class="form-label">Address</label>
+                            <textarea class="form-control party-a-address" id="party_a_address_{{ loop.index0 }}" name="party_a_address[]" rows="3" placeholder="e.g., #9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia" required>{{ person.address | default('') }}</textarea>
+                            <div class="invalid-feedback">Please enter a valid address.</div>
+                        </div>
+                        <div class="col-12">
+                            <button type="button" class="btn btn-danger btn-remove-party-a {{ 'd-none' if loop.first and form_data.party_a_info|length == 1 else '' }}">Remove</button>
+                        </div>
+                    </div>
                 </div>
+                {% endfor %}
+            </div>
+            <div class="col-12">
+                <button type="button" class="btn btn-primary btn-add-party-a">Add Party A Representative</button>
+            </div>
+
+            <!-- Party A Signer Selection -->
+            <div class="section-header">Party A Signer</div>
+            <div class="row g-3">
                 <div class="col-md-6">
-                    <label for="party_a_position" class="form-label">Party A Position</label>
-                    <input type="text" class="form-control" id="party_a_position" name="party_a_position" value="{{ form_data.party_a_position | default('Executive Director') }}" placeholder="e.g., Executive Director" required>
-                    <div class="invalid-feedback">Please enter Party A position.</div>
-                </div>
-                <div class="col-md-6">
-                    <label for="party_a_address" class="form-label">Party A Address</label>
-                    <input type="text" class="form-control" id="party_a_address" name="party_a_address" value="{{ form_data.party_a_address | default('#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia') }}" placeholder="e.g., #9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia" required>
-                    <div class="invalid-feedback">Please enter Party A address.</div>
+                    <label for="party_a_signer" class="form-label">Select Party A Signer</label>
+                    <select class="form-select" id="party_a_signer" name="party_a_signer" required>
+                        <option value="" disabled {{ 'selected' if not form_data.party_a_signer else '' }}>Select a signer</option>
+                        {% for person in form_data.party_a_info | default([]) %}
+                        <option value="{{ person.name }}" {{ 'selected' if form_data.party_a_signer == person.name else '' }}>{{ person.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="invalid-feedback">Please select a Party A signer.</div>
                 </div>
             </div>
 
@@ -115,28 +163,29 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label for="party_b_select" class="form-label">Party B Signature Name</label>
-                    <select class="form-select" id="party_b_select" name="party_b_select" onchange="handlePartyBSelect(this)">
-                        <option value="" {{ 'selected' if not form_data.party_b_select }}>Select Party B or enter new name</option>
-                        <option value="new" {{ 'selected' if form_data.party_b_select == 'new' or (form_data.party_b_signature_name and form_data.party_b_signature_name not in party_b_data.values() | map(attribute='original_name') | list) }}>Enter new name</option>
-                        {% for name in party_b_data.values() %}
-                        <option value="{{ name.original_name }}" {{ 'selected' if form_data.party_b_signature_name == name.original_name }}>{{ name.original_name }}</option>
+                    <select class="form-select" id="party_b_select" name="party_b_select" onchange="handlePartyBSelect(this)" required>
+                        <option value="" disabled {{ 'selected' if not form_data.party_b_select else '' }}>Select Party B or enter new name</option>
+                        <option value="new" {{ 'selected' if form_data.party_b_select == 'new' else '' }}>Enter new name</option>
+                        {% for key, person in party_b_data.items() %}
+                        <option value="{{ person.original_name }}" {{ 'selected' if form_data.party_b_select == person.original_name|lower else '' }}>{{ person.original_name }}</option>
                         {% endfor %}
                     </select>
                     <div class="invalid-feedback">Please select or enter a Party B name.</div>
                 </div>
                 <div class="col-md-6" id="party_b_new_name_container">
                     <label for="party_b_signature_name" class="form-label">New Party B Signature Name</label>
-                    <input type="text" class="form-control" id="party_b_signature_name" name="party_b_signature_name" value="{{ form_data.party_b_signature_name if form_data.party_b_select == 'new' or (form_data.party_b_signature_name and form_data.party_b_signature_name not in party_b_data.values() | map(attribute='original_name') | list) else '' }}" placeholder="e.g., Mr. SEAN Bunrith" pattern="[a-zA-Z\s\.]+">
+                    <input type="text" class="form-control" id="party_b_signature_name" name="party_b_signature_name" value="{{ form_data.party_b_signature_name if form_data.party_b_select == 'new' else '' }}" placeholder="e.g., Mr. SEAN Bunrith" pattern="[a-zA-Z\s\.]+" required>
                     <div class="invalid-feedback">Please enter a valid name (letters, spaces, and periods only).</div>
                 </div>
                 <div class="col-md-6">
                     <label for="party_b_position" class="form-label">Party B Position</label>
-                    <input type="text" class="form-control" id="party_b_position" name="party_b_position" value="{{ form_data.party_b_position | default('Freelance Consultant') }}">
+                    <input type="text" class="form-control" id="party_b_position" name="party_b_position" value="{{ form_data.party_b_position | default('Freelance Consultant') }}" placeholder="e.g., Freelance Consultant" pattern="[a-zA-Z\s]+">
+                    <div class="invalid-feedback">Please enter a valid position (letters and spaces only).</div>
                 </div>
                 <div class="col-md-6">
                     <label for="party_b_phone" class="form-label">Party B Phone</label>
                     <input type="tel" class="form-control" id="party_b_phone" name="party_b_phone" value="{{ form_data.party_b_phone | default('') }}" placeholder="e.g., 012 845 091 or +855 12 845 091" pattern="\+?\d{1,4}([-.\s]?\d{1,4}){2,3}">
-                    <div class="invalid-feedback">Please enter a valid phone number (e.g., 012 845 091 or +855 12 845 091).</div>
+                    <div class="invalid-feedback">Please enter a valid phone number.</div>
                 </div>
                 <div class="col-md-6">
                     <label for="party_b_email" class="form-label">Party B Email</label>
@@ -146,6 +195,7 @@
                 <div class="col-12">
                     <label for="party_b_address" class="form-label">Party B Address</label>
                     <textarea class="form-control" id="party_b_address" name="party_b_address" rows="3" placeholder="e.g., # F22 st. 113 Trapaeng Krosang, Porsenchey, Phnom Penh">{{ form_data.party_b_address | default('') }}</textarea>
+                    <div class="invalid-feedback">Please enter a valid address.</div>
                 </div>
             </div>
 
@@ -159,10 +209,10 @@
                         <div class="col-12">
                             <label class="form-label">Select Focal Person</label>
                             <select class="form-select focal-person-select" name="focal_person_select[]">
-                                <option value="" {{ 'selected' if not person.name }}>Select a focal person or enter manually</option>
-                                <option value="new" {{ 'selected' if person.name and person.name not in focal_person_data.values() | map(attribute='name') | list }}>Enter new focal person</option>
-                                {% for person_data in focal_person_data.values() %}
-                                <option value="{{ person_data.name }}" {{ 'selected' if person.name == person_data.name }}>{{ person_data.name }}</option>
+                                <option value="" {{ 'selected' if not person.name else '' }}>Select a focal person or enter manually</option>
+                                <option value="new" {{ 'selected' if person.name and person.name|lower not in focal_person_data else '' }}>Enter new focal person</option>
+                                {% for key, person_data in focal_person_data.items() %}
+                                <option value="{{ person_data.name }}" {{ 'selected' if person.name == person_data.name else '' }}>{{ person_data.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -179,7 +229,7 @@
                         <div class="col-md-6">
                             <label for="focal_person_phone_{{ loop.index0 }}" class="form-label">Phone</label>
                             <input type="tel" class="form-control focal-person-phone" id="focal_person_phone_{{ loop.index0 }}" name="focal_person_phone[]" value="{{ person.phone | default('') }}" placeholder="e.g., 012 845 091 or +855 12 845 091" pattern="\+?\d{1,4}([-.\s]?\d{1,4}){2,3}" required>
-                            <div class="invalid-feedback">Please enter a valid phone number (e.g., 012 845 091 or +855 12 845 091).</div>
+                            <div class="invalid-feedback">Please enter a valid phone number.</div>
                         </div>
                         <div class="col-md-6">
                             <label for="focal_person_email_{{ loop.index0 }}" class="form-label">Email</label>
@@ -187,14 +237,14 @@
                             <div class="invalid-feedback">Please enter a valid email address.</div>
                         </div>
                         <div class="col-12">
-                            <button type="button" class="btn btn-danger btn-remove-focal-person {{ 'd-none' if loop.first and (form_data.focal_person_info | default([])) | length == 1 else '' }}">Remove</button>
+                            <button type="button" class="btn btn-danger btn-remove-focal-person {{ 'd-none' if loop.first and form_data.focal_person_info|length == 1 else '' }}">Remove</button>
                         </div>
                     </div>
                 </div>
                 {% endfor %}
             </div>
             <div class="col-12">
-                <button type="button" class="btn btn-primary btn-add-focal-person" onclick="addFocalPersonField()">Add Focal Person</button>
+                <button type="button" class="btn btn-primary btn-add-focal-person">Add Focal Person</button>
             </div>
 
             <!-- Agreement Details -->
@@ -222,7 +272,7 @@
                 </div>
                 <div class="col-md-4">
                     <label for="total_fee_usd" class="form-label">Total Fee USD (Gross)</label>
-                    <input type="number" class="form-control" id="total_fee_usd" name="total_fee_usd" value="{{ form_data.total_fee_usd | default('') }}" min="0" step="0.01" required>
+                    <input type="number" class="form-control" id="total_fee_usd" name="total_fee_usd" value="{{ form_data.total_fee_usd | default(0.0) }}" min="0" step="0.01" required>
                     <div class="invalid-feedback">Please enter a valid total fee.</div>
                 </div>
                 <div class="col-md-12">
@@ -231,27 +281,27 @@
                     <div class="invalid-feedback">Total fee in words will be auto-generated.</div>
                 </div>
                 <div class="col-12" id="installmentContainer">
-                    <label class="form-label">Payment Installments</label>
+                    <label class="form-label">Payment Installments (At least one required)</label>
                     {% for installment in form_data.payment_installments | default([{'description': '', 'deliverables': '', 'dueDate': ''}]) %}
-                    <div class="installment-container mb-3 border p-3 rounded">
+                    <div class="installment-container mb-3">
                         <div class="row g-3">
                             <div class="col-12">
                                 <label class="form-label">Installment Description</label>
                                 <div class="input-group">
                                     <input type="text" class="form-control installment-desc" name="paymentInstallmentDesc[]" value="{{ installment.description | default('') }}" placeholder="e.g., Installment #1 (40%)" readonly>
                                     <select class="form-select installment-percentage" name="paymentInstallmentPercentage[]" required>
-                                        <option value="" disabled {{ 'selected' if not installment.description }}>Select Percentage</option>
+                                        <option value="" disabled {{ 'selected' if not installment.description else '' }}>Select Percentage</option>
                                         {% for percentage in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100] %}
-                                        <option value="{{ percentage }}" {{ 'selected' if installment.description and percentage | string in installment.description }}>{{ percentage }}%</option>
+                                        <option value="{{ percentage }}" {{ 'selected' if installment.description and percentage|string in installment.description else '' }}>{{ percentage }}%</option>
                                         {% endfor %}
                                     </select>
-                                    <button type="button" class="btn btn-danger btn-remove-installment {{ 'd-none' if loop.first and (form_data.payment_installments | default([])) | length == 1 else '' }}">Remove</button>
+                                    <button type="button" class="btn btn-danger btn-remove-installment {{ 'd-none' if loop.first and form_data.payment_installments|length == 1 else '' }}">Remove</button>
                                     <div class="invalid-feedback">Please select a percentage.</div>
                                 </div>
                             </div>
                             <div class="col-12">
-                                <label for="paymentInstallmentDeliverables{{ loop.index0 }}" class="form-label">Deliverables (one per line)</label>
-                                <textarea class="form-control" id="paymentInstallmentDeliverables{{ loop.index0 }}" name="paymentInstallmentDeliverables[]" rows="6" required spellcheck="false" aria-label="Deliverables for installment">{{ installment.deliverables | default('') }}</textarea>
+                                <label for="paymentInstallmentDeliverables{{ loop.index0 }}" class="form-label">Deliverables</label>
+                                <textarea class="form-control" id="paymentInstallmentDeliverables{{ loop.index0 }}" name="paymentInstallmentDeliverables[]" rows="6" required>{{ installment.deliverables | default('') }}</textarea>
                                 <div class="invalid-feedback">Please enter deliverables for this installment.</div>
                             </div>
                             <div class="col-12">
@@ -269,7 +319,7 @@
                     {% endfor %}
                 </div>
                 <div class="col-12">
-                    <button type="button" class="btn btn-primary btn-add-installment" onclick="addInstallmentField()">Add Payment Installment</button>
+                    <button type="button" class="btn btn-primary btn-add-installment">Add Payment Installment</button>
                 </div>
                 <div class="col-12">
                     <label for="workshop_description" class="form-label">Workshop Description</label>
@@ -297,13 +347,13 @@
                         </div>
                     </div>
                 </div>
-                {% for article in form_data.custom_article_sentences | default([]) %}
+                {% for article in form_data.articles | default([]) %}
                 <div class="row g-3 article-container mb-2">
                     <div class="col-md-4">
                         <label class="form-label">Article Number</label>
                         <select class="form-select" name="articleNumber[]">
                             {% for i in range(1, 17) %}
-                            <option value="{{ i }}" {{ 'selected' if article.article_number == i | string else '' }}>ARTICLE {{ i }}</option>
+                            <option value="{{ i }}" {{ 'selected' if article.article_number == i|string else '' }}>ARTICLE {{ i }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -318,7 +368,7 @@
                 {% endfor %}
             </div>
             <div class="col-12">
-                <button type="button" class="btn btn-primary btn-add-article" onclick="addArticleField()">Add Custom Article Sentence</button>
+                <button type="button" class="btn btn-primary btn-add-article">Add Custom Article Sentence</button>
             </div>
 
             <!-- Signatures -->
@@ -326,7 +376,7 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label for="party_b_signature_name_confirm" class="form-label">Party B Signature Name (Confirm)</label>
-                    <input type="text" class="form-control" id="party_b_signature_name_confirm" name="party_b_signature_name_confirm" value="{{ form_data.party_b_signature_name_confirm | default(form_data.party_b_signature_name) | default('') }}" required>
+                    <input type="text" class="form-control" id="party_b_signature_name_confirm" name="party_b_signature_name_confirm" value="{{ form_data.party_b_signature_name_confirm | default(form_data.party_b_signature_name) }}" pattern="[a-zA-Z\s\.]+" required>
                     <div class="invalid-feedback">Please confirm Party B signature name.</div>
                 </div>
                 <div class="col-md-6">
@@ -344,11 +394,12 @@
 </div>
 
 <script>
+    const partyAData = {{ party_a_data | tojson | safe }};
     const partyBData = {{ party_b_data | tojson | safe }};
     const focalPersonData = {{ focal_person_data | tojson | safe }};
 
     function numberToWords(num) {
-        if (!num || isNaN(num) || num < 0) return '';
+        if (!num || isNaN(num) || num < 0) return 'Zero US Dollars only';
 
         const single = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
         const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
@@ -377,7 +428,6 @@
 
         let words = '';
         let chunkCount = 0;
-
         let wholeNum = Math.floor(num);
         while (wholeNum > 0) {
             let chunk = wholeNum % 1000;
@@ -400,6 +450,20 @@
         return words ? words + ' US Dollars only' : 'Zero US Dollars only';
     }
 
+    function toggleDeductTaxCode() {
+        const taxPercentage = document.getElementById('tax_percentage').value;
+        const deductTaxCodeContainer = document.getElementById('deduct_tax_code_container');
+        const deductTaxCodeInput = document.getElementById('deduct_tax_code');
+        if (taxPercentage === '0') {
+            deductTaxCodeContainer.style.display = 'block';
+            deductTaxCodeInput.required = true;
+        } else {
+            deductTaxCodeContainer.style.display = 'none';
+            deductTaxCodeInput.required = false;
+            deductTaxCodeInput.value = '';
+        }
+    }
+
     function handlePartyBSelect(select) {
         const newNameContainer = document.getElementById('party_b_new_name_container');
         const newNameInput = document.getElementById('party_b_signature_name');
@@ -416,22 +480,52 @@
             newNameInput.required = true;
             Object.values(fields).forEach(field => field.value = '');
             newNameInput.value = '';
+        } else if (select.value) {
+            newNameContainer.style.display = 'none';
+            newNameInput.required = false;
+            newNameInput.value = '';
+            const normalizedName = select.value.toLowerCase();
+            const data = Object.values(partyBData).find(p => p.original_name.toLowerCase() === normalizedName);
+            fields.party_b_position.value = data ? data.position : '';
+            fields.party_b_phone.value = data ? data.phone : '';
+            fields.party_b_email.value = data ? data.email : '';
+            fields.party_b_address.value = data ? data.address : '';
+            fields.party_b_signature_name_confirm.value = select.value;
         } else {
             newNameContainer.style.display = 'none';
             newNameInput.required = false;
             newNameInput.value = '';
-            if (select.value) {
-                const normalizedName = select.value.toLowerCase();
-                const data = partyBData[normalizedName];
-                fields.party_b_position.value = data ? data.position : '';
-                fields.party_b_phone.value = data ? data.phone : '';
-                fields.party_b_email.value = data ? data.email : '';
-                fields.party_b_address.value = data ? data.address : '';
-                fields.party_b_signature_name_confirm.value = select.value;
+            Object.values(fields).forEach(field => field.value = '');
+        }
+    }
+
+    function populatePartyA(select) {
+        const container = select.closest('.party-a-container');
+        const nameInput = container.querySelector('.party-a-name');
+        const positionInput = container.querySelector('.party-a-position');
+        const addressInput = container.querySelector('.party-a-address');
+
+        if (select.value === 'new' || !select.value) {
+            nameInput.value = '';
+            positionInput.value = '';
+            addressInput.value = '';
+            nameInput.required = select.value === 'new';
+        } else {
+            const normalizedName = select.value.toLowerCase();
+            const person = Object.values(partyAData).find(p => p.name.toLowerCase() === normalizedName);
+            if (person) {
+                nameInput.value = person.name;
+                positionInput.value = person.position;
+                addressInput.value = person.address;
+                nameInput.required = true;
             } else {
-                Object.values(fields).forEach(field => field.value = '');
+                nameInput.value = '';
+                positionInput.value = '';
+                addressInput.value = '';
+                nameInput.required = false;
             }
         }
+        updatePartyASignerOptions();
     }
 
     function populateFocalPerson(select) {
@@ -441,16 +535,15 @@
         const phoneInput = container.querySelector('.focal-person-phone');
         const emailInput = container.querySelector('.focal-person-email');
 
-        const selectedValue = select.value;
-        if (selectedValue === 'new' || !selectedValue) {
+        if (select.value === 'new' || !select.value) {
             nameInput.value = '';
             positionInput.value = '';
             phoneInput.value = '';
             emailInput.value = '';
-            nameInput.required = selectedValue === 'new';
+            nameInput.required = select.value === 'new';
         } else {
-            const normalizedName = selectedValue.toLowerCase();
-            const person = focalPersonData[normalizedName];
+            const normalizedName = select.value.toLowerCase();
+            const person = Object.values(focalPersonData).find(p => p.name.toLowerCase() === normalizedName);
             if (person) {
                 nameInput.value = person.name;
                 positionInput.value = person.position;
@@ -467,21 +560,78 @@
         }
     }
 
-    document.getElementById('total_fee_usd').addEventListener('input', function () {
-        const totalFeeUSD = parseFloat(this.value);
-        const totalFeeWordsInput = document.getElementById('total_fee_words');
-        totalFeeWordsInput.value = numberToWords(totalFeeUSD);
-    });
+    function updatePartyASignerOptions() {
+        const partyANames = Array.from(document.querySelectorAll('.party-a-name')).map(input => input.value).filter(v => v);
+        const signerSelect = document.getElementById('party_a_signer');
+        const currentValue = signerSelect.value;
 
-    document.getElementById('party_b_select').addEventListener('change', function () {
-        handlePartyBSelect(this);
-    });
+        signerSelect.innerHTML = '<option value="" disabled>Select a signer</option>';
+        partyANames.forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.text = name;
+            if (name === currentValue) option.selected = true;
+            signerSelect.appendChild(option);
+        });
+
+        if (!partyANames.includes(currentValue) && partyANames.length > 0) {
+            signerSelect.value = partyANames[0];
+        } else if (!partyANames.length) {
+            signerSelect.value = '';
+        }
+    }
+
+    function addPartyAField() {
+        const container = document.getElementById('partyAContainer');
+        const firstPartyA = container.querySelector('.party-a-container');
+        const newPartyA = firstPartyA.cloneNode(true);
+        const timestamp = Date.now();
+
+        newPartyA.querySelector('.party-a-select').value = '';
+        newPartyA.querySelector('.party-a-name').value = '';
+        newPartyA.querySelector('.party-a-position').value = '';
+        newPartyA.querySelector('.party-a-address').value = '';
+
+        newPartyA.querySelector('.party-a-name').id = `party_a_name_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_name"]').setAttribute('for', `party_a_name_${timestamp}`);
+        newPartyA.querySelector('.party-a-position').id = `party_a_position_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_position"]').setAttribute('for', `party_a_position_${timestamp}`);
+        newPartyA.querySelector('.party-a-address').id = `party_a_address_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_address"]').setAttribute('for', `party_a_address_${timestamp}`);
+
+        const removeButton = newPartyA.querySelector('.btn-remove-party-a');
+        removeButton.classList.remove('d-none');
+
+        newPartyA.querySelector('.party-a-select').addEventListener('change', function() {
+            populatePartyA(this);
+        });
+        removeButton.addEventListener('click', function() {
+            newPartyA.remove();
+            updatePartyARemoveButtons();
+            updatePartyASignerOptions();
+        });
+
+        container.appendChild(newPartyA);
+        updatePartyARemoveButtons();
+        updatePartyASignerOptions();
+    }
+
+    function updatePartyARemoveButtons() {
+        const container = document.getElementById('partyAContainer');
+        const partyAs = container.querySelectorAll('.party-a-container');
+        if (partyAs.length === 1) {
+            partyAs[0].querySelector('.btn-remove-party-a').classList.add('d-none');
+        } else {
+            partyAs.forEach(partyA => {
+                partyA.querySelector('.btn-remove-party-a').classList.remove('d-none');
+            });
+        }
+    }
 
     function addFocalPersonField() {
         const container = document.getElementById('focalPersonContainer');
         const firstFocalPerson = container.querySelector('.focal-person-container');
         const newFocalPerson = firstFocalPerson.cloneNode(true);
-
         const timestamp = Date.now();
 
         newFocalPerson.querySelector('.focal-person-select').value = '';
@@ -525,38 +675,6 @@
             });
         }
     }
-
-    (function () {
-        'use strict';
-        const form = document.getElementById('contractForm');
-        form.addEventListener('submit', function (event) {
-            if (!form.checkValidity()) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-            const percentages = Array.from(document.querySelectorAll('.installment-percentage')).map(select => parseFloat(select.value) || 0);
-            const totalPercentage = percentages.reduce((sum, val) => sum + val, 0);
-            if (totalPercentage !== 100) {
-                event.preventDefault();
-                event.stopPropagation();
-                alert('Total percentage of payment installments must equal 100%.');
-            }
-            const focalPersons = document.querySelectorAll('.focal-person-container');
-            if (focalPersons.length === 0) {
-                event.preventDefault();
-                event.stopPropagation();
-                alert('At least one focal person is required.');
-            }
-            const partyBSelect = document.getElementById('party_b_select').value;
-            const partyBName = document.getElementById('party_b_signature_name').value;
-            if (!partyBSelect || (partyBSelect === 'new' && !partyBName)) {
-                event.preventDefault();
-                event.stopPropagation();
-                alert('Please select a Party B name or enter a new one.');
-            }
-            form.classList.add('was-validated');
-        }, false);
-    })();
 
     function updateInstallmentDescriptions() {
         const containers = document.querySelectorAll('.installment-container');
@@ -624,7 +742,6 @@
         const container = document.getElementById('installmentContainer');
         const firstInstallment = container.querySelector('.installment-container');
         const newInstallment = firstInstallment.cloneNode(true);
-
         const timestamp = Date.now();
 
         newInstallment.querySelector('input[name="paymentInstallmentDesc[]"]').value = '';
@@ -634,7 +751,6 @@
 
         newInstallment.querySelector('textarea').id = `paymentInstallmentDeliverables${timestamp}`;
         newInstallment.querySelector('label[for^="paymentInstallmentDeliverables"]').setAttribute('for', `paymentInstallmentDeliverables${timestamp}`);
-        newInstallment.querySelector('label[for^="paymentInstallmentDeliverables"]').setAttribute('aria-label', `Deliverables for installment ${timestamp}`);
         newInstallment.querySelector('input[name="paymentInstallmentDueDate[]"]').setAttribute('aria-describedby', `paymentInstallmentDueDateIcon${timestamp}`);
         newInstallment.querySelector('.input-group-text').id = `paymentInstallmentDueDateIcon${timestamp}`;
 
@@ -680,75 +796,112 @@
         const container = document.getElementById('articleContainer');
         const template = container.querySelector('.article-container.d-none');
         const newArticle = template.cloneNode(true);
-
         newArticle.classList.remove('d-none');
-        newArticle.querySelector('input').value = '';
-        newArticle.querySelector('select').selectedIndex = 0;
 
-        newArticle.querySelector('.btn-remove-article').addEventListener('click', function () {
+        newArticle.querySelector('.btn-remove-article').addEventListener('click', function() {
             newArticle.remove();
         });
 
         container.appendChild(newArticle);
     }
 
+    // Initialize form
     document.addEventListener('DOMContentLoaded', function () {
-        const dateInputs = document.querySelectorAll('input[type="date"]');
-        dateInputs.forEach(input => {
-            input.addEventListener('click', function () {
-                this.showPicker();
-            });
-            const calendarIcon = input.parentElement.querySelector('.input-group-text');
-            if (calendarIcon) {
-                calendarIcon.addEventListener('click', function () {
-                    input.focus();
-                    input.showPicker();
-                });
+        // Bootstrap form validation
+        const form = document.getElementById('contractForm');
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
             }
-        });
+            form.classList.add('was-validated');
+        }, false);
 
-        updateRemoveButtons();
-        updateFocalPersonRemoveButtons();
-        document.querySelectorAll('.btn-remove-article').forEach(button => {
-            button.addEventListener('click', function () {
-                button.closest('.article-container').remove();
-            });
-        });
-        document.querySelectorAll('.btn-remove-installment').forEach(button => {
-            button.addEventListener('click', function () {
-                button.closest('.installment-container').remove();
-                updateRemoveButtons();
-                assignPercentages();
-            });
-        });
-        document.querySelectorAll('.btn-remove-focal-person').forEach(button => {
-            button.addEventListener('click', function () {
-                button.closest('.focal-person-container').remove();
-                updateFocalPersonRemoveButtons();
+        // Initialize Party A select handlers
+        document.querySelectorAll('.party-a-select').forEach(select => {
+            select.addEventListener('change', function() {
+                populatePartyA(this);
             });
         });
 
-        document.querySelectorAll('.installment-percentage').forEach(select => {
-            select.addEventListener('change', updateInstallmentDescriptions);
-        });
-
+        // Initialize focal person select handlers
         document.querySelectorAll('.focal-person-select').forEach(select => {
             select.addEventListener('change', function() {
                 populateFocalPerson(this);
             });
         });
 
-        const totalFeeUSD = document.getElementById('total_fee_usd').value;
-        if (totalFeeUSD) {
-            document.getElementById('total_fee_words').value = numberToWords(parseFloat(totalFeeUSD));
-        }
-
+        // Initialize Party B select
         const partyBSelect = document.getElementById('party_b_select');
-        if (partyBSelect.value) {
-            handlePartyBSelect(partyBSelect);
-        }
+        handlePartyBSelect(partyBSelect);
 
+        // Initialize remove buttons
+        document.querySelectorAll('.btn-remove-party-a').forEach(button => {
+            button.addEventListener('click', function() {
+                button.closest('.party-a-container').remove();
+                updatePartyARemoveButtons();
+                updatePartyASignerOptions();
+            });
+        });
+
+        document.querySelectorAll('.btn-remove-focal-person').forEach(button => {
+            button.addEventListener('click', function() {
+                button.closest('.focal-person-container').remove();
+                updateFocalPersonRemoveButtons();
+            });
+        });
+
+        document.querySelectorAll('.btn-remove-installment').forEach(button => {
+            button.addEventListener('click', function() {
+                button.closest('.installment-container').remove();
+                updateRemoveButtons();
+                assignPercentages();
+            });
+        });
+
+        document.querySelectorAll('.btn-remove-article').forEach(button => {
+            button.addEventListener('click', function() {
+                button.closest('.article-container').remove();
+            });
+        });
+
+        // Add field buttons
+        document.querySelector('.btn-add-party-a').addEventListener('click', addPartyAField);
+        document.querySelector('.btn-add-focal-person').addEventListener('click', addFocalPersonField);
+        document.querySelector('.btn-add-installment').addEventListener('click', addInstallmentField);
+        document.querySelector('.btn-add-article').addEventListener('click', addArticleField);
+
+        // Initialize installment percentages
+        document.querySelectorAll('.installment-percentage').forEach(select => {
+            select.addEventListener('change', updateInstallmentDescriptions);
+        });
         assignPercentages();
+
+        // Initialize date pickers
+        document.querySelectorAll('input[type="date"]').forEach(input => {
+            const icon = input.nextElementSibling;
+            if (icon && icon.classList.contains('input-group-text')) {
+                input.addEventListener('click', function() {
+                    this.showPicker();
+                });
+                icon.addEventListener('click', function() {
+                    input.focus();
+                    input.showPicker();
+                });
+            }
+        });
+
+        // Update total fee in words
+        const totalFeeInput = document.getElementById('total_fee_usd');
+        const totalFeeWordsInput = document.getElementById('total_fee_words');
+        totalFeeInput.addEventListener('input', function() {
+            const value = parseFloat(this.value);
+            totalFeeWordsInput.value = numberToWords(value);
+        });
+        totalFeeWordsInput.value = numberToWords(parseFloat(totalFeeInput.value) || 0);
+
+        // Initialize deduct tax code visibility
+        toggleDeductTaxCode();
     });
 </script>
 {% endblock %}
