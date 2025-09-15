@@ -192,7 +192,7 @@ def index():
             is_admin=current_user.has_role('admin')
         )
     
-
+#create contract
 @contracts_bp.route('/create', methods=['GET', 'POST'])
 @login_required
 def create():
@@ -232,7 +232,7 @@ def create():
     # Fetch unique focal person data
     focal_person_data = {}
     for contract in previous_contracts:
-        focal_persons = contract.focal_person_info or []
+        focal_persons = contract.focal_person_info or [] 
         for person in focal_persons:
             if isinstance(person, dict) and person.get('name'):
                 name = person['name'].strip()
@@ -252,12 +252,14 @@ def create():
             party_b_select = request.form.get('party_b_select', '').strip()
             party_b_name = request.form.get('party_b_signature_name', '').strip() if party_b_select == 'new' else party_b_select
             party_a_signer = request.form.get('party_a_signer', '').strip()
+            deduct_tax_code = request.form.get('deduct_tax_code', '').strip()
 
             form_data = {
                 'project_title': request.form.get('project_title', '').strip(),
                 'contract_number': request.form.get('contract_number', '').strip(),
                 'output_description': request.form.get('output_description', '').strip(),
                 'tax_percentage': float(request.form.get('tax_percentage', '15.0').strip() or 15.0),
+                'deduct_tax_code': deduct_tax_code,
                 'organization_name': request.form.get('organization_name', '').strip(),
                 'party_b_signature_name': party_b_name,
                 'party_b_position': request.form.get('party_b_position', '').strip(),
@@ -315,6 +317,27 @@ def create():
                 form_data['focal_person_info'] = []
                 form_data['articles'] = []
                 return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+
+            # Validate deduct_tax_code when tax_percentage is 0
+            if form_data['tax_percentage'] == 0:
+                if not deduct_tax_code:
+                    flash('Deduct TAX Code is required when tax percentage is 0%.', 'danger')
+                    form_data['payment_installments'] = []
+                    form_data['focal_person_info'] = []
+                    form_data['articles'] = []
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                if not re.match(r'^[A-Z0-9\-]+$', deduct_tax_code):
+                    flash('Deduct TAX Code must contain only uppercase letters, numbers, and hyphens.', 'danger')
+                    form_data['payment_installments'] = []
+                    form_data['focal_person_info'] = []
+                    form_data['articles'] = []
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                if len(deduct_tax_code) > 50:
+                    flash('Deduct TAX Code must not exceed 50 characters.', 'danger')
+                    form_data['payment_installments'] = []
+                    form_data['focal_person_info'] = []
+                    form_data['articles'] = []
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
 
             # Process custom articles
             articles_raw = [
@@ -503,6 +526,7 @@ def create():
                 total_fee_usd=form_data['total_fee_usd'],
                 gross_amount_usd=form_data['gross_amount_usd'],
                 tax_percentage=form_data['tax_percentage'],
+                deduct_tax_code=form_data['deduct_tax_code'] if form_data['tax_percentage'] == 0 else None,
                 payment_gross=form_data['payment_gross'],
                 payment_net=form_data['payment_net'],
                 workshop_description=form_data['workshop_description'],
@@ -534,7 +558,8 @@ def create():
         'payment_installments': [{'description': '', 'deliverables': '', 'dueDate': ''}],
         'articles': [],
         'custom_article_sentences': {},
-        'party_a_signer': 'Mr. SOEUNG Saroeun'
+        'party_a_signer': 'Mr. SOEUNG Saroeun',
+        'deduct_tax_code': ''
     }
     return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
 
@@ -1237,7 +1262,7 @@ def export_excel_all():
         logger.error(f"Error exporting all contracts to Excel: {str(e)}")
         flash("An error occurred while exporting all contracts to Excel.", 'danger')
         return redirect(url_for('contracts.index'))
-
+#view 
 @contracts_bp.route('/view/<contract_id>')
 @login_required
 def view(contract_id):
@@ -1260,6 +1285,7 @@ def view(contract_id):
         # Get financial data as floats
         total_fee_usd = float(contract_data['total_fee_usd']) if contract_data['total_fee_usd'] else 0.0
         tax_percentage = float(contract_data.get('tax_percentage', 15.0))
+        deduct_tax_code = contract_data.get('deduct_tax_code', '')
         contract_data['total_fee_usd'] = total_fee_usd
         contract_data['gross_amount_usd'] = total_fee_usd
         contract_data['total_fee_words'] = contract_data.get('total_fee_words') or number_to_words(total_fee_usd)
@@ -1311,9 +1337,11 @@ def view(contract_id):
                 'title': 'PROFESSIONAL FEE',
                 'content': (
                     f'The professional fee is the total amount of <span style="font-size: 16px;"> <strong> {contract_data["total_gross"]} </strong></span>'
-                    f'<span style="font-size: 16px; "><strong> ({contract_data["total_fee_words"]})</strong></span> including tax for the whole assignment period.\n\n'
+                    f'<span style="font-size: 16px; "><strong> ({contract_data["total_fee_words"]})</strong></span> '
+                    f'{"excluding" if tax_percentage == 0 else "including"} tax for the whole assignment period.'
+                    f'{"\n\n<span style=\"font-size: 16px; margin-left:40px;\"><strong>VAT TIN : " + deduct_tax_code + "</strong></span>" if tax_percentage == 0 and deduct_tax_code else ""}\n\n'
                     f'<span style="font-size: 16px; margin-left:40px;"><strong>Total Service Fee: {contract_data["total_gross"]}</strong></span>\n'
-                    f'<span style="font-size: 16px; margin-left:40px;"><strong>Withholding Tax {tax_percentage}%: USD{contract_data["total_gross_amount"] * (tax_percentage/100):.2f}</strong></span>\n'
+                    f'{"<span style=\"font-size: 16px; margin-left:40px;\"><strong>Withholding Tax " + f"{tax_percentage}%: USD{contract_data['total_gross_amount'] * (tax_percentage/100):.2f}</strong></span>\n" if tax_percentage > 0 else ""}'
                     f'<span style="font-size: 16px; margin-left:40px;"><strong>Net amount: {contract_data["total_net"]}</strong></span>\n\n'
                     f'“Party B” is responsible to issue the Invoice (net amount) and receipt (when receiving the payment) '
                     f'with the total amount as stipulated in each instalment as in <strong>Article 4.</strong>\n\n'
@@ -1331,11 +1359,11 @@ def view(contract_id):
                         {
                             'Installment': installment['description'],
                             'Total Amount (USD)': (
-                                f'· Gross: ${installment["gross_amount"]:.2f} \n'
-                                f'· Tax {tax_percentage}%: ${installment["tax_amount"]:.2f} \n'
-                                f'· Net pay: ${installment["net_amount"]:.2f} '
+                                f'- Gross: ${installment["gross_amount"]:.2f}\n'
+                                f'{"- Tax " + f"{tax_percentage}%: ${installment['tax_amount']:.2f}\n" if tax_percentage > 0 else ""}'
+                                f'- Net pay: ${installment["net_amount"]:.2f}'
                             ),
-                            'Deliverable': installment['deliverables'].replace('; ', '\n· '),
+                            'Deliverable': installment['deliverables'].replace('; ', '\n- '),
                             'Due date': installment['dueDate_display']
                         }
                         for installment in contract_data.get('payment_installments', [])
@@ -1563,6 +1591,7 @@ def export_docx(contract_id):
         try:
             total_fee_usd = float(contract_data['total_fee_usd']) if contract_data['total_fee_usd'] else 0.0
             tax_percentage = float(contract_data.get('tax_percentage', 15.0))
+            deduct_tax_code = contract_data.get('deduct_tax_code', '')
         except (ValueError, TypeError) as e:
             logger.error(f"Error converting financial data for contract {contract_id}: {str(e)}")
             flash("An error occurred while exporting the contract.", 'danger')
@@ -1605,7 +1634,7 @@ def export_docx(contract_id):
         doc.styles['Normal'].font.size = Pt(11)
 
         # Helper function to add paragraph with selective bolding, email formatting, and custom bold segments
-        def add_paragraph(text, alignment=WD_ALIGN_PARAGRAPH.LEFT, bold=False, size=11, underline=False, email_addresses=None, bold_segments=None):
+        def add_paragraph(text, alignment=WD_ALIGN_PARAGRAPH.LEFT, bold=False, size=11, underline=False, email_addresses=None, bold_segments=None, indent=None):
             email_addresses = email_addresses or []
             bold_segments = bold_segments or []
             pattern_parts = [re.escape(segment) for segment in email_addresses + bold_segments + ['“Party A”', '“Party B”']]
@@ -1615,6 +1644,8 @@ def export_docx(contract_id):
             for para_text in paragraphs:
                 p = doc.add_paragraph()
                 p.alignment = alignment
+                if indent:
+                    p.paragraph_format.left_indent = Inches(indent)
                 parts = re.split(pattern, para_text)
                 for part in parts:
                     run = p.add_run(part)
@@ -1629,13 +1660,15 @@ def export_docx(contract_id):
             return ps
 
         # Helper function to add paragraph with selective bold and size
-        def add_paragraph_with_bold(text_parts, bold_parts, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12):
+        def add_paragraph_with_bold(text_parts, bold_parts, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12, indent=None):
             text = ''.join(text_parts)
             paragraphs = text.split('\n\n')
             ps = []
             for para_text in paragraphs:
                 p = doc.add_paragraph()
                 p.alignment = alignment
+                if indent:
+                    p.paragraph_format.left_indent = Inches(indent)
                 pattern_parts = [re.escape(bp) for bp in bold_parts] + ['“Party A”', '“Party B”']
                 pattern = r'(' + '|'.join(pattern_parts) + r')'
                 sub_parts = re.split(pattern, para_text)
@@ -1722,12 +1755,13 @@ def export_docx(contract_id):
                     contract_data["total_gross"],
                     f' (',
                     f'{contract_data["total_fee_words"]} ',
-                    f') including tax for the whole assignment period.\n\n',
+                    f') {"excluding" if tax_percentage == 0 else "including"} tax for the whole assignment period.'
                 ],
                 'financial_lines': [
-                    f'Total Service Fee: {contract_data["total_gross"]}\n',
-                    f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}\n',
-                    f'Net amount: {contract_data["total_net"]}\n\n',
+                    f'VAT TIN {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
+                    f'Total Service Fee: {contract_data["total_gross"]}',
+                    f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
+                    f'Net amount: {contract_data["total_net"]}',
                 ],
                 'remaining_content': [
                     f'“Party B” is responsible to issue the Invoice (net amount) and receipt (when receiving the payment) '
@@ -1739,8 +1773,9 @@ def export_docx(contract_id):
                 'bold_parts': [
                     contract_data["total_gross"],
                     f'{contract_data["total_fee_words"]} ',
+                    f'VAT TIN {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
                     f'Total Service Fee: {contract_data["total_gross"]}',
-                    f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}',
+                    f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
                     f'Net amount: {contract_data["total_net"]}',
                     '“Party A”',
                     '“Party B”'
@@ -1752,16 +1787,16 @@ def export_docx(contract_id):
                 'title': 'TERM OF PAYMENT',
                 'content': 'The payment will be made based on the following schedules:',
                 'table': [
-                    {'Installment': 'Installment', 'Total Amount (USD)': 'Total Amount (USD)', 'Deliverable': 'Deliverable', 'Due date': 'Due date'},
+                    {'Installment': 'Installment', 'Total Amount (USD)': ['Total Amount (USD)'], 'Deliverable': 'Deliverable', 'Due date': 'Due date'},
                     *[
                         {
                             'Installment': installment['description'],
-                            'Total Amount (USD)': (
-                                f'· Gross: ${installment["gross_amount"]:.2f}\n'
-                                f'· Tax {tax_percentage}%: ${installment["tax_amount"]:.2f}\n'
-                                f'· Net pay: ${installment["net_amount"]:.2f}'
-                            ),
-                            'Deliverable': '\n·'.join([d.strip() for d in installment['deliverables'].split(';') if d.strip()]),
+                            'Total Amount (USD)': [
+                                f'- Gross: ${installment["gross_amount"]:.2f}',
+                                f'- Tax {tax_percentage}%: ${installment["tax_amount"]:.2f}' if tax_percentage > 0 else '',
+                                f'- Net pay: ${installment["net_amount"]:.2f}'
+                            ],
+                            'Deliverable': '\n- '.join([d.strip() for d in installment['deliverables'].split(';') if d.strip()]),
                             'Due date': installment['dueDate_display']
                         }
                         for installment in contract_data.get('payment_installments', [])
@@ -1995,16 +2030,19 @@ def export_docx(contract_id):
                     article['bold_parts'],
                     WD_ALIGN_PARAGRAPH.JUSTIFY,
                     default_size=11,
-                    bold_size=12
+                    bold_size=12,
                 )
-                # Financial lines (left-aligned)
-                add_paragraph_with_bold(
-                    article['financial_lines'],
-                    article['bold_parts'],
-                    WD_ALIGN_PARAGRAPH.LEFT,
-                    default_size=11,
-                    bold_size=12
-                )
+                # Financial lines (left-aligned with indentation)
+                for line in article['financial_lines']:
+                    if line:  # Only add non-empty lines
+                        add_paragraph_with_bold(
+                            [line],
+                            article['bold_parts'],
+                            WD_ALIGN_PARAGRAPH.LEFT,
+                            default_size=11,
+                            bold_size=12,
+                            indent=0.33
+                        )
                 # Remaining content (justified)
                 add_paragraph_with_bold(
                     article['remaining_content'],
@@ -2052,23 +2090,38 @@ def export_docx(contract_id):
                     row_cells = table.rows[i].cells
                     for j, key in enumerate(row_data.keys()):
                         cell = row_cells[j]
-                        cell.text = row_data[key]
-                        for paragraph in cell.paragraphs:
-                            paragraph.paragraph_format.space_after = Pt(0)  # Set spacing after to 0 pt
-                            if i == 0:
-                                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER  # Header row: all centered
-                            else:
-                                if key == 'Deliverable':
-                                    paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT  # Data rows: Deliverable left-aligned
-                                else:
-                                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER  # Other columns (Installment, Total Amount, Due date) centered
-                            for run in paragraph.runs:
-                                run.font.size = Pt(11)
-                                run.font.name = 'Calibri'
+                        # Handle 'Total Amount (USD)' as a list of lines
+                        if key == 'Total Amount (USD)' and isinstance(row_data[key], list):
+                            for line in row_data[key]:
+                                if line:  # Only add non-empty lines
+                                    p = cell.add_paragraph(line)
+                                    p.paragraph_format.space_after = Pt(0)
+                                    if i == 0:
+                                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                    else:
+                                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                    for run in p.runs:
+                                        run.font.size = Pt(12)
+                                        run.font.name = 'Calibri'
+                                        run.bold = (i == 0) or (i > 0 and key == 'Total Amount (USD)')
+                        else:
+                            cell.text = row_data[key]
+                            for paragraph in cell.paragraphs:
+                                paragraph.paragraph_format.space_after = Pt(0)
                                 if i == 0:
-                                    run.bold = True  # Header bold
-                                if key == 'Total Amount (USD)' and i > 0:
-                                    run.bold = True  # Total Amount data bold
+                                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                else:
+                                    if key == 'Deliverable':
+                                        paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                                    else:
+                                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                for run in paragraph.runs:
+                                    run.font.size = Pt(12)
+                                    run.font.name = 'Calibri'
+                                    if i == 0:
+                                        run.bold = True
+                                    elif key == 'Total Amount (USD)':
+                                        run.bold = True
 
             for custom in custom_articles:
                 if custom['article_number'] == str(article['number']):
@@ -2187,11 +2240,13 @@ def export_all_docx():
                 # Format dates
                 contract_data['agreement_start_date_display'] = format_date(contract_data['agreement_start_date'])
                 contract_data['agreement_end_date_display'] = format_date(contract_data['agreement_end_date'])
+                contract_data['registration_date_display'] = format_date(contract_data.get('registration_date', '07 March 2012'))
 
                 # Get financial data as floats
                 try:
                     total_fee_usd = float(contract_data['total_fee_usd']) if contract_data['total_fee_usd'] else 0.0
                     tax_percentage = float(contract_data.get('tax_percentage', 15.0))
+                    deduct_tax_code = contract_data.get('deduct_tax_code', '')
                 except (ValueError, TypeError) as e:
                     logger.error(f"Error converting financial data for contract {contract.id}: {str(e)}")
                     continue  # Skip this contract and proceed to the next
@@ -2233,7 +2288,7 @@ def export_all_docx():
                 doc.styles['Normal'].font.size = Pt(11)
 
                 # Helper function to add paragraph with selective bolding, email formatting, and custom bold segments
-                def add_paragraph(text, alignment=WD_ALIGN_PARAGRAPH.LEFT, bold=False, size=11, underline=False, email_addresses=None, bold_segments=None):
+                def add_paragraph(text, alignment=WD_ALIGN_PARAGRAPH.LEFT, bold=False, size=11, underline=False, email_addresses=None, bold_segments=None, indent=None):
                     email_addresses = email_addresses or []
                     bold_segments = bold_segments or []
                     pattern_parts = [re.escape(segment) for segment in email_addresses + bold_segments + ['“Party A”', '“Party B”']]
@@ -2243,13 +2298,15 @@ def export_all_docx():
                     for para_text in paragraphs:
                         p = doc.add_paragraph()
                         p.alignment = alignment
+                        if indent:
+                            p.paragraph_format.left_indent = Inches(indent)
                         parts = re.split(pattern, para_text)
                         for part in parts:
                             run = p.add_run(part)
                             run.font.size = Pt(size)
                             run.bold = bold or part in bold_segments or part in ['“Party A”', '“Party B”']
                             if part in email_addresses:
-                                run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
+                                run.font.color.rgb = RGBColor(0, 0, 255)
                                 run.underline = WD_UNDERLINE.SINGLE
                             elif underline:
                                 run.underline = WD_UNDERLINE.SINGLE
@@ -2257,13 +2314,15 @@ def export_all_docx():
                     return ps
 
                 # Helper function to add paragraph with selective bold and size
-                def add_paragraph_with_bold(text_parts, bold_parts, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12):
+                def add_paragraph_with_bold(text_parts, bold_parts, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12, indent=None):
                     text = ''.join(text_parts)
                     paragraphs = text.split('\n\n')
                     ps = []
                     for para_text in paragraphs:
                         p = doc.add_paragraph()
                         p.alignment = alignment
+                        if indent:
+                            p.paragraph_format.left_indent = Inches(indent)
                         pattern_parts = [re.escape(bp) for bp in bold_parts] + ['“Party A”', '“Party B”']
                         pattern = r'(' + '|'.join(pattern_parts) + r')'
                         sub_parts = re.split(pattern, para_text)
@@ -2292,7 +2351,7 @@ def export_all_docx():
                             if i < len(parts) - 1:
                                 run = p.add_run(email_text)
                                 run.font.size = Pt(default_size)
-                                run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
+                                run.font.color.rgb = RGBColor(0, 0, 255)
                                 run.underline = WD_UNDERLINE.SINGLE
                         ps.append(p)
                     return ps
@@ -2350,12 +2409,13 @@ def export_all_docx():
                             contract_data["total_gross"],
                             f' (',
                             f'{contract_data["total_fee_words"]} ',
-                            f') including tax for the whole assignment period.\n\n',
+                            f') {"excluding" if tax_percentage == 0 else "including"} tax for the whole assignment period.'
                         ],
                         'financial_lines': [
-                            f'Total Service Fee: {contract_data["total_gross"]}\n',
-                            f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}\n',
-                            f'Net amount: {contract_data["total_net"]}\n\n',
+                            f'VAT TIN {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
+                            f'Total Service Fee: {contract_data["total_gross"]}',
+                            f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
+                            f'Net amount: {contract_data["total_net"]}',
                         ],
                         'remaining_content': [
                             f'“Party B” is responsible to issue the Invoice (net amount) and receipt (when receiving the payment) '
@@ -2367,8 +2427,9 @@ def export_all_docx():
                         'bold_parts': [
                             contract_data["total_gross"],
                             f'{contract_data["total_fee_words"]} ',
+                            f'VAT TIN {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
                             f'Total Service Fee: {contract_data["total_gross"]}',
-                            f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}',
+                            f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
                             f'Net amount: {contract_data["total_net"]}',
                             '“Party A”',
                             '“Party B”'
@@ -2380,16 +2441,16 @@ def export_all_docx():
                         'title': 'TERM OF PAYMENT',
                         'content': 'The payment will be made based on the following schedules:',
                         'table': [
-                            {'Installment': 'Installment', 'Total Amount (USD)': 'Total Amount (USD)', 'Deliverable': 'Deliverable', 'Due date': 'Due date'},
+                            {'Installment': 'Installment', 'Total Amount (USD)': ['Total Amount (USD)'], 'Deliverable': 'Deliverable', 'Due date': 'Due date'},
                             *[
                                 {
                                     'Installment': installment['description'],
-                                    'Total Amount (USD)': (
-                                        f'· Gross: ${installment["gross_amount"]:.2f}\n'
-                                        f'· Tax {tax_percentage}%: ${installment["tax_amount"]:.2f}\n'
-                                        f'· Net pay: ${installment["net_amount"]:.2f}'
-                                    ),
-                                    'Deliverable': '\n·'.join([d.strip() for d in installment['deliverables'].split(';') if d.strip()]),
+                                    'Total Amount (USD)': [
+                                        f'- Gross: ${installment["gross_amount"]:.2f}',
+                                        f'- Tax {tax_percentage}%: ${installment["tax_amount"]:.2f}' if tax_percentage > 0 else '',
+                                        f'- Net pay: ${installment["net_amount"]:.2f}'
+                                    ],
+                                    'Deliverable': '\n- '.join([d.strip() for d in installment['deliverables'].split(';') if d.strip()]),
                                     'Due date': installment['dueDate_display']
                                 }
                                 for installment in contract_data.get('payment_installments', [])
@@ -2603,7 +2664,7 @@ def export_all_docx():
                 # Whereas Clauses
                 add_paragraph(
                     f"Whereas NGOF is a legal entity registered with the Ministry of Interior (MOI) "
-                    f"{contract_data.get('registration_number', '#304 សជណ')} dated {contract_data.get('registration_date', '07 March 2012')}.",
+                    f"{contract_data.get('registration_number', '#304 សជណ')} dated {contract_data['registration_date_display']}.",
                     WD_ALIGN_PARAGRAPH.JUSTIFY, size=11
                 )
                 add_paragraph(
@@ -2623,16 +2684,19 @@ def export_all_docx():
                             article['bold_parts'],
                             WD_ALIGN_PARAGRAPH.JUSTIFY,
                             default_size=11,
-                            bold_size=12
+                            bold_size=12,
                         )
-                        # Financial lines (left-aligned)
-                        add_paragraph_with_bold(
-                            article['financial_lines'],
-                            article['bold_parts'],
-                            WD_ALIGN_PARAGRAPH.LEFT,
-                            default_size=11,
-                            bold_size=12
-                        )
+                        # Financial lines (left-aligned with indentation)
+                        for line in article['financial_lines']:
+                            if line:  # Only add non-empty lines
+                                add_paragraph_with_bold(
+                                    [line],
+                                    article['bold_parts'],
+                                    WD_ALIGN_PARAGRAPH.LEFT,
+                                    default_size=11,
+                                    bold_size=12,
+                                    indent=0.33
+                                )
                         # Remaining content (justified)
                         add_paragraph_with_bold(
                             article['remaining_content'],
@@ -2680,23 +2744,32 @@ def export_all_docx():
                             row_cells = table.rows[i].cells
                             for j, key in enumerate(row_data.keys()):
                                 cell = row_cells[j]
-                                cell.text = row_data[key]
-                                for paragraph in cell.paragraphs:
-                                    paragraph.paragraph_format.space_after = Pt(0)  # Set spacing after to 0 pt
-                                    if i == 0:
-                                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER  # Header row: all centered
-                                    else:
-                                        if key == 'Deliverable':
-                                            paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT  # Data rows: Deliverable left-aligned
-                                        else:
-                                            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER  # Other columns centered
-                                    for run in paragraph.runs:
-                                        run.font.size = Pt(11)
-                                        run.font.name = 'Calibri'
+                                # Handle 'Total Amount (USD)' as a list of lines
+                                if key == 'Total Amount (USD)' and isinstance(row_data[key], list):
+                                    for line in row_data[key]:
+                                        if line:  # Only add non-empty lines
+                                            p = cell.add_paragraph(line)
+                                            p.paragraph_format.space_after = Pt(0)
+                                            if i == 0:
+                                                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                            else:
+                                                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                            for run in p.runs:
+                                                run.font.size = Pt(12)
+                                                run.font.name = 'Calibri'
+                                                run.bold = (i == 0) or (i > 0 and key == 'Total Amount (USD)')
+                                else:
+                                    cell.text = row_data[key]
+                                    for paragraph in cell.paragraphs:
+                                        paragraph.paragraph_format.space_after = Pt(0)
                                         if i == 0:
-                                            run.bold = True  # Header bold
-                                        if key == 'Total Amount (USD)' and i > 0:
-                                            run.bold = True  # Total Amount data bold
+                                            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                        else:
+                                            paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT if key == 'Deliverable' else WD_ALIGN_PARAGRAPH.CENTER
+                                        for run in paragraph.runs:
+                                            run.font.size = Pt(12)
+                                            run.font.name = 'Calibri'
+                                            run.bold = i == 0 or (key == 'Total Amount (USD)' and i > 0)
 
                     for custom in custom_articles:
                         if custom['article_number'] == str(article['number']):
@@ -2704,7 +2777,7 @@ def export_all_docx():
 
                 # Signatures
                 add_paragraph(
-                    f"Date: {contract_data.get('agreement_start_date_display', 'N/A')}",
+                    f"Date: {contract_data['agreement_start_date_display']}",
                     WD_ALIGN_PARAGRAPH.CENTER,
                     bold=True,
                     size=11

@@ -40,7 +40,7 @@
     .party-a-select, .focal-person-select {
         margin-bottom: 10px;
     }
-    #party_b_new_name_container {
+    #party_b_new_name_container, #deduct_tax_code_container {
         display: none;
     }
 </style>
@@ -74,14 +74,22 @@
                 </div>
                 <div class="col-md-6">
                     <label for="tax_percentage" class="form-label">Tax Percentage (%)</label>
-                    <select class="form-select" id="tax_percentage" name="tax_percentage" required>
-                        <option value="0" {{ 'selected' if form_data.tax_percentage | default('15') == '0' }}>0</option>
-                        <option value="5" {{ 'selected' if form_data.tax_percentage | default('15') == '5' }}>5</option>
-                        <option value="10" {{ 'selected' if form_data.tax_percentage | default('15') == '10' }}>10</option>
-                        <option value="15" {{ 'selected' if form_data.tax_percentage | default('15') == '15' }}>15</option>
-                        <option value="20" {{ 'selected' if form_data.tax_percentage | default('15') == '20' }}>20</option>
-                    </select>
-                    <div class="invalid-feedback">Please select a tax percentage.</div>
+                    <div class="input-group">
+                        <select class="form-select" id="tax_percentage" name="tax_percentage" required onchange="toggleDeductTaxCode()">
+                            <option value="0" {{ 'selected' if form_data.tax_percentage | default('15') == '0' }}>0</option>
+                            <option value="5" {{ 'selected' if form_data.tax_percentage | default('15') == '5' }}>5</option>
+                            <option value="10" {{ 'selected' if form_data.tax_percentage | default('15') == '10' }}>10</option>
+                            <option value="15" {{ 'selected' if form_data.tax_percentage | default('15') == '15' }}>15</option>
+                            <option value="20" {{ 'selected' if form_data.tax_percentage | default('15') == '20' }}>20</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a tax percentage.</div>
+                    </div>
+                    <div id="deduct_tax_code_container" class="mt-2" style="display: none;">
+                        <label for="deduct_tax_code" class="form-label">Deduct TAX Code</label>
+                        <input type="text" class="form-control" id="deduct_tax_code" name="deduct_tax_code" value="{{ form_data.deduct_tax_code | default('') }}" placeholder="e.g., TAX-EXEMPT-001" pattern="[A-Z0-9\-]+" maxlength="50">
+                        <small class="form-text text-muted">Enter the tax exemption code (uppercase letters, numbers, and hyphens only, max 50 characters).</small>
+                        <div class="invalid-feedback">Please enter a valid Deduct TAX Code (uppercase letters, numbers, and hyphens only).</div>
+                    </div>
                 </div>
             </div>
 
@@ -441,6 +449,20 @@
         return words ? words + ' US Dollars only' : 'Zero US Dollars only';
     }
 
+    function toggleDeductTaxCode() {
+        const taxPercentage = document.getElementById('tax_percentage').value;
+        const deductTaxCodeContainer = document.getElementById('deduct_tax_code_container');
+        const deductTaxCodeInput = document.getElementById('deduct_tax_code');
+        if (taxPercentage === '0') {
+            deductTaxCodeContainer.style.display = 'block';
+            deductTaxCodeInput.required = true;
+        } else {
+            deductTaxCodeContainer.style.display = 'none';
+            deductTaxCodeInput.required = false;
+            deductTaxCodeInput.value = '';
+        }
+    }
+
     function handlePartyBSelect(select) {
         const newNameContainer = document.getElementById('party_b_new_name_container');
         const newNameInput = document.getElementById('party_b_signature_name');
@@ -717,6 +739,18 @@
                 event.stopPropagation();
                 alert('Please select a Party A signer.');
             }
+            const taxPercentage = document.getElementById('tax_percentage').value;
+            const deductTaxCode = document.getElementById('deduct_tax_code').value;
+            if (taxPercentage === '0' && !deductTaxCode) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Deduct TAX Code is required when tax percentage is 0%.');
+            }
+            if (taxPercentage === '0' && deductTaxCode && !/^[A-Z0-9\-]+$/.test(deductTaxCode)) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Deduct TAX Code must contain only uppercase letters, numbers, and hyphens.');
+            }
             form.classList.add('was-validated');
         }, false);
     })();
@@ -874,6 +908,7 @@
         updateFocalPersonRemoveButtons();
         updatePartyARemoveButtons();
         updatePartyASignerOptions();
+        toggleDeductTaxCode(); // Initialize deduct_tax_code visibility
 
         document.querySelectorAll('.btn-remove-article').forEach(button => {
             button.addEventListener('click', function () {

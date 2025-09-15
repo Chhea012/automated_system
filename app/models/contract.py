@@ -23,6 +23,7 @@ class Contract(db.Model):
     total_fee_usd = db.Column(db.Numeric(10, 2), default=0.0)
     gross_amount_usd = db.Column(db.Numeric(10, 2), default=0.0)
     tax_percentage = db.Column(db.Numeric(5, 2), default=15.0)
+    deduct_tax_code = db.Column(db.String(50), default='')  # New column for Deduct TAX Code
     payment_gross = db.Column(db.String(50), default='')
     payment_net = db.Column(db.String(50), default='')
     workshop_description = db.Column(db.String(255), default='')
@@ -68,6 +69,7 @@ class Contract(db.Model):
             'total_fee_usd': float(self.total_fee_usd) if self.total_fee_usd is not None else 0.0,
             'gross_amount_usd': float(self.gross_amount_usd) if self.gross_amount_usd is not None else 0.0,
             'tax_percentage': float(self.tax_percentage) if self.tax_percentage is not None else 15.0,
+            'deduct_tax_code': self.deduct_tax_code or '',  # Include new field
             'payment_installments': payment_installments,
             'payment_gross': self.payment_gross or '',
             'payment_net': self.payment_net or '',
