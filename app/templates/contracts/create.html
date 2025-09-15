@@ -86,7 +86,7 @@
                     </div>
                     <div id="deduct_tax_code_container" class="mt-2" style="display: none;">
                         <label for="deduct_tax_code" class="form-label">Deduct TAX Code</label>
-                        <input type="text" class="form-control" id="deduct_tax_code" name="deduct_tax_code" value="{{ form_data.deduct_tax_code | default('') }}" placeholder="e.g., TAX-EXEMPT-001" pattern="[A-Z0-9\-]+" maxlength="50">
+                        <input type="text" class="form-control" id="deduct_tax_code" name="deduct_tax_code" value="{{ form_data.deduct_tax_code | default('') }}" placeholder="e.g., K002-100054102" pattern="[A-Z0-9\-]+" maxlength="50">
                         <small class="form-text text-muted">Enter the tax exemption code (uppercase letters, numbers, and hyphens only, max 50 characters).</small>
                         <div class="invalid-feedback">Please enter a valid Deduct TAX Code (uppercase letters, numbers, and hyphens only).</div>
                     </div>
