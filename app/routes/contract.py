@@ -60,8 +60,22 @@ def format_date(iso_date):
         day = date.day
         month = date.strftime('%B')
         year = date.year
-        suffix = 'th' if 11 <= day % 100 <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
-        return f"{day}{suffix} {month} {year}"
+
+        # Determine suffix
+        if 11 <= day % 100 <= 13:
+            suffix = 'th'
+        else:
+            suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
+
+        # Map to Unicode superscripts
+        superscripts = {
+            "st": "ˢᵗ",
+            "nd": "ⁿᵈ",
+            "rd": "ʳᵈ",
+            "th": "ᵗʰ"
+        }
+
+        return f"{day}{superscripts[suffix]} {month} {year}"
     except (ValueError, TypeError) as e:
         logger.warning(f"Error formatting date '{iso_date}': {str(e)}")
         return iso_date or ''
@@ -115,6 +129,7 @@ def calculate_payments(total_fee_usd, tax_percentage, payment_installments):
     except Exception as e:
         logger.error(f"Error calculating payments: {str(e)}")
         return 0.0, 0.0
+
 
 @contracts_bp.route('/')
 @login_required
