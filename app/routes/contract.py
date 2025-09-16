@@ -2292,12 +2292,11 @@ def delete(contract_id):
         flash("An error occurred while deleting the contract.", 'danger')
     return redirect(url_for('contracts.index'))
 
-# Export all contracts to DOCX
+# Export all contracts to ZIP
 @contracts_bp.route('/export_all_docx', methods=['GET'])
 @login_required
 def export_all_docx():
     try:
-        # Fetch contracts based on user role: admins get all non-deleted contracts, non-admins get only their own
         if current_user.has_role('admin'):
             contracts = Contract.query.filter(Contract.deleted_at == None).all()
         else:
@@ -2307,7 +2306,6 @@ def export_all_docx():
             flash("No contracts available to export.", "warning")
             return redirect(url_for('contracts.index'))
 
-        # Create a BytesIO stream for the ZIP file
         zip_buffer = BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             for contract in contracts:
@@ -2315,32 +2313,27 @@ def export_all_docx():
                 if 'custom_article_sentences' not in contract_data or contract_data['custom_article_sentences'] is None:
                     contract_data['custom_article_sentences'] = {}
 
-                # Format dates
                 contract_data['agreement_start_date_display'] = format_date(contract_data['agreement_start_date'])
                 contract_data['agreement_end_date_display'] = format_date(contract_data['agreement_end_date'])
-                contract_data['registration_date_display'] = format_date(contract_data.get('registration_date', '07 March 2012'))
 
-                # Get financial data as floats
                 try:
                     total_fee_usd = float(contract_data['total_fee_usd']) if contract_data['total_fee_usd'] else 0.0
                     tax_percentage = float(contract_data.get('tax_percentage', 15.0))
                     deduct_tax_code = contract_data.get('deduct_tax_code', '')
                 except (ValueError, TypeError) as e:
                     logger.error(f"Error converting financial data for contract {contract.id}: {str(e)}")
-                    continue  # Skip this contract and proceed to the next
+                    continue
 
                 contract_data['total_fee_usd'] = total_fee_usd
                 contract_data['gross_amount_usd'] = total_fee_usd
                 contract_data['total_fee_words'] = contract_data.get('total_fee_words') or number_to_words(total_fee_usd)
 
-                # Calculate total gross and net
                 total_gross_amount, total_net_amount = calculate_payments(
                     total_fee_usd, tax_percentage, contract_data.get('payment_installments', [])
                 )
                 contract_data['total_gross'] = f"USD{total_gross_amount:.2f}"
                 contract_data['total_net'] = f"USD{total_net_amount:.2f}"
 
-                # Process payment installments
                 for installment in contract_data.get('payment_installments', []):
                     installment['dueDate_display'] = format_date(installment.get('dueDate', ''))
                     match = re.search(r'\((\d+\.?\d*)\%\)', installment['description'])
@@ -2350,22 +2343,24 @@ def export_all_docx():
                     installment['tax_amount'] = tax
                     installment['net_amount'] = net
 
-                # Create a new DOCX document for each contract
                 doc = Document()
 
-                # Set document margins (in inches)
                 sections = doc.sections
-                for section in sections:
-                    section.left_margin = Inches(1)
-                    section.right_margin = Inches(1)
-                    section.top_margin = Inches(1)
-                    section.bottom_margin = Inches(1)
+                for i, section in enumerate(sections):
+                    if i == 0:
+                        section.top_margin = Inches(1.5)
+                        section.left_margin = Inches(1)
+                        section.right_margin = Inches(1)
+                        section.bottom_margin = Inches(1)
+                    else:
+                        section.top_margin = Inches(1)
+                        section.left_margin = Inches(1)
+                        section.right_margin = Inches(1)
+                        section.bottom_margin = Inches(1)
 
-                # Set default font
                 doc.styles['Normal'].font.name = 'Calibri'
                 doc.styles['Normal'].font.size = Pt(11)
 
-                # Helper function to add paragraph with selective bolding, email formatting, and custom bold segments
                 def add_paragraph(text, alignment=WD_ALIGN_PARAGRAPH.LEFT, bold=False, size=11, underline=False, email_addresses=None, bold_segments=None, indent=None):
                     email_addresses = email_addresses or []
                     bold_segments = bold_segments or []
@@ -2391,7 +2386,6 @@ def export_all_docx():
                         ps.append(p)
                     return ps
 
-                # Helper function to add paragraph with selective bold and size
                 def add_paragraph_with_bold(text_parts, bold_parts, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12, indent=None):
                     text = ''.join(text_parts)
                     paragraphs = text.split('\n\n')
@@ -2411,7 +2405,6 @@ def export_all_docx():
                         ps.append(p)
                     return ps
 
-                # Helper function to add paragraph with selective formatting for Party B email
                 def add_paragraph_with_email_formatting(text_parts, bold_parts, email_text, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12):
                     text = ''.join(text_parts)
                     paragraphs = text.split('\n\n')
@@ -2434,7 +2427,6 @@ def export_all_docx():
                         ps.append(p)
                     return ps
 
-                # Helper function to add heading with selective underlining
                 def add_heading(number, title, level, size=12):
                     p = doc.add_paragraph()
                     p.alignment = WD_ALIGN_PARAGRAPH.LEFT
@@ -2456,7 +2448,6 @@ def export_all_docx():
                     run3.font.color.rgb = RGBColor(0, 0, 0)
                     return p
 
-                # Define standard articles
                 standard_articles = [
                     {
                         'number': 1,
@@ -2550,7 +2541,7 @@ def export_all_docx():
                         'content': (
                             f'“Party A” shall monitor and evaluate the progress of the agreement toward its objective, '
                             f'including the activities implemented. '
-                            f'{" and ".join([f"{person['name']}, {person['position']} (Telephone {person['phone']} Email: {person['email']})" for person in contract_data.get("focal_person_info", [])]) or "N/A, N/A (Telephone N/A Email: N/A)"} '
+                            f'{" and ".join([f"{person["name"]}, {person["position"]} (Telephone {person["phone"]} Email: {person["email"]})" for person in contract_data.get("focal_person_info", [])]) or "N/A, N/A (Telephone N/A Email: N/A)"} '
                             f'is the focal contact person of “Party A” and '
                             f'{contract_data.get("party_b_signature_name", "N/A")}, {contract_data.get("party_b_position", "Freelance Consultant")} '
                             f'(HP. {contract_data.get("party_b_phone", "N/A")}, E-mail: {contract_data.get("party_b_email", "N/A")}) '
@@ -2689,20 +2680,19 @@ def export_all_docx():
                     }
                 ]
 
-                # Prepare custom articles
                 custom_articles = [
                     {'article_number': str(k), 'custom_sentence': v}
                     for k, v in contract_data.get('custom_article_sentences', {}).items()
                 ]
 
-                # Header
-                add_paragraph('The Service Agreement', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
+                p = doc.add_paragraph()
+                p.paragraph_format.space_before = Pt(36)
+                add_paragraph('The Service Agreement', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14, underline=False)
                 add_paragraph('ON', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)
                 add_paragraph(contract_data.get('project_title', 'N/A'), WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
                 add_paragraph(f"No.: {contract_data.get('contract_number', 'N/A')}", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
                 add_paragraph('BETWEEN', WD_ALIGN_PARAGRAPH.CENTER, size=12)
 
-                # Party A
                 party_a_info = contract_data.get('party_a_info', [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia'}])
                 representatives = [f"{person['name']}, {person['position']}" for person in party_a_info]
                 representative_text = ", represented by " + "; ".join(representatives) + "."
@@ -2719,7 +2709,6 @@ def export_all_docx():
 
                 add_paragraph('AND', WD_ALIGN_PARAGRAPH.CENTER, size=12)
 
-                # Party B
                 party_b_position = contract_data.get('party_b_position', 'Freelance Consultant')
                 party_b_name = contract_data.get('party_b_signature_name', 'N/A')
                 party_b_address = contract_data.get('party_b_address', 'N/A')
@@ -2739,10 +2728,9 @@ def export_all_docx():
                 party_b_bold_parts = [party_b_position + " " + party_b_name, "“Party B”"]
                 add_paragraph_with_email_formatting(party_b_text_parts, party_b_bold_parts, party_b_email, WD_ALIGN_PARAGRAPH.CENTER, default_size=12, bold_size=12)
 
-                # Whereas Clauses
                 add_paragraph(
                     f"Whereas NGOF is a legal entity registered with the Ministry of Interior (MOI) "
-                    f"{contract_data.get('registration_number', '#304 សជណ')} dated {contract_data['registration_date_display']}.",
+                    f"{contract_data.get('registration_number', '#304 សជណ')} dated {format_date(contract_data.get('registration_date', '07 March 2012'))}.",
                     WD_ALIGN_PARAGRAPH.JUSTIFY, size=11
                 )
                 add_paragraph(
@@ -2751,12 +2739,10 @@ def export_all_docx():
                 )
                 add_paragraph("Both Parties Agreed as follows:", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)
 
-                # Articles
                 for article in standard_articles:
                     add_heading(article['number'], article['title'], level=3, size=12)
 
                     if article['number'] == 3:
-                        # First part (justified)
                         add_paragraph_with_bold(
                             article['content'],
                             article['bold_parts'],
@@ -2764,9 +2750,8 @@ def export_all_docx():
                             default_size=11,
                             bold_size=12,
                         )
-                        # Financial lines (left-aligned with indentation)
                         for line in article['financial_lines']:
-                            if line:  # Only add non-empty lines
+                            if line:
                                 add_paragraph_with_bold(
                                     [line],
                                     article['bold_parts'],
@@ -2775,7 +2760,6 @@ def export_all_docx():
                                     bold_size=12,
                                     indent=0.33
                                 )
-                        # Remaining content (justified)
                         add_paragraph_with_bold(
                             article['remaining_content'],
                             article['bold_parts'],
@@ -2822,10 +2806,9 @@ def export_all_docx():
                             row_cells = table.rows[i].cells
                             for j, key in enumerate(row_data.keys()):
                                 cell = row_cells[j]
-                                # Handle 'Total Amount (USD)' as a list of lines
                                 if key == 'Total Amount (USD)' and isinstance(row_data[key], list):
                                     for line in row_data[key]:
-                                        if line:  # Only add non-empty lines
+                                        if line:
                                             p = cell.add_paragraph(line)
                                             p.paragraph_format.space_after = Pt(0)
                                             if i == 0:
@@ -2853,7 +2836,6 @@ def export_all_docx():
                         if custom['article_number'] == str(article['number']):
                             add_paragraph(custom['custom_sentence'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
 
-                # Signatures
                 add_paragraph(
                     f"Date: {contract_data['agreement_start_date_display']}",
                     WD_ALIGN_PARAGRAPH.CENTER,
@@ -2861,7 +2843,6 @@ def export_all_docx():
                     size=11
                 )
 
-                # Signature table
                 table = doc.add_table(rows=4, cols=2)
                 table.alignment = WD_TABLE_ALIGNMENT.CENTER
                 table.allow_autofit = True
@@ -2922,17 +2903,14 @@ def export_all_docx():
                     run.bold = True
                     run.font.size = Pt(11)
 
-                # Save the DOCX to a BytesIO buffer
                 doc_buffer = BytesIO()
                 doc.save(doc_buffer)
                 doc_buffer.seek(0)
 
-                # Add the DOCX to the ZIP file with the Party B name as the filename
                 party_b_name = contract_data.get('party_b_signature_name', 'Contract_' + str(contract.id))
                 filename = f"{sanitize_filename(party_b_name)}.docx"
                 zip_file.writestr(filename, doc_buffer.getvalue())
 
-        # Prepare the ZIP file for download
         zip_buffer.seek(0)
         return send_file(
             zip_buffer,
