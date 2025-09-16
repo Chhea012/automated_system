@@ -114,6 +114,665 @@ def calculate_payments(total_fee_usd, tax_percentage, payment_installments):
         logger.error(f"Error calculating payments: {str(e)}")
         return 0.0, 0.0
 
+#export docx contract file
+@contracts_bp.route('/export_docx/<contract_id>')
+@login_required
+def export_docx(contract_id):
+    try:
+        contract = Contract.query.get_or_404(contract_id)
+        # Allow admins to export any contract, non-admins only their own
+        if not current_user.has_role('admin') and contract.user_id != current_user.id:
+            flash("You are not authorized to export this contract.", 'danger')
+            return redirect(url_for('contracts.index'))
+        if contract.deleted_at is not None:
+            flash("This contract has been deleted and cannot be exported.", 'danger')
+            return redirect(url_for('contracts.index'))
+
+        contract_data = contract.to_dict()
+        if 'custom_article_sentences' not in contract_data or contract_data['custom_article_sentences'] is None:
+            contract_data['custom_article_sentences'] = {}
+
+        # Format dates
+        contract_data['agreement_start_date_display'] = format_date(contract_data['agreement_start_date'])
+        contract_data['agreement_end_date_display'] = format_date(contract_data['agreement_end_date'])
+
+        # Get financial data as floats
+        try:
+            total_fee_usd = float(contract_data['total_fee_usd']) if contract_data['total_fee_usd'] else 0.0
+            tax_percentage = float(contract_data.get('tax_percentage', 15.0))
+            deduct_tax_code = contract_data.get('deduct_tax_code', '')
+        except (ValueError, TypeError) as e:
+            logger.error(f"Error converting financial data for contract {contract_id}: {str(e)}")
+            flash("An error occurred while exporting the contract.", 'danger')
+            return redirect(url_for('contracts.index'))
+
+        contract_data['total_fee_usd'] = total_fee_usd
+        contract_data['gross_amount_usd'] = total_fee_usd
+        contract_data['total_fee_words'] = contract_data.get('total_fee_words') or number_to_words(total_fee_usd)
+
+        # Calculate total gross and net
+        total_gross_amount, total_net_amount = calculate_payments(
+            total_fee_usd, tax_percentage, contract_data.get('payment_installments', [])
+        )
+        contract_data['total_gross'] = f"USD{total_gross_amount:.2f}"
+        contract_data['total_net'] = f"USD{total_net_amount:.2f}"
+
+        # Process payment installments
+        for installment in contract_data.get('payment_installments', []):
+            installment['dueDate_display'] = format_date(installment.get('dueDate', ''))
+            match = re.search(r'\((\d+\.?\d*)\%\)', installment['description'])
+            percentage = float(match.group(1)) if match else 0.0
+            gross, tax, net = calculate_installment_payments(total_fee_usd, tax_percentage, percentage)
+            installment['gross_amount'] = gross
+            installment['tax_amount'] = tax
+            installment['net_amount'] = net
+
+        # Create DOCX document
+        doc = Document()
+
+        # Set document margins (adjusted top margin for the first page letterhead)
+        sections = doc.sections
+        for i, section in enumerate(sections):
+            if i == 0:  # Only modify the first section for letterhead space
+                section.top_margin = Inches(1.5)  # Reduced to 1.5 inches for a more balanced letterhead space
+                section.left_margin = Inches(1)
+                section.right_margin = Inches(1)
+                section.bottom_margin = Inches(1)
+            else:
+                section.top_margin = Inches(1)  # Default margin for subsequent pages
+                section.left_margin = Inches(1)
+                section.right_margin = Inches(1)
+                section.bottom_margin = Inches(1)
+
+        # Set default font
+        doc.styles['Normal'].font.name = 'Calibri'
+        doc.styles['Normal'].font.size = Pt(11)
+
+        # Helper function to add paragraph with selective bolding, email formatting, and custom bold segments
+        def add_paragraph(text, alignment=WD_ALIGN_PARAGRAPH.LEFT, bold=False, size=11, underline=False, email_addresses=None, bold_segments=None, indent=None):
+            email_addresses = email_addresses or []
+            bold_segments = bold_segments or []
+            pattern_parts = [re.escape(segment) for segment in email_addresses + bold_segments + ['“Party A”', '“Party B”']]
+            pattern = r'(' + '|'.join(pattern_parts) + r')' if pattern_parts else r'(“Party A”|“Party B”)'
+            paragraphs = text.split('\n\n')
+            ps = []
+            for para_text in paragraphs:
+                p = doc.add_paragraph()
+                p.alignment = alignment
+                if indent:
+                    p.paragraph_format.left_indent = Inches(indent)
+                parts = re.split(pattern, para_text)
+                for part in parts:
+                    run = p.add_run(part)
+                    run.font.size = Pt(size)
+                    run.bold = bold or part in bold_segments or part in ['“Party A”', '“Party B”']
+                    if part in email_addresses:
+                        run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
+                        run.underline = WD_UNDERLINE.SINGLE
+                    elif underline:
+                        run.underline = WD_UNDERLINE.SINGLE
+                ps.append(p)
+            return ps
+
+        # Helper function to add paragraph with selective bold and size
+        def add_paragraph_with_bold(text_parts, bold_parts, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12, indent=None):
+            text = ''.join(text_parts)
+            paragraphs = text.split('\n\n')
+            ps = []
+            for para_text in paragraphs:
+                p = doc.add_paragraph()
+                p.alignment = alignment
+                if indent:
+                    p.paragraph_format.left_indent = Inches(indent)
+                pattern_parts = [re.escape(bp) for bp in bold_parts] + ['“Party A”', '“Party B”']
+                pattern = r'(' + '|'.join(pattern_parts) + r')'
+                sub_parts = re.split(pattern, para_text)
+                for sub_part in sub_parts:
+                    run = p.add_run(sub_part)
+                    run.bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
+                    run.font.size = Pt(bold_size if sub_part in bold_parts else default_size)
+                ps.append(p)
+            return ps
+
+        # Helper function to add paragraph with selective formatting for Party B email
+        def add_paragraph_with_email_formatting(text_parts, bold_parts, email_text, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12):
+            text = ''.join(text_parts)
+            paragraphs = text.split('\n\n')
+            ps = []
+            for para_text in paragraphs:
+                p = doc.add_paragraph()
+                p.alignment = alignment
+                parts = para_text.split(email_text)
+                for i, part in enumerate(parts):
+                    sub_parts = re.split(r'(“Party A”|“Party B”)', part)
+                    for sub_part in sub_parts:
+                        run = p.add_run(sub_part)
+                        run.bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
+                        run.font.size = Pt(bold_size if sub_part in bold_parts else default_size)
+                    if i < len(parts) - 1:
+                        run = p.add_run(email_text)
+                        run.font.size = Pt(default_size)
+                        run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
+                        run.underline = WD_UNDERLINE.SINGLE
+                ps.append(p)
+            return ps
+
+        # Helper function to add heading with selective underlining
+        def add_heading(number, title, level, size=12):
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            run1 = p.add_run(f"ARTICLE {number}")
+            run1.font.name = 'Calibri'
+            run1.font.size = Pt(size)
+            run1.bold = True
+            run1.underline = WD_UNDERLINE.SINGLE
+            run1.font.color.rgb = RGBColor(0, 0, 0)
+            run2 = p.add_run(": ")
+            run2.font.name = 'Calibri'
+            run2.font.size = Pt(size)
+            run2.bold = True
+            run2.font.color.rgb = RGBColor(0, 0, 0)
+            run3 = p.add_run(title)
+            run3.font.name = 'Calibri'
+            run3.font.size = Pt(size)
+            run3.bold = True
+            run3.font.color.rgb = RGBColor(0, 0, 0)
+            return p
+
+        # Define standard articles
+        standard_articles = [
+            {
+                'number': 1,
+                'title': 'TERMS OF REFERENCE',
+                'content': (
+                    '“Party B” shall perform tasks as stated in the attached TOR (annex-1) to “Party A”, '
+                    'and deliver each milestone as stipulated in article 4.\n\n'
+                    'The work shall be of good quality and well performed with the acceptance by “Party A”.'
+                ),
+                'table': None
+            },
+            {
+                'number': 2,
+                'title': 'TERM OF AGREEMENT',
+                'content': (
+                    f'The agreement is effective from {contract_data["agreement_start_date_display"]} – '
+                    f'{contract_data["agreement_end_date_display"]}. This Agreement is terminated automatically '
+                    'after the due date of the Agreement Term unless otherwise, both Parties agree to extend '
+                    'the Term with a written agreement.'
+                ),
+                'table': None
+            },
+            {
+                'number': 3,
+                'title': 'PROFESSIONAL FEE',
+                'content': [
+                    f'The professional fee is the total amount of ',
+                    contract_data["total_gross"],
+                    f' (',
+                    f'{contract_data["total_fee_words"]} ',
+                    f') {"excluding" if tax_percentage == 0 else "including"} tax for the whole assignment period.'
+                ],
+                'financial_lines': [
+                    f'VAT TIN {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
+                    f'Total Service Fee: {contract_data["total_gross"]}',
+                    f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
+                    f'Net amount: {contract_data["total_net"]}',
+                ],
+                'remaining_content': [
+                    f'“Party B” is responsible to issue the Invoice (net amount) and receipt (when receiving the payment) '
+                    f'with the total amount as stipulated in each instalment as in the Article 4 after having done the '
+                    f'agreed deliverable tasks, for payment request. The payment will be processed after the satisfaction '
+                    f'from “Party A” as of the required deliverable tasks as stated in Article 4.\n\n'
+                    f'“Party B” is responsible for all related taxes payable to the government department.'
+                ],
+                'bold_parts': [
+                    contract_data["total_gross"],
+                    f'{contract_data["total_fee_words"]} ',
+                    f'VAT TIN {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
+                    f'Total Service Fee: {contract_data["total_gross"]}',
+                    f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
+                    f'Net amount: {contract_data["total_net"]}',
+                    '“Party A”',
+                    '“Party B”'
+                ],
+                'table': None
+            },
+            {
+                'number': 4,
+                'title': 'TERM OF PAYMENT',
+                'content': 'The payment will be made based on the following schedules:',
+                'table': [
+                    {'Installment': 'Installment', 'Total Amount (USD)': ['Total Amount (USD)'], 'Deliverable': 'Deliverable', 'Due date': 'Due date'},
+                    *[
+                        {
+                            'Installment': installment['description'],
+                            'Total Amount (USD)': [
+                                f'- Gross: ${installment["gross_amount"]:.2f}',
+                                f'- Tax {tax_percentage}%: ${installment["tax_amount"]:.2f}' if tax_percentage > 0 else '',
+                                f'- Net pay: ${installment["net_amount"]:.2f}'
+                            ],
+                            'Deliverable': '\n- '.join([d.strip() for d in installment['deliverables'].split(';') if d.strip()]),
+                            'Due date': installment['dueDate_display']
+                        }
+                        for installment in contract_data.get('payment_installments', [])
+                    ]
+                ]
+            },
+            {
+                'number': 5,
+                'title': 'NO OTHER PERSONS',
+                'content': (
+                    'No person or entity, which is not a party to this agreement, has any rights to enforce, '
+                    'take any action, or claim it is owed any benefit under this agreement.'
+                ),
+                'table': None
+            },
+            {
+                'number': 6,
+                'title': 'MONITORING and COORDINATION',
+                'content': (
+                    f'“Party A” shall monitor and evaluate the progress of the agreement toward its objective, '
+                    f'including the activities implemented. '
+                    f'{" and ".join([f"{person["name"]}, {person["position"]} (Telephone {person["phone"]} Email: {person["email"]})" for person in contract_data.get("focal_person_info", [])]) or "N/A, N/A (Telephone N/A Email: N/A)"} '
+                    f'is the focal contact person of “Party A” and '
+                    f'{contract_data.get("party_b_signature_name", "N/A")}, {contract_data.get("party_b_position", "Freelance Consultant")} '
+                    f'(HP. {contract_data.get("party_b_phone", "N/A")}, E-mail: {contract_data.get("party_b_email", "N/A")}) '
+                    f'the focal contact person of the “Party B”. The focal contact person of “Party A” and “Party B” will work together '
+                    f'for overall coordination including reviewing and meeting discussions during the assignment process.'
+                ),
+                'table': None
+            },
+            {
+                'number': 7,
+                'title': 'CONFIDENTIALITY',
+                'content': (
+                    f'All outputs produced, with the exception of the “{contract_data.get("project_title", "N/A")}”, '
+                    f'which is a contribution from, and to be claimed as a public document by the main author and co-author '
+                    f'in associated, and/or under this agreement, shall be the property of “Party A”. The “Party B” agrees '
+                    f'to not disclose any confidential information, of which he/she may take cognizance in the performance '
+                    f'under this contract, except with the prior written approval of “Party A”.'
+                ),
+                'table': None
+            },
+            {
+                'number': 8,
+                'title': 'ANTI-CORRUPTION and CONFLICT OF INTEREST',
+                'content': (
+                    '“Party B” shall not participate in any practice that is or could be construed as an illegal or corrupt '
+                    'practice in Cambodia.\n\nThe “Party A” is committed to fighting all types of corruption and expects this same '
+                    'commitment from the consultant. It reserves the rights and believes based on the declaration of “Party B” '
+                    'that it is an independent social enterprise firm operating in Cambodia and it does not involve any conflict '
+                    'of interest with other parties that may be affected to the “Party A”.'
+                ),
+                'table': None
+            },
+            {
+                'number': 9,
+                'title': 'OBLIGATION TO COMPLY WITH THE NGOF’S POLICIES AND CODE OF CONDUCT',
+                'content': (
+                    'By signing this agreement, “Party B” is obligated to comply with and respect all existing policies and code '
+                    'of conduct of “Party A”, such as Gender Mainstreaming, Child Protection, Disability policy, Environmental '
+                    'Mainstreaming, etc. and the “Party B” declared themselves that s/he will perform the assignment in the neutral '
+                    'position, professional manner, and not be involved in any political affiliation.'
+                ),
+                'table': None
+            },
+            {
+                'number': 10,
+                'title': 'ANTI-TERRORISM FINANCING AND FINANCIAL CRIME',
+                'content': (
+                    'NGOF is determined that all its funds and resources should only be used to further its mission and shall not '
+                    'be subject to illicit use by any third party nor used or abused for any illicit purpose. In order to achieve '
+                    'this objective, NGOF will not knowingly or recklessly provide funds, economic goods, or material support to any '
+                    'entity or individual designated as a “terrorist” by the international community or affiliate domestic governments '
+                    'and will take all reasonable steps to safeguard and protect its assets from such illicit use and to comply with '
+                    'host government laws.\n\n'
+                    'NGOF respects its contracts with its donors and puts procedures in place for compliance with these contracts.\n\n'
+                    '“Illicit use” refers to terrorist financing, sanctions, money laundering, and export control regulations.'
+                ),
+                'table': None
+            },
+            {
+                'number': 11,
+                'title': 'INSURANCE',
+                'content': (
+                    '“Party B” is responsible for any health and life insurance of its team members. “Party A” will not be held '
+                    'responsible for any medical expenses or compensation incurred during or after this contract.'
+                ),
+                'table': None
+            },
+            {
+                'number': 12,
+                'title': 'ASSIGNMENT',
+                'content': (
+                    '“Party B” shall have the right to assign individuals within its organization to carry out the tasks herein '
+                    'named in the attached Technical Proposal.\n\nThe “Party B” shall not assign, or transfer any of its rights or '
+                    'obligations under this agreement without the prior written consent of “Party A”. Any attempt by '
+                    '“Party B” to assign or transfer any of its rights and obligations without the prior written consent of “Party A” '
+                    'shall render this agreement subject to immediate termination by “Party A”.'
+                ),
+                'table': None
+            },
+            {
+                'number': 13,
+                'title': 'RESOLUTION OF CONFLICTS/DISPUTES',
+                'content': (
+                    'Conflicts between any of these agreements shall be resolved by the following methods:\n\n'
+                    'In the case of a disagreement arising between “Party A” and the “Party B” regarding the implementation of '
+                    'any part of, or any other substantive question arising under or relating to this agreement, the parties shall '
+                    'use their best efforts to arrive at an agreeable resolution by mutual consultation.\n\n'
+                    'Unresolved issues may, upon the option of either party and written notice to the other party, be referred to '
+                    'for arbitration. Failure by the “Party B” or “Party A” to dispute a decision arising from such arbitration in '
+                    'writing within thirty (30) calendar days of receipt of a final decision shall result in such final decision '
+                    'being deemed binding upon either the “Party B” and/or “Party A”. All expenses related to arbitration will be '
+                    'shared equally between both parties.'
+                ),
+                'table': None
+            },
+            {
+                'number': 14,
+                'title': 'TERMINATION',
+                'content': (
+                    'The “Party A” or the “Party B” may, by notice in writing, terminate this agreement under the following conditions:\n\n'
+                    '1. “Party A” may terminate this agreement at any time with a one-week notice if “Party B” fails to comply with the '
+                    'terms and conditions of this agreement.\n\n'
+                    '2. For gross professional misconduct (as defined in the NGOF Human Resource Policy), “Party A” may terminate '
+                    'this agreement immediately without prior notice. “Party A” will notify “Party B” in a letter that will indicate '
+                    'the reason for termination as well as the effective date of termination.\n\n'
+                    '3. “Party B” may terminate this agreement at any time with a one-week notice if “Party A” fails to comply with '
+                    'the terms and conditions of this agreement. “Party B” will notify “Party A” in a letter that will indicate the '
+                    'reason for termination as well as the effective date of termination. If “Party B” terminates this '
+                    'agreement without any appropriate reason or fails to implement the assignment, “Party B” must '
+                    'refund the full amount of fees received to “Party A”.\n\n'
+                    '4. If for any reason either “Party A” or “Party B” decides to terminate this agreement, “Party B” shall be '
+                    'paid pro-rata for the work already completed by “Party A”. This payment will require the submission of a timesheet '
+                    'that demonstrates work completed as well as the handing over of any deliverables completed or partially completed. '
+                    'In case “Party B” has received payment for services under the agreement which have not yet been performed, the '
+                    'appropriate portion of these fees must be refunded by “Party B” to “Party A”.'
+                ),
+                'table': None
+            },
+            {
+                'number': 15,
+                'title': 'MODIFICATION OR AMENDMENT',
+                'content': (
+                    'No modification or amendment of this agreement shall be valid unless in writing and signed by an authorized '
+                    'person of “Party A” and “Party B”.'
+                ),
+                'table': None
+            },
+            {
+                'number': 16,
+                'title': 'CONTROLLING OF LAW',
+                'content': (
+                    'This agreement shall be governed and construed following the law of the Kingdom of Cambodia. '
+                    'This Agreement is prepared in two original copies.'
+                ),
+                'table': None
+            }
+        ]
+
+        # Prepare custom articles
+        custom_articles = [
+            {'article_number': str(k), 'custom_sentence': v}
+            for k, v in contract_data.get('custom_article_sentences', {}).items()
+        ]
+
+        # Header (adjusted for smaller letterhead space and no underline)
+        # Add a paragraph with reduced space before the title for letterhead
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(36)  # Reduced to 0.5 inch (36 points) for a more compact letterhead space
+        add_paragraph('The Service Agreement', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14, underline=False)
+        add_paragraph('ON', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)
+        add_paragraph(contract_data.get('project_title', 'N/A'), WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
+        add_paragraph(f"No.: {contract_data.get('contract_number', 'N/A')}", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
+        add_paragraph('BETWEEN', WD_ALIGN_PARAGRAPH.CENTER, size=12)
+
+        # Party A
+        party_a_info = contract_data.get('party_a_info', [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia'}])
+        representatives = [f"{person['name']}, {person['position']}" for person in party_a_info]
+        representative_text = ", represented by " + "; ".join(representatives) + "."
+        party_a_text_parts = [
+            "The NGO Forum on Cambodia",
+            representative_text,
+            "\nAddress: ",
+            party_a_info[0]['address'] if party_a_info else '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia',
+            ".\nhereinafter called the ",
+            "“Party A”"
+        ]
+        party_a_bold_parts = ["The NGO Forum on Cambodia", "“Party A”"] + [person['name'] for person in party_a_info]
+        add_paragraph_with_bold(party_a_text_parts, party_a_bold_parts, WD_ALIGN_PARAGRAPH.CENTER, default_size=12, bold_size=12)
+
+        add_paragraph('AND', WD_ALIGN_PARAGRAPH.CENTER, size=12)
+
+        # Party B
+        party_b_position = contract_data.get('party_b_position', 'Freelance Consultant')
+        party_b_name = contract_data.get('party_b_signature_name', 'N/A')
+        party_b_address = contract_data.get('party_b_address', 'N/A')
+        party_b_phone = contract_data.get('party_b_phone', 'N/A')
+        party_b_email = contract_data.get('party_b_email', 'N/A')
+        party_b_text_parts = [
+            party_b_position + " " + party_b_name,
+            ",\nAddress: ",
+            party_b_address,
+            "\nH/P: ",
+            party_b_phone,
+            ", E-mail: ",
+            party_b_email,
+            "\nhereinafter called the ",
+            "“Party B”"
+        ]
+        party_b_bold_parts = [party_b_position + " " + party_b_name, "“Party B”"]
+        add_paragraph_with_email_formatting(party_b_text_parts, party_b_bold_parts, party_b_email, WD_ALIGN_PARAGRAPH.CENTER, default_size=12, bold_size=12)
+
+        # Whereas Clauses
+        add_paragraph(
+            f"Whereas NGOF is a legal entity registered with the Ministry of Interior (MOI) "
+            f"{contract_data.get('registration_number', '#304 សជណ')} dated {contract_data.get('registration_date', '07 March 2012')}.",
+            WD_ALIGN_PARAGRAPH.JUSTIFY, size=11
+        )
+        add_paragraph(
+            f"Whereas NGOF will engage the services of “Party B” which accepts the engagement under the following terms and conditions.",
+            WD_ALIGN_PARAGRAPH.JUSTIFY, size=11
+        )
+        add_paragraph("Both Parties Agreed as follows:", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)
+
+        # Articles
+        for article in standard_articles:
+            add_heading(article['number'], article['title'], level=3, size=12)
+
+            if article['number'] == 3:
+                # First part (justified)
+                add_paragraph_with_bold(
+                    article['content'],
+                    article['bold_parts'],
+                    WD_ALIGN_PARAGRAPH.JUSTIFY,
+                    default_size=11,
+                    bold_size=12,
+                )
+                # Financial lines (left-aligned with indentation)
+                for line in article['financial_lines']:
+                    if line:  # Only add non-empty lines
+                        add_paragraph_with_bold(
+                            [line],
+                            article['bold_parts'],
+                            WD_ALIGN_PARAGRAPH.LEFT,
+                            default_size=11,
+                            bold_size=12,
+                            indent=0.33
+                        )
+                # Remaining content (justified)
+                add_paragraph_with_bold(
+                    article['remaining_content'],
+                    article['bold_parts'],
+                    WD_ALIGN_PARAGRAPH.JUSTIFY,
+                    default_size=11,
+                    bold_size=12
+                )
+            elif article['number'] == 4:
+                add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
+            elif article['number'] == 6:
+                email_addresses = [person['email'] for person in contract_data.get("focal_person_info", [])] + [contract_data.get("party_b_email", "N/A")]
+                bold_segments = (
+                    [f"{person['name']}, {person['position']}" for person in contract_data.get("focal_person_info", [])] +
+                    [f"Telephone {person['phone']}" for person in contract_data.get("focal_person_info", [])] +
+                    [f"{contract_data.get('party_b_signature_name', 'N/A')}, {contract_data.get('party_b_position', 'Freelance Consultant')}",
+                     f"HP. {contract_data.get('party_b_phone', 'N/A')}"]
+                )
+                add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11, email_addresses=email_addresses, bold_segments=bold_segments)
+            elif article['number'] == 7:
+                bold_segments = [
+                    f"“{contract_data.get('project_title', 'N/A')}”"
+                ]
+                add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11, bold_segments=bold_segments)
+            else:
+                add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
+
+            if article['table']:
+                table = doc.add_table(rows=len(article['table']), cols=len(article['table'][0]))
+                table.alignment = WD_TABLE_ALIGNMENT.CENTER
+                table.allow_autofit = True
+
+                for row in table.rows:
+                    for cell in row.cells:
+                        tc = cell._element
+                        tcPr = tc.get_or_add_tcPr()
+                        for border_name in ['top', 'left', 'bottom', 'right']:
+                            border = OxmlElement(f'w:{border_name}')
+                            border.set(qn('w:val'), 'single')
+                            border.set(qn('w:sz'), '4')
+                            border.set(qn('w:color'), '000000')
+                            tcPr.append(border)
+
+                for i, row_data in enumerate(article['table']):
+                    row_cells = table.rows[i].cells
+                    for j, key in enumerate(row_data.keys()):
+                        cell = row_cells[j]
+                        # Handle 'Total Amount (USD)' as a list of lines
+                        if key == 'Total Amount (USD)' and isinstance(row_data[key], list):
+                            for line in row_data[key]:
+                                if line:  # Only add non-empty lines
+                                    p = cell.add_paragraph(line)
+                                    p.paragraph_format.space_after = Pt(0)
+                                    if i == 0:
+                                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                    else:
+                                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                    for run in p.runs:
+                                        run.font.size = Pt(12)
+                                        run.font.name = 'Calibri'
+                                        run.bold = (i == 0) or (i > 0 and key == 'Total Amount (USD)')
+                        else:
+                            cell.text = row_data[key]
+                            for paragraph in cell.paragraphs:
+                                paragraph.paragraph_format.space_after = Pt(0)
+                                if i == 0:
+                                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                else:
+                                    if key == 'Deliverable':
+                                        paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                                    else:
+                                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                for run in paragraph.runs:
+                                    run.font.size = Pt(12)
+                                    run.font.name = 'Calibri'
+                                    if i == 0:
+                                        run.bold = True
+                                    elif key == 'Total Amount (USD)':
+                                        run.bold = True
+
+            for custom in custom_articles:
+                if custom['article_number'] == str(article['number']):
+                    add_paragraph(custom['custom_sentence'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
+
+        # Signatures
+        add_paragraph(
+            f"Date: {contract_data.get('agreement_start_date_display', 'N/A')}",
+            WD_ALIGN_PARAGRAPH.CENTER,
+            bold=True,
+            size=11
+        )
+
+        # Signature table
+        table = doc.add_table(rows=4, cols=2)
+        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        table.allow_autofit = True
+
+        table.columns[0].width = Inches(3)
+        table.columns[1].width = Inches(3)
+
+        cell1 = table.cell(0, 0)
+        p = cell1.add_paragraph("For “Party A”")
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for run in p.runs:
+            run.bold = True
+            run.font.size = Pt(11)
+
+        cell2 = table.cell(1, 0)
+        p = cell2.add_paragraph("_________________")
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.runs[0].font.size = Pt(11)
+
+        cell3 = table.cell(2, 0)
+        p = cell3.add_paragraph(contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun'))
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for run in p.runs:
+            run.bold = True
+            run.font.size = Pt(11)
+
+        cell4 = table.cell(3, 0)
+        signer_position = next((person['position'] for person in party_a_info if person['name'] == contract_data.get('party_a_signature_name')), 'Executive Director')
+        p = cell4.add_paragraph(signer_position)
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for run in p.runs:
+            run.bold = True
+            run.font.size = Pt(11)
+
+        cell5 = table.cell(0, 1)
+        p = cell5.add_paragraph("For “Party B”")
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for run in p.runs:
+            run.bold = True
+            run.font.size = Pt(11)
+
+        cell6 = table.cell(1, 1)
+        p = cell6.add_paragraph("_________________")
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.runs[0].font.size = Pt(11)
+
+        cell7 = table.cell(2, 1)
+        p = cell7.add_paragraph(contract_data.get('party_b_signature_name', 'N/A'))
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for run in p.runs:
+            run.bold = True
+            run.font.size = Pt(11)
+
+        cell8 = table.cell(3, 1)
+        p = cell8.add_paragraph(contract_data.get('party_b_position', 'N/A'))
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for run in p.runs:
+            run.bold = True
+            run.font.size = Pt(11)
+
+        # Save the document to a BytesIO stream
+        output = BytesIO()
+        doc.save(output)
+        output.seek(0)
+
+        # Return the file
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            as_attachment=True,
+            download_name=f"{sanitize_filename(contract_data.get('party_b_signature_name', 'Contract_' + contract_id))}.docx"
+        )
+
+    except Exception as e:
+        logger.error(f"Error exporting contract {contract_id} to DOCX: {str(e)}")
+        flash("An error occurred while exporting the contract.", 'danger')
+        return redirect(url_for('contracts.index'))
+    
+
 @contracts_bp.route('/')
 @login_required
 def index():
@@ -1633,655 +2292,6 @@ def delete(contract_id):
         flash("An error occurred while deleting the contract.", 'danger')
     return redirect(url_for('contracts.index'))
 
-#export docx contract file
-@contracts_bp.route('/export_docx/<contract_id>')
-@login_required
-def export_docx(contract_id):
-    try:
-        contract = Contract.query.get_or_404(contract_id)
-        # Allow admins to export any contract, non-admins only their own
-        if not current_user.has_role('admin') and contract.user_id != current_user.id:
-            flash("You are not authorized to export this contract.", 'danger')
-            return redirect(url_for('contracts.index'))
-        if contract.deleted_at is not None:
-            flash("This contract has been deleted and cannot be exported.", 'danger')
-            return redirect(url_for('contracts.index'))
-
-        contract_data = contract.to_dict()
-        if 'custom_article_sentences' not in contract_data or contract_data['custom_article_sentences'] is None:
-            contract_data['custom_article_sentences'] = {}
-
-        # Format dates
-        contract_data['agreement_start_date_display'] = format_date(contract_data['agreement_start_date'])
-        contract_data['agreement_end_date_display'] = format_date(contract_data['agreement_end_date'])
-
-        # Get financial data as floats
-        try:
-            total_fee_usd = float(contract_data['total_fee_usd']) if contract_data['total_fee_usd'] else 0.0
-            tax_percentage = float(contract_data.get('tax_percentage', 15.0))
-            deduct_tax_code = contract_data.get('deduct_tax_code', '')
-        except (ValueError, TypeError) as e:
-            logger.error(f"Error converting financial data for contract {contract_id}: {str(e)}")
-            flash("An error occurred while exporting the contract.", 'danger')
-            return redirect(url_for('contracts.index'))
-
-        contract_data['total_fee_usd'] = total_fee_usd
-        contract_data['gross_amount_usd'] = total_fee_usd
-        contract_data['total_fee_words'] = contract_data.get('total_fee_words') or number_to_words(total_fee_usd)
-
-        # Calculate total gross and net
-        total_gross_amount, total_net_amount = calculate_payments(
-            total_fee_usd, tax_percentage, contract_data.get('payment_installments', [])
-        )
-        contract_data['total_gross'] = f"USD{total_gross_amount:.2f}"
-        contract_data['total_net'] = f"USD{total_net_amount:.2f}"
-
-        # Process payment installments
-        for installment in contract_data.get('payment_installments', []):
-            installment['dueDate_display'] = format_date(installment.get('dueDate', ''))
-            match = re.search(r'\((\d+\.?\d*)\%\)', installment['description'])
-            percentage = float(match.group(1)) if match else 0.0
-            gross, tax, net = calculate_installment_payments(total_fee_usd, tax_percentage, percentage)
-            installment['gross_amount'] = gross
-            installment['tax_amount'] = tax
-            installment['net_amount'] = net
-
-        # Create DOCX document
-        doc = Document()
-
-        # Set document margins (in inches)
-        sections = doc.sections
-        for section in sections:
-            section.left_margin = Inches(1)
-            section.right_margin = Inches(1)
-            section.top_margin = Inches(1)
-            section.bottom_margin = Inches(1)
-
-        # Set default font
-        doc.styles['Normal'].font.name = 'Calibri'
-        doc.styles['Normal'].font.size = Pt(11)
-
-        # Helper function to add paragraph with selective bolding, email formatting, and custom bold segments
-        def add_paragraph(text, alignment=WD_ALIGN_PARAGRAPH.LEFT, bold=False, size=11, underline=False, email_addresses=None, bold_segments=None, indent=None):
-            email_addresses = email_addresses or []
-            bold_segments = bold_segments or []
-            pattern_parts = [re.escape(segment) for segment in email_addresses + bold_segments + ['“Party A”', '“Party B”']]
-            pattern = r'(' + '|'.join(pattern_parts) + r')' if pattern_parts else r'(“Party A”|“Party B”)'
-            paragraphs = text.split('\n\n')
-            ps = []
-            for para_text in paragraphs:
-                p = doc.add_paragraph()
-                p.alignment = alignment
-                if indent:
-                    p.paragraph_format.left_indent = Inches(indent)
-                parts = re.split(pattern, para_text)
-                for part in parts:
-                    run = p.add_run(part)
-                    run.font.size = Pt(size)
-                    run.bold = bold or part in bold_segments or part in ['“Party A”', '“Party B”']
-                    if part in email_addresses:
-                        run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
-                        run.underline = WD_UNDERLINE.SINGLE
-                    elif underline:
-                        run.underline = WD_UNDERLINE.SINGLE
-                ps.append(p)
-            return ps
-
-        # Helper function to add paragraph with selective bold and size
-        def add_paragraph_with_bold(text_parts, bold_parts, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12, indent=None):
-            text = ''.join(text_parts)
-            paragraphs = text.split('\n\n')
-            ps = []
-            for para_text in paragraphs:
-                p = doc.add_paragraph()
-                p.alignment = alignment
-                if indent:
-                    p.paragraph_format.left_indent = Inches(indent)
-                pattern_parts = [re.escape(bp) for bp in bold_parts] + ['“Party A”', '“Party B”']
-                pattern = r'(' + '|'.join(pattern_parts) + r')'
-                sub_parts = re.split(pattern, para_text)
-                for sub_part in sub_parts:
-                    run = p.add_run(sub_part)
-                    run.bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
-                    run.font.size = Pt(bold_size if sub_part in bold_parts else default_size)
-                ps.append(p)
-            return ps
-
-        # Helper function to add paragraph with selective formatting for Party B email
-        def add_paragraph_with_email_formatting(text_parts, bold_parts, email_text, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12):
-            text = ''.join(text_parts)
-            paragraphs = text.split('\n\n')
-            ps = []
-            for para_text in paragraphs:
-                p = doc.add_paragraph()
-                p.alignment = alignment
-                parts = para_text.split(email_text)
-                for i, part in enumerate(parts):
-                    sub_parts = re.split(r'(“Party A”|“Party B”)', part)
-                    for sub_part in sub_parts:
-                        run = p.add_run(sub_part)
-                        run.bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
-                        run.font.size = Pt(bold_size if sub_part in bold_parts else default_size)
-                    if i < len(parts) - 1:
-                        run = p.add_run(email_text)
-                        run.font.size = Pt(default_size)
-                        run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
-                        run.underline = WD_UNDERLINE.SINGLE
-                ps.append(p)
-            return ps
-
-        # Helper function to add heading with selective underlining
-        def add_heading(number, title, level, size=12):
-            p = doc.add_paragraph()
-            p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-            run1 = p.add_run(f"ARTICLE {number}")
-            run1.font.name = 'Calibri'
-            run1.font.size = Pt(size)
-            run1.bold = True
-            run1.underline = WD_UNDERLINE.SINGLE
-            run1.font.color.rgb = RGBColor(0, 0, 0)
-            run2 = p.add_run(": ")
-            run2.font.name = 'Calibri'
-            run2.font.size = Pt(size)
-            run2.bold = True
-            run2.font.color.rgb = RGBColor(0, 0, 0)
-            run3 = p.add_run(title)
-            run3.font.name = 'Calibri'
-            run3.font.size = Pt(size)
-            run3.bold = True
-            run3.font.color.rgb = RGBColor(0, 0, 0)
-            return p
-
-        # Define standard articles
-        standard_articles = [
-            {
-                'number': 1,
-                'title': 'TERMS OF REFERENCE',
-                'content': (
-                    '“Party B” shall perform tasks as stated in the attached TOR (annex-1) to “Party A”, '
-                    'and deliver each milestone as stipulated in article 4.\n\n'
-                    'The work shall be of good quality and well performed with the acceptance by “Party A”.'
-                ),
-                'table': None
-            },
-            {
-                'number': 2,
-                'title': 'TERM OF AGREEMENT',
-                'content': (
-                    f'The agreement is effective from {contract_data["agreement_start_date_display"]} – '
-                    f'{contract_data["agreement_end_date_display"]}. This Agreement is terminated automatically '
-                    'after the due date of the Agreement Term unless otherwise, both Parties agree to extend '
-                    'the Term with a written agreement.'
-                ),
-                'table': None
-            },
-            {
-                'number': 3,
-                'title': 'PROFESSIONAL FEE',
-                'content': [
-                    f'The professional fee is the total amount of ',
-                    contract_data["total_gross"],
-                    f' (',
-                    f'{contract_data["total_fee_words"]} ',
-                    f') {"excluding" if tax_percentage == 0 else "including"} tax for the whole assignment period.'
-                ],
-                'financial_lines': [
-                    f'VAT TIN {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
-                    f'Total Service Fee: {contract_data["total_gross"]}',
-                    f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
-                    f'Net amount: {contract_data["total_net"]}',
-                ],
-                'remaining_content': [
-                    f'“Party B” is responsible to issue the Invoice (net amount) and receipt (when receiving the payment) '
-                    f'with the total amount as stipulated in each instalment as in the Article 4 after having done the '
-                    f'agreed deliverable tasks, for payment request. The payment will be processed after the satisfaction '
-                    f'from “Party A” as of the required deliverable tasks as stated in Article 4.\n\n'
-                    f'“Party B” is responsible for all related taxes payable to the government department.'
-                ],
-                'bold_parts': [
-                    contract_data["total_gross"],
-                    f'{contract_data["total_fee_words"]} ',
-                    f'VAT TIN {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
-                    f'Total Service Fee: {contract_data["total_gross"]}',
-                    f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
-                    f'Net amount: {contract_data["total_net"]}',
-                    '“Party A”',
-                    '“Party B”'
-                ],
-                'table': None
-            },
-            {
-                'number': 4,
-                'title': 'TERM OF PAYMENT',
-                'content': 'The payment will be made based on the following schedules:',
-                'table': [
-                    {'Installment': 'Installment', 'Total Amount (USD)': ['Total Amount (USD)'], 'Deliverable': 'Deliverable', 'Due date': 'Due date'},
-                    *[
-                        {
-                            'Installment': installment['description'],
-                            'Total Amount (USD)': [
-                                f'- Gross: ${installment["gross_amount"]:.2f}',
-                                f'- Tax {tax_percentage}%: ${installment["tax_amount"]:.2f}' if tax_percentage > 0 else '',
-                                f'- Net pay: ${installment["net_amount"]:.2f}'
-                            ],
-                            'Deliverable': '\n- '.join([d.strip() for d in installment['deliverables'].split(';') if d.strip()]),
-                            'Due date': installment['dueDate_display']
-                        }
-                        for installment in contract_data.get('payment_installments', [])
-                    ]
-                ]
-            },
-            {
-                'number': 5,
-                'title': 'NO OTHER PERSONS',
-                'content': (
-                    'No person or entity, which is not a party to this agreement, has any rights to enforce, '
-                    'take any action, or claim it is owed any benefit under this agreement.'
-                ),
-                'table': None
-            },
-            {
-                'number': 6,
-                'title': 'MONITORING and COORDINATION',
-                'content': (
-                    f'“Party A” shall monitor and evaluate the progress of the agreement toward its objective, '
-                    f'including the activities implemented. '
-                    f'{" and ".join([f"{person['name']}, {person['position']} (Telephone {person['phone']} Email: {person['email']})" for person in contract_data.get("focal_person_info", [])]) or "N/A, N/A (Telephone N/A Email: N/A)"} '
-                    f'is the focal contact person of “Party A” and '
-                    f'{contract_data.get("party_b_signature_name", "N/A")}, {contract_data.get("party_b_position", "Freelance Consultant")} '
-                    f'(HP. {contract_data.get("party_b_phone", "N/A")}, E-mail: {contract_data.get("party_b_email", "N/A")}) '
-                    f'the focal contact person of the “Party B”. The focal contact person of “Party A” and “Party B” will work together '
-                    f'for overall coordination including reviewing and meeting discussions during the assignment process.'
-                ),
-                'table': None
-            },
-            {
-                'number': 7,
-                'title': 'CONFIDENTIALITY',
-                'content': (
-                    f'All outputs produced, with the exception of the “{contract_data.get("project_title", "N/A")}”, '
-                    f'which is a contribution from, and to be claimed as a public document by the main author and co-author '
-                    f'in associated, and/or under this agreement, shall be the property of “Party A”. The “Party B” agrees '
-                    f'to not disclose any confidential information, of which he/she may take cognizance in the performance '
-                    f'under this contract, except with the prior written approval of “Party A”.'
-                ),
-                'table': None
-            },
-            {
-                'number': 8,
-                'title': 'ANTI-CORRUPTION and CONFLICT OF INTEREST',
-                'content': (
-                    '“Party B” shall not participate in any practice that is or could be construed as an illegal or corrupt '
-                    'practice in Cambodia.\n\nThe “Party A” is committed to fighting all types of corruption and expects this same '
-                    'commitment from the consultant. It reserves the rights and believes based on the declaration of “Party B” '
-                    'that it is an independent social enterprise firm operating in Cambodia and it does not involve any conflict '
-                    'of interest with other parties that may be affected to the “Party A”.'
-                ),
-                'table': None
-            },
-            {
-                'number': 9,
-                'title': 'OBLIGATION TO COMPLY WITH THE NGOF’S POLICIES AND CODE OF CONDUCT',
-                'content': (
-                    'By signing this agreement, “Party B” is obligated to comply with and respect all existing policies and code '
-                    'of conduct of “Party A”, such as Gender Mainstreaming, Child Protection, Disability policy, Environmental '
-                    'Mainstreaming, etc. and the “Party B” declared themselves that s/he will perform the assignment in the neutral '
-                    'position, professional manner, and not be involved in any political affiliation.'
-                ),
-                'table': None
-            },
-            {
-                'number': 10,
-                'title': 'ANTI-TERRORISM FINANCING AND FINANCIAL CRIME',
-                'content': (
-                    'NGOF is determined that all its funds and resources should only be used to further its mission and shall not '
-                    'be subject to illicit use by any third party nor used or abused for any illicit purpose. In order to achieve '
-                    'this objective, NGOF will not knowingly or recklessly provide funds, economic goods, or material support to any '
-                    'entity or individual designated as a “terrorist” by the international community or affiliate domestic governments '
-                    'and will take all reasonable steps to safeguard and protect its assets from such illicit use and to comply with '
-                    'host government laws.\n\n'
-                    'NGOF respects its contracts with its donors and puts procedures in place for compliance with these contracts.\n\n'
-                    '“Illicit use” refers to terrorist financing, sanctions, money laundering, and export control regulations.'
-                ),
-                'table': None
-            },
-            {
-                'number': 11,
-                'title': 'INSURANCE',
-                'content': (
-                    '“Party B” is responsible for any health and life insurance of its team members. “Party A” will not be held '
-                    'responsible for any medical expenses or compensation incurred during or after this contract.'
-                ),
-                'table': None
-            },
-            {
-                'number': 12,
-                'title': 'ASSIGNMENT',
-                'content': (
-                    '“Party B” shall have the right to assign individuals within its organization to carry out the tasks herein '
-                    'named in the attached Technical Proposal.\n\nThe “Party B” shall not assign, or transfer any of its rights or '
-                    'obligations under this agreement without the prior written consent of “Party A”. Any attempt by '
-                    '“Party B” to assign or transfer any of its rights and obligations without the prior written consent of “Party A” '
-                    'shall render this agreement subject to immediate termination by “Party A”.'
-                ),
-                'table': None
-            },
-            {
-                'number': 13,
-                'title': 'RESOLUTION OF CONFLICTS/DISPUTES',
-                'content': (
-                    'Conflicts between any of these agreements shall be resolved by the following methods:\n\n'
-                    'In the case of a disagreement arising between “Party A” and the “Party B” regarding the implementation of '
-                    'any part of, or any other substantive question arising under or relating to this agreement, the parties shall '
-                    'use their best efforts to arrive at an agreeable resolution by mutual consultation.\n\n'
-                    'Unresolved issues may, upon the option of either party and written notice to the other party, be referred to '
-                    'for arbitration. Failure by the “Party B” or “Party A” to dispute a decision arising from such arbitration in '
-                    'writing within thirty (30) calendar days of receipt of a final decision shall result in such final decision '
-                    'being deemed binding upon either the “Party B” and/or “Party A”. All expenses related to arbitration will be '
-                    'shared equally between both parties.'
-                ),
-                'table': None
-            },
-            {
-                'number': 14,
-                'title': 'TERMINATION',
-                'content': (
-                    'The “Party A” or the “Party B” may, by notice in writing, terminate this agreement under the following conditions:\n\n'
-                    '1. “Party A” may terminate this agreement at any time with a one-week notice if “Party B” fails to comply with the '
-                    'terms and conditions of this agreement.\n\n'
-                    '2. For gross professional misconduct (as defined in the NGOF Human Resource Policy), “Party A” may terminate '
-                    'this agreement immediately without prior notice. “Party A” will notify “Party B” in a letter that will indicate '
-                    'the reason for termination as well as the effective date of termination.\n\n'
-                    '3. “Party B” may terminate this agreement at any time with a one-week notice if “Party A” fails to comply with '
-                    'the terms and conditions of this agreement. “Party B” will notify “Party A” in a letter that will indicate the '
-                    'reason for termination as well as the effective date of termination. If “Party B” terminates this '
-                    'agreement without any appropriate reason or fails to implement the assignment, “Party B” must '
-                    'refund the full amount of fees received to “Party A”.\n\n'
-                    '4. If for any reason either “Party A” or “Party B” decides to terminate this agreement, “Party B” shall be '
-                    'paid pro-rata for the work already completed by “Party A”. This payment will require the submission of a timesheet '
-                    'that demonstrates work completed as well as the handing over of any deliverables completed or partially completed. '
-                    'In case “Party B” has received payment for services under the agreement which have not yet been performed, the '
-                    'appropriate portion of these fees must be refunded by “Party B” to “Party A”.'
-                ),
-                'table': None
-            },
-            {
-                'number': 15,
-                'title': 'MODIFICATION OR AMENDMENT',
-                'content': (
-                    'No modification or amendment of this agreement shall be valid unless in writing and signed by an authorized '
-                    'person of “Party A” and “Party B”.'
-                ),
-                'table': None
-            },
-            {
-                'number': 16,
-                'title': 'CONTROLLING OF LAW',
-                'content': (
-                    'This agreement shall be governed and construed following the law of the Kingdom of Cambodia. '
-                    'This Agreement is prepared in two original copies.'
-                ),
-                'table': None
-            }
-        ]
-
-        # Prepare custom articles
-        custom_articles = [
-            {'article_number': str(k), 'custom_sentence': v}
-            for k, v in contract_data.get('custom_article_sentences', {}).items()
-        ]
-
-        # Header
-        add_paragraph('The Service Agreement', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
-        add_paragraph('ON', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)
-        add_paragraph(contract_data.get('project_title', 'N/A'), WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
-        add_paragraph(f"No.: {contract_data.get('contract_number', 'N/A')}", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
-        add_paragraph('BETWEEN', WD_ALIGN_PARAGRAPH.CENTER, size=12)
-
-        # Party A
-        party_a_info = contract_data.get('party_a_info', [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia'}])
-        representatives = [f"{person['name']}, {person['position']}" for person in party_a_info]
-        representative_text = ", represented by " + "; ".join(representatives) + "."
-        party_a_text_parts = [
-            "The NGO Forum on Cambodia",
-            representative_text,
-            "\nAddress: ",
-            party_a_info[0]['address'] if party_a_info else '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia',
-            ".\nhereinafter called the ",
-            "“Party A”"
-        ]
-        party_a_bold_parts = ["The NGO Forum on Cambodia", "“Party A”"] + [person['name'] for person in party_a_info]
-        add_paragraph_with_bold(party_a_text_parts, party_a_bold_parts, WD_ALIGN_PARAGRAPH.CENTER, default_size=12, bold_size=12)
-
-        add_paragraph('AND', WD_ALIGN_PARAGRAPH.CENTER, size=12)
-
-        # Party B
-        party_b_position = contract_data.get('party_b_position', 'Freelance Consultant')
-        party_b_name = contract_data.get('party_b_signature_name', 'N/A')
-        party_b_address = contract_data.get('party_b_address', 'N/A')
-        party_b_phone = contract_data.get('party_b_phone', 'N/A')
-        party_b_email = contract_data.get('party_b_email', 'N/A')
-        party_b_text_parts = [
-            party_b_position + " " + party_b_name,
-            ",\nAddress: ",
-            party_b_address,
-            "\nH/P: ",
-            party_b_phone,
-            ", E-mail: ",
-            party_b_email,
-            "\nhereinafter called the ",
-            "“Party B”"
-        ]
-        party_b_bold_parts = [party_b_position + " " + party_b_name, "“Party B”"]
-        add_paragraph_with_email_formatting(party_b_text_parts, party_b_bold_parts, party_b_email, WD_ALIGN_PARAGRAPH.CENTER, default_size=12, bold_size=12)
-
-        # Whereas Clauses
-        add_paragraph(
-            f"Whereas NGOF is a legal entity registered with the Ministry of Interior (MOI) "
-            f"{contract_data.get('registration_number', '#304 សជណ')} dated {contract_data.get('registration_date', '07 March 2012')}.",
-            WD_ALIGN_PARAGRAPH.JUSTIFY, size=11
-        )
-        add_paragraph(
-            f"Whereas NGOF will engage the services of “Party B” which accepts the engagement under the following terms and conditions.",
-            WD_ALIGN_PARAGRAPH.JUSTIFY, size=11
-        )
-        add_paragraph("Both Parties Agreed as follows:", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)
-
-        # Articles
-        for article in standard_articles:
-            add_heading(article['number'], article['title'], level=3, size=12)
-
-            if article['number'] == 3:
-                # First part (justified)
-                add_paragraph_with_bold(
-                    article['content'],
-                    article['bold_parts'],
-                    WD_ALIGN_PARAGRAPH.JUSTIFY,
-                    default_size=11,
-                    bold_size=12,
-                )
-                # Financial lines (left-aligned with indentation)
-                for line in article['financial_lines']:
-                    if line:  # Only add non-empty lines
-                        add_paragraph_with_bold(
-                            [line],
-                            article['bold_parts'],
-                            WD_ALIGN_PARAGRAPH.LEFT,
-                            default_size=11,
-                            bold_size=12,
-                            indent=0.33
-                        )
-                # Remaining content (justified)
-                add_paragraph_with_bold(
-                    article['remaining_content'],
-                    article['bold_parts'],
-                    WD_ALIGN_PARAGRAPH.JUSTIFY,
-                    default_size=11,
-                    bold_size=12
-                )
-            elif article['number'] == 4:
-                add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
-            elif article['number'] == 6:
-                email_addresses = [person['email'] for person in contract_data.get("focal_person_info", [])] + [contract_data.get("party_b_email", "N/A")]
-                bold_segments = (
-                    [f"{person['name']}, {person['position']}" for person in contract_data.get("focal_person_info", [])] +
-                    [f"Telephone {person['phone']}" for person in contract_data.get("focal_person_info", [])] +
-                    [f"{contract_data.get('party_b_signature_name', 'N/A')}, {contract_data.get('party_b_position', 'Freelance Consultant')}",
-                     f"HP. {contract_data.get('party_b_phone', 'N/A')}"]
-                )
-                add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11, email_addresses=email_addresses, bold_segments=bold_segments)
-            elif article['number'] == 7:
-                bold_segments = [
-                    f"“{contract_data.get('project_title', 'N/A')}”"
-                ]
-                add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11, bold_segments=bold_segments)
-            else:
-                add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
-
-            if article['table']:
-                table = doc.add_table(rows=len(article['table']), cols=len(article['table'][0]))
-                table.alignment = WD_TABLE_ALIGNMENT.CENTER
-                table.allow_autofit = True
-
-                for row in table.rows:
-                    for cell in row.cells:
-                        tc = cell._element
-                        tcPr = tc.get_or_add_tcPr()
-                        for border_name in ['top', 'left', 'bottom', 'right']:
-                            border = OxmlElement(f'w:{border_name}')
-                            border.set(qn('w:val'), 'single')
-                            border.set(qn('w:sz'), '4')
-                            border.set(qn('w:color'), '000000')
-                            tcPr.append(border)
-
-                for i, row_data in enumerate(article['table']):
-                    row_cells = table.rows[i].cells
-                    for j, key in enumerate(row_data.keys()):
-                        cell = row_cells[j]
-                        # Handle 'Total Amount (USD)' as a list of lines
-                        if key == 'Total Amount (USD)' and isinstance(row_data[key], list):
-                            for line in row_data[key]:
-                                if line:  # Only add non-empty lines
-                                    p = cell.add_paragraph(line)
-                                    p.paragraph_format.space_after = Pt(0)
-                                    if i == 0:
-                                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                                    else:
-                                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                                    for run in p.runs:
-                                        run.font.size = Pt(12)
-                                        run.font.name = 'Calibri'
-                                        run.bold = (i == 0) or (i > 0 and key == 'Total Amount (USD)')
-                        else:
-                            cell.text = row_data[key]
-                            for paragraph in cell.paragraphs:
-                                paragraph.paragraph_format.space_after = Pt(0)
-                                if i == 0:
-                                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                                else:
-                                    if key == 'Deliverable':
-                                        paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                                    else:
-                                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                                for run in paragraph.runs:
-                                    run.font.size = Pt(12)
-                                    run.font.name = 'Calibri'
-                                    if i == 0:
-                                        run.bold = True
-                                    elif key == 'Total Amount (USD)':
-                                        run.bold = True
-
-            for custom in custom_articles:
-                if custom['article_number'] == str(article['number']):
-                    add_paragraph(custom['custom_sentence'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
-
-        # Signatures
-        add_paragraph(
-            f"Date: {contract_data.get('agreement_start_date_display', 'N/A')}",
-            WD_ALIGN_PARAGRAPH.CENTER,
-            bold=True,
-            size=11
-        )
-
-        # Signature table
-        table = doc.add_table(rows=4, cols=2)
-        table.alignment = WD_TABLE_ALIGNMENT.CENTER
-        table.allow_autofit = True
-
-        table.columns[0].width = Inches(3)
-        table.columns[1].width = Inches(3)
-
-        cell1 = table.cell(0, 0)
-        p = cell1.add_paragraph("For “Party A”")
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for run in p.runs:
-            run.bold = True
-            run.font.size = Pt(11)
-
-        cell2 = table.cell(1, 0)
-        p = cell2.add_paragraph("_________________")
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.runs[0].font.size = Pt(11)
-
-        cell3 = table.cell(2, 0)
-        p = cell3.add_paragraph(contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun'))
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for run in p.runs:
-            run.bold = True
-            run.font.size = Pt(11)
-
-        cell4 = table.cell(3, 0)
-        signer_position = next((person['position'] for person in party_a_info if person['name'] == contract_data.get('party_a_signature_name')), 'Executive Director')
-        p = cell4.add_paragraph(signer_position)
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for run in p.runs:
-            run.bold = True
-            run.font.size = Pt(11)
-
-        cell5 = table.cell(0, 1)
-        p = cell5.add_paragraph("For “Party B”")
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for run in p.runs:
-            run.bold = True
-            run.font.size = Pt(11)
-
-        cell6 = table.cell(1, 1)
-        p = cell6.add_paragraph("_________________")
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.runs[0].font.size = Pt(11)
-
-        cell7 = table.cell(2, 1)
-        p = cell7.add_paragraph(contract_data.get('party_b_signature_name', 'N/A'))
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for run in p.runs:
-            run.bold = True
-            run.font.size = Pt(11)
-
-        cell8 = table.cell(3, 1)
-        p = cell8.add_paragraph(contract_data.get('party_b_position', 'N/A'))
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for run in p.runs:
-            run.bold = True
-            run.font.size = Pt(11)
-
-        # Save the document to a BytesIO stream
-        output = BytesIO()
-        doc.save(output)
-        output.seek(0)
-
-        # Return the file
-        return send_file(
-            output,
-            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            as_attachment=True,
-            download_name=f"{sanitize_filename(contract_data.get('party_b_signature_name', 'Contract_' + contract_id))}.docx"
-        )
-
-    except Exception as e:
-        logger.error(f"Error exporting contract {contract_id} to DOCX: {str(e)}")
-        flash("An error occurred while exporting the contract.", 'danger')
-        return redirect(url_for('contracts.index'))
-    
 # Export all contracts to DOCX
 @contracts_bp.route('/export_all_docx', methods=['GET'])
 @login_required
