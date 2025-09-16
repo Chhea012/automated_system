@@ -19,7 +19,6 @@
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
 
     <style>
-      /* Existing styles remain unchanged */
       .navbar-custom {
         background-color: #ffffff;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -49,7 +48,6 @@
       .navbar-custom .nav-link.active {
         color: #0d6efd !important;
         font-weight: bold;
-        /* Removed underline effect */
       }
       .text {
         font-size: 18px;
@@ -78,8 +76,6 @@
         transform: rotate(180deg);
       }
       .button {
-        -moz-appearance: none;
-        -webkit-appearance: none;
         appearance: none;
         border: none;
         background: none;
@@ -135,28 +131,6 @@
         color: #fff;
         background-color: #28a745;
         overflow: hidden;
-        box-shadow: inset 0px 0px 0px 1px transparent;
-      }
-      .button_lg::before {
-        content: '';
-        display: block;
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 2px;
-        height: 2px;
-        background-color: #28a745;
-      }
-      .button_lg::after {
-        content: '';
-        display: block;
-        position: absolute;
-        right: 0;
-        bottom: 0;
-        width: 4px;
-        height: 4px;
-        background-color: #28a745;
-        transition: all 0.2s ease;
       }
       .button_sl {
         display: block;
@@ -178,12 +152,8 @@
       .button:hover .button_sl {
         width: calc(100% + 15px);
       }
-      .button:hover .button_lg::after {
-        background-color: #fff;
-      }
       .container-card {
         max-width: 800px;
-        border-radius: none;
         background-color: white;
         border: 1px solid rgb(173, 173, 173);
       }
@@ -214,7 +184,6 @@
         color: #dc3545;
       }
       @media (min-width: 992px) {
-        /* Apply hover only to non-notification dropdowns */
         .nav-item.dropdown:not(.notification-dropdown):hover .dropdown-menu {
           display: block;
           margin-top: 0;
@@ -254,39 +223,38 @@
       .dropdown-menu::-webkit-scrollbar-thumb:hover {
         background: #888;
       }
+      .notification-dropdown .dropdown-item.unread {
+        background-color: #f8f9fa;
+        border-left: 4px solid #0d6efd;
+      }
     </style>
   </head>
 
   <body>
     <nav class="navbar navbar-expand-lg navbar-custom fixed-top mb-4">
       <div class="container">
-        <!-- Brand -->
         <a class="navbar-brand d-flex align-items-center" href="{{ url_for('main.dashboard') }}">
           <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" width="140" height="80" class="me-2" />
         </a>
 
-        <!-- Toggler -->
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
           aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
 
-        <!-- Left / Center Navigation -->
         <ul class="navbar-nav ms-auto align-items-center">
           {% if current_user.is_authenticated %}
-          <!-- Dashboard -->
           <li class="nav-item">
             <a class="nav-link text {{ 'active' if request.endpoint == 'main.dashboard' }}"
               href="{{ url_for('main.dashboard') }}"><strong>Dashboard</strong></a>
           </li>
 
-          <!-- Administration Dropdown -->
-          {% if current_user.has_role('Admin') %}
+          {% if current_user.has_role('admin') %}
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle text {{ 'active' if request.endpoint in ['roles.index', 'permissions.index', 'departments.index', 'users.index'] }}"
               href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><strong>Administration</strong></a>
             <ul class="dropdown-menu dropdown-menu-end card-1">
-              {% if current_user.has_role('Admin') %}
+              {% if current_user.has_role('admin') %}
               <li><a class="dropdown-item" href="{{ url_for('roles.index') }}">Roles</a></li>
               <li><a class="dropdown-item" href="{{ url_for('permissions.index') }}">Permissions</a></li>
               <li><a class="dropdown-item" href="{{ url_for('departments.index') }}">Departments</a></li>
@@ -296,15 +264,13 @@
           </li>
           {% endif %}
 
-          <!-- My Department -->
-          {% if current_user.has_role('Admin') or current_user.has_role('Manager') %}
+          {% if current_user.has_role('admin') or current_user.has_role('Manager') %}
           <li class="nav-item">
             <a class="nav-link text {{ 'active' if request.endpoint == 'mydepartments.index' }}"
               href="{{ url_for('mydepartments.index') }}"><strong>My Department</strong></a>
           </li>
           {% endif %}
 
-          <!-- Contract Dropdown -->
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle text {{ 'active' if request.endpoint in ['contracts.index', 'contracts.create'] }}"
               href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><strong>Contract</strong></a>
@@ -315,7 +281,6 @@
             </ul>
           </li>
 
-          <!-- Create Contract Button -->
           <li class="nav-item">
             <a class="nav-link {{ 'active' if request.endpoint == 'contracts.create' }}"
               href="{{ url_for('contracts.create') }}">
@@ -330,105 +295,64 @@
           {% endif %}
         </ul>
 
-        <!-- Right-side Profile / Auth Links -->
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav ms-auto align-items-center">
             {% if current_user.is_authenticated %}
 
-            <!-- 🔔 Notification Dropdown (Visible only to Admins) -->
-            {% if current_user.has_role('Admin') %}
+            {% if current_user.has_role('admin') %}
             <li class="nav-item dropdown notification-dropdown me-3">
               <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="bi bi-bell fs-4"></i>
+                {% if unread_count > 0 %}
                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                  6
+                  {{ unread_count }}
                   <span class="visually-hidden">unread notifications</span>
                 </span>
+                {% endif %}
               </a>
-
               <div class="dropdown-menu dropdown-menu-end card-1 p-0"
-                style="width: 360px; max-height: 420px; overflow-y: auto; overflow-x: hidden;">
-                
-                <!-- Notification Items -->
-                <a href="#" class="dropdown-item d-flex align-items-start gap-3 py-3 border-bottom">
-                  <img src="{{ url_for('static', filename='img/chhea.jpg') }}" 
-                       class="rounded-circle flex-shrink-0" width="45" height="45">
-                  <div class="text-wrap flex-grow-1" style="white-space: normal;">
-                    <strong>John Doe</strong>
-                    <div class="small text-muted">Lorem ipsum dolor sit amet, consectetur adipisicing elit…</div>
-                  </div>
-                </a>
-
-                <a href="#" class="dropdown-item d-flex align-items-start gap-3 py-3 border-bottom">
-                  <img src="{{ url_for('static', filename='img/chhea.jpg') }}" 
-                       class="rounded-circle flex-shrink-0" width="45" height="45">
-                  <div class="text-wrap flex-grow-1" style="white-space: normal;">
-                    <strong>Lea R. Frith</strong>
-                    <div class="small text-muted">Nemo enim ipsam voluptatem quia voluptas sit aspernatur…</div>
-                  </div>
-                </a>
-
-                <a href="#" class="dropdown-item d-flex align-items-start gap-3 py-3 border-bottom">
-                  <img src="{{ url_for('static', filename='img/chhea.jpg') }}" 
-                       class="rounded-circle flex-shrink-0" width="45" height="45">
-                  <div class="text-wrap flex-grow-1" style="white-space: normal;">
-                    <strong>Erik L. Richards</strong>
-                    <div class="small text-muted">Ut enim ad minima veniam, quis nostrum exercitationem ullam…</div>
-                  </div>
-                </a>
-
-                <a href="#" class="dropdown-item d-flex align-items-start gap-3 py-3 border-bottom">
-                  <img src="{{ url_for('static', filename='img/chhea.jpg') }}" 
-                       class="rounded-circle flex-shrink-0" width="45" height="45">
-                  <div class="text-wrap flex-grow-1" style="white-space: normal;">
-                    <strong>Jane Doe</strong>
-                    <div class="small text-muted">Quis autem vel eum iure reprehenderit qui in ea voluptate velit…</div>
-                  </div>
-                </a>
-
-                <a href="#" class="dropdown-item d-flex align-items-start gap-3 py-3 border-bottom">
-                  <img src="{{ url_for('static', filename='img/chhea.jpg') }}" 
-                       class="rounded-circle flex-shrink-0" width="45" height="45">
-                  <div class="text-wrap flex-grow-1" style="white-space: normal;">
-                    <strong>Michael S.</strong>
-                    <div class="small text-muted">Vel illum qui dolorem eum fugiat quo voluptas nulla pariatur…</div>
-                  </div>
-                </a>
-
-                <a href="#" class="dropdown-item d-flex align-items-start gap-3 py-3 border-bottom">
-                  <img src="{{ url_for('static', filename='img/chhea.jpg') }}" 
-                       class="rounded-circle flex-shrink-0" width="45" height="45">
-                  <div class="text-wrap flex-grow-1" style="white-space: normal;">
-                    <strong>Sophia T.</strong>
-                    <div class="small text-muted">Excepteur sint occaecat cupidatat non proident…</div>
-                  </div>
-                </a>
-
-                <!-- Extra (scrollable) -->
-                <a href="#" class="dropdown-item d-flex align-items-start gap-3 py-3">
-                  <img src="{{ url_for('static', filename='img/chhea.jpg') }}" 
-                       class="rounded-circle flex-shrink-0" width="45" height="45">
-                  <div class="text-wrap flex-grow-1" style="white-space: normal;">
-                    <strong>Extra User</strong>
-                    <div class="small text-muted">This one appears only when scrolling down…</div>
-                  </div>
-                </a>
+                   style="width: 360px; max-height: 420px; overflow-y: auto; overflow-x: hidden;">
+                {% if notifications %}
+                  {% for notif in notifications %}
+                  <a href="{{ url_for('contracts.index') }}" 
+                     class="dropdown-item d-flex align-items-start gap-3 py-3 border-bottom {% if not notif.is_read %}unread{% endif %}">
+                    <img src="{{ notif.creator_image }}" 
+                         class="rounded-circle flex-shrink-0" width="45" height="45" alt="Creator Avatar">
+                    <div class="flex-grow-1 text-wrap" style="white-space: normal;">
+                      <div class="fw-bold text-dark small">{{ notif.creator_username }}</div>
+                      <div class="text-muted small">
+                        {{ notif.title }} — 
+                        <span class="fw-semibold">Contract:</span> {{ notif.contract_number }}
+                      </div>
+                      <div class="text-secondary text-end fst-italic" style="font-size: 12px;">
+                        {{ notif.created_at }}
+                      </div>
+                    </div>
+                  </a>
+                  {% endfor %}
+                {% else %}
+                  <div class="dropdown-item text-center py-3 text-muted">No notifications yet.</div>
+                {% endif %}
+                {% if notifications|length > 6 %}
+                <div class="dropdown-item text-center py-2">
+                  <a href="{{ url_for('contracts.index') }}" class="text-decoration-none small">View All Contracts</a>
+                </div>
+                {% endif %}
               </div>
             </li>
             {% endif %}
 
-            <!-- 👤 Profile Dropdown -->
             <li class="nav-item dropdown profile-dropdown">
               <a class="nav-link dropdown-toggle text {{ 'active' if request.endpoint == 'users.profile' }}" href="#"
                 role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <img src="{{ current_user.get_image_url()|default('https://via.placeholder.com/45') }}" 
+                <img src="{{ current_user.get_image_url()|default('/static/uploads/default_profile.png') }}" 
                      alt="Profile" class="circle" width="55" height="55" />
                 <span class="d-none d-lg-inline"><strong>{{ current_user.username|default('N/A') }}</strong></span>
               </a>
               <ul class="dropdown-menu dropdown-menu-end card-1">
                 <li>
                   <a class="dropdown-item" href="{{ url_for('users.profile', user_id=current_user.id|default(0)) }}">
-                    <img src="{{ current_user.get_image_url()|default('https://via.placeholder.com/20') }}" 
+                    <img src="{{ current_user.get_image_url()|default('/static/uploads/default_profile.png') }}" 
                          alt="Profile" class="circle" /> View Profile
                   </a>
                 </li>
@@ -440,7 +364,6 @@
               </ul>
             </li>
             {% else %}
-            <!-- Login / Register -->
             <li class="nav-item">
               <a class="nav-link text {{ 'active' if request.endpoint == 'auth.login' }}"
                 href="{{ url_for('auth.login') }}"><i class="bi bi-box-arrow-in-right"></i> Login</a>
@@ -455,7 +378,6 @@
       </div>
     </nav>
 
-    <!-- Flash Messages -->
     {% with messages=get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, msg in messages %}
@@ -466,10 +388,8 @@
         {% endfor %}
       {% endif %}
     {% endwith %}
-    {% block content %}
-    {% endblock %}
+    {% block content %}{% endblock %}
 
-    <!-- Logout Confirmation Modal -->
     <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">

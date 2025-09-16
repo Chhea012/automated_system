@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -53,10 +53,25 @@ def create_app():
     from .models.role import Role
     from .models.department import Department
     from .models.contract import Contract
+    from .models.notification import Notification
     from .forms import LoginForm, RegisterForm, PasswordResetRequestForm, PasswordResetForm
 
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
+
+    @app.context_processor
+    def inject_notifications():
+        if current_user.is_authenticated and current_user.has_role('Admin'):
+            unread_count = Notification.query.filter_by(recipient_id=current_user.id, is_read=False).count()
+            notifications = Notification.query.filter_by(recipient_id=current_user.id)\
+                .order_by(Notification.created_at.desc())\
+                .limit(7).all()
+            notifications_dict = [notif.to_dict() for notif in notifications]
+            return {
+                'unread_count': unread_count,
+                'notifications': notifications_dict
+            }
+        return {'unread_count': 0, 'notifications': []}
 
     return app
