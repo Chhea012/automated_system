@@ -8,7 +8,8 @@
 </div>
 
 <div class="container d-flex justify-content-center mt-3">
-    <div class="container-card shadow-sm p-5 mb-3" style="font-family: Calibri, sans-serif; max-width: 800px;">
+    <div class="container-card shadow-sm p-5 mb-3" style="font-family: Calibri, sans-serif; max-width: 750px;">
+
         <!-- Header -->
         <h1 class="text-center mt-5" style="font-size: 18px; font-weight: bold;">The Service Agreement</h1>
         <p class="text-center" style="font-weight: bold; font-size: 14px;">ON</p>
@@ -16,8 +17,8 @@
         <p class="text-center" style="font-weight: bold; font-size: 18px;">No.: {{ contract.contract_number or 'N/A' }}</p>
         <p class="text-center" style="font-size: 16px;">BETWEEN</p>
 
-        <!-- Party A -->
-        <p class="text-center" style="font-size: 16px;">
+        <!-- Party A (centered for clarity) -->
+        <p class="text-center" style="font-size: 16px; line-height: 1.6; margin-bottom: 15px;">
             <strong>The NGO Forum on Cambodia</strong>, represented by 
             {% for person in contract.party_a_info %}
                 <strong>{{ person.name or 'Mr. Soeung Saroeun' }}</strong>, {{ person.position or 'Executive Director' }}
@@ -29,8 +30,8 @@
 
         <p class="text-center" style="font-size: 16px;">AND</p>
 
-        <!-- Party B -->
-        <p class="text-center" style="font-size: 16px;">
+        <!-- Party B (centered for clarity) -->
+        <p class="text-center" style="font-size: 16px; line-height: 1.6; margin-bottom: 15px;">
             {% if contract.party_b_info %}
                 {% for person in contract.party_b_info %}
                     <strong>{{ person.position or 'Freelance Consultant' }} {{ person.name or 'N/A' }}</strong>
@@ -47,24 +48,25 @@
         </p>
 
         <!-- Whereas Clauses -->
-        <p style="font-size: 14px;">
+        <p class="text-justify" style="font-size: 14px; line-height: 1.8; margin-bottom: 15px;">
             Whereas NGOF is a legal entity registered with the Ministry of Interior (MOI) {{ contract.registration_number or '#304 សជណ' }} dated {{ contract.registration_date or '07 March 2012' }}.
         </p>
-        <p style="font-size: 14px;">
+        <p class="text-justify" style="font-size: 14px; line-height: 1.8; margin-bottom: 15px;">
             Whereas NGOF will engage the services of “<strong>Party B</strong>” which accepts the engagement under the following terms and conditions.
         </p>
-        <p class="text-center" style="font-weight: bold; font-size: 14px;">Both Parties Agreed as follows:</p>
+        <p class="text-center" style="font-weight: bold; font-size: 14px; margin-bottom: 20px;">Both Parties Agreed as follows:</p>
 
-        <!-- Articles -->
+                <!-- Articles -->
         {% for article in standard_articles %}
-        <h6 class="mb-1" style="font-weight: bold;">
+        <h6 class="mb-1" style="font-weight: bold; margin: 0;">
             <span style="text-decoration: underline;">ARTICLE {{ article.number }}:</span> {{ article.title }}
         </h6>
-        <p style="white-space: pre-line; font-size: 14px;">
+        <p class="text-justify" style="white-space: pre-line; font-size: 14px; line-height: 1.6; margin: 0;">
             {{ article.content | replace('Party A', '<strong>Party A</strong>') | replace('Party B', '<strong>Party B</strong>') | safe }}
         </p>
+
         {% if article.table %}
-        <table class="table table-bordered" style="border: 1px solid black;">
+        <table class="table table-bordered" style="border: 1px solid black; margin: 0;">
             <thead>
                 <tr>
                     {% for key in article.table[0].keys() %}
@@ -76,7 +78,7 @@
                 {% for row in article.table[1:] %}
                 <tr>
                     {% for key in row.keys() %}
-                        <td style="white-space: pre-line; border: 1px solid black; {% if key == 'Total Amount (USD)' %}font-weight: bold;{% endif %}">
+                        <td style="white-space: pre-line; border: 1px solid black; margin: 0; {% if key == 'Total Amount (USD)' %}font-weight: bold;{% endif %}">
                             {{ row[key] }}
                         </td>
                     {% endfor %}
@@ -85,12 +87,16 @@
             </tbody>
         </table>
         {% endif %}
+
         {% for custom in articles %}
         {% if custom.article_number | string == article.number | string %}
-        <p style="white-space: pre-line; font-size: 14px;">{{ custom.custom_sentence }}</p>
+        <p class="text-justify" style="white-space: pre-line; font-size: 14px; line-height: 1.6; margin: 0;">
+            {{ custom.custom_sentence }}
+        </p>
         {% endif %}
         {% endfor %}
         {% endfor %}
+
 
         <!-- Signatures -->
         <p class="text-center mt-3 mb-2" style="font-weight: bold; font-size: 15px;">
@@ -98,7 +104,7 @@
         </p>
         <table class="table table-borderless" style="margin-left: 17%; font-size: 15px;">
             <tr>
-                <td class="text-start" style="width: 40%;">
+                <td class="text-start" style="width: %;">
                     <div style="margin-bottom: 50px;">
                         <strong>For “Party A”</strong>
                     </div>
