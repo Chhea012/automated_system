@@ -250,7 +250,7 @@ def export_docx(contract_id):
                 ps.append(p)
             return ps
 
-        # Updated Helper function to add paragraph with selective formatting for Party B email and bold parts
+        # Helper function to add paragraph with selective formatting for Party B email and bold parts
         def add_paragraph_with_email_formatting(text_parts, bold_parts, email_text, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12):
             text = ''.join(text_parts)
             paragraphs = text.split('\n\n')
@@ -287,10 +287,12 @@ def export_docx(contract_id):
                 ps.append(p)
             return ps
 
-        # Helper function to add heading with selective underlining
+        # Updated Helper function to add heading with 12pt font size
         def add_heading(number, title, level, size=12):
             p = doc.add_paragraph()
             p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            p.paragraph_format.space_before = Pt(12)  # Add small space before for separation
+            p.paragraph_format.space_after = Pt(0)   # Remove space after for compact layout
             run1 = p.add_run(f"ARTICLE {number}")
             run1.font.name = 'Calibri'
             run1.font.size = Pt(size)
@@ -552,10 +554,17 @@ def export_docx(contract_id):
         # Add a paragraph with reduced space before the title for letterhead
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(36)  # Reduced to 0.5 inch (36 points) for a more compact letterhead space
-        add_paragraph('The Service Agreement', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14, underline=False)
-        add_paragraph('ON', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)
+        # Add "The Service Agreement" with no space after
+        p = add_paragraph('The Service Agreement', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14, underline=False)[0]
+        p.paragraph_format.space_after = Pt(0)  # Remove space after
+        # Add "ON" with no space after
+        p = add_paragraph('ON', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)[0]
+        p.paragraph_format.space_after = Pt(0)  # Remove space after
+        # Add project title (unchanged spacing)
         add_paragraph(contract_data.get('project_title', 'N/A'), WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
+        # Add contract number (unchanged spacing)
         add_paragraph(f"No.: {contract_data.get('contract_number', 'N/A')}", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
+        # Add "BETWEEN" (unchanged spacing)
         add_paragraph('BETWEEN', WD_ALIGN_PARAGRAPH.CENTER, size=12)
 
         # Party A
@@ -1686,6 +1695,7 @@ def delete(contract_id):
         flash("An error occurred while deleting the contract.", 'danger')
     return redirect(url_for('contracts.index'))
 
+#export all docx file
 @contracts_bp.route('/export_all_docx', methods=['GET'])
 @login_required
 def export_all_docx():
@@ -1717,7 +1727,7 @@ def export_all_docx():
                     contract_data['agreement_start_date_display'] = format_date(contract_data.get('agreement_start_date', ''))
                     contract_data['agreement_end_date_display'] = format_date(contract_data.get('agreement_end_date', ''))
 
-                    # Handle financial data
+                    # Get financial data as floats
                     try:
                         total_fee_usd = float(contract_data.get('total_fee_usd', 0.0)) if contract_data.get('total_fee_usd') else 0.0
                         tax_percentage = float(contract_data.get('tax_percentage', 15.0))
@@ -1768,7 +1778,7 @@ def export_all_docx():
                     doc.styles['Normal'].font.name = 'Calibri'
                     doc.styles['Normal'].font.size = Pt(11)
 
-                    # Helper function for paragraphs with selective formatting
+                    # Helper function to add paragraph with selective bolding, email formatting, and custom bold segments
                     def add_paragraph(text, alignment=WD_ALIGN_PARAGRAPH.LEFT, bold=False, size=11, underline=False, email_addresses=None, bold_segments=None, indent=None):
                         email_addresses = email_addresses or []
                         bold_segments = bold_segments or []
@@ -1794,7 +1804,7 @@ def export_all_docx():
                             ps.append(p)
                         return ps
 
-                    # Helper function for paragraphs with bold parts
+                    # Helper function to add paragraph with selective bold and size
                     def add_paragraph_with_bold(text_parts, bold_parts, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12, indent=None):
                         text = ''.join(text_parts)
                         paragraphs = text.split('\n\n')
@@ -1814,7 +1824,7 @@ def export_all_docx():
                             ps.append(p)
                         return ps
 
-                    # Helper function for paragraphs with email formatting
+                    # Helper function to add paragraph with selective formatting for Party B email and bold parts
                     def add_paragraph_with_email_formatting(text_parts, bold_parts, email_text, alignment=WD_ALIGN_PARAGRAPH.LEFT, default_size=11, bold_size=12):
                         text = ''.join(text_parts)
                         paragraphs = text.split('\n\n')
@@ -1847,10 +1857,12 @@ def export_all_docx():
                             ps.append(p)
                         return ps
 
-                    # Helper function for headings
+                    # Helper function to add heading
                     def add_heading(number, title, level, size=12):
                         p = doc.add_paragraph()
                         p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                        p.paragraph_format.space_before = Pt(12)
+                        p.paragraph_format.space_after = Pt(0)
                         run1 = p.add_run(f"ARTICLE {number}")
                         run1.font.name = 'Calibri'
                         run1.font.size = Pt(size)
@@ -2102,22 +2114,24 @@ def export_all_docx():
                         }
                     ]
 
-                    # Define custom articles
+                    # Prepare custom articles
                     custom_articles = [
                         {'article_number': str(k), 'custom_sentence': v}
                         for k, v in contract_data.get('custom_article_sentences', {}).items()
                     ]
 
-                    # Add document header
+                    # Header
                     p = doc.add_paragraph()
                     p.paragraph_format.space_before = Pt(36)
-                    add_paragraph('The Service Agreement', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14, underline=False)
-                    add_paragraph('ON', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)
+                    p = add_paragraph('The Service Agreement', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14, underline=False)[0]
+                    p.paragraph_format.space_after = Pt(0)
+                    p = add_paragraph('ON', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)[0]
+                    p.paragraph_format.space_after = Pt(0)
                     add_paragraph(contract_data.get('project_title', 'N/A'), WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
                     add_paragraph(f"No.: {contract_data.get('contract_number', 'N/A')}", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
                     add_paragraph('BETWEEN', WD_ALIGN_PARAGRAPH.CENTER, size=12)
 
-                    # Add Party A information
+                    # Party A
                     party_a_info = contract_data.get('party_a_info', [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia'}])
                     representatives = [f"{person['name']}, {person['position']}" for person in party_a_info]
                     representative_text = ", represented by " + "; ".join(representatives) + "."
@@ -2134,7 +2148,7 @@ def export_all_docx():
 
                     add_paragraph('AND', WD_ALIGN_PARAGRAPH.CENTER, size=12)
 
-                    # Add Party B information
+                    # Party B
                     party_b_position = contract_data.get('party_b_position', 'Freelance Consultant')
                     party_b_name = contract_data.get('party_b_signature_name', 'N/A')
                     party_b_address = contract_data.get('party_b_address', 'N/A')
@@ -2154,10 +2168,10 @@ def export_all_docx():
                     party_b_bold_parts = [party_b_position + " " + party_b_name, "“Party B”"]
                     add_paragraph_with_email_formatting(party_b_text_parts, party_b_bold_parts, party_b_email, WD_ALIGN_PARAGRAPH.CENTER, default_size=12, bold_size=12)
 
-                    # Add Whereas clauses
+                    # Whereas Clauses
                     add_paragraph(
                         f"Whereas NGOF is a legal entity registered with the Ministry of Interior (MOI) "
-                        f"{contract_data.get('registration_number', '#304 សជណ')} dated {format_date(contract_data.get('registration_date', '07 March 2012'))}.",
+                        f"{contract_data.get('registration_number', '#304 សជណ')} dated {contract_data.get('registration_date', '07 March 2012')}.",
                         WD_ALIGN_PARAGRAPH.JUSTIFY, size=11
                     )
                     add_paragraph(
@@ -2166,7 +2180,7 @@ def export_all_docx():
                     )
                     add_paragraph("Both Parties Agreed as follows:", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)
 
-                    # Add articles
+                    # Articles
                     for article in standard_articles:
                         add_heading(article['number'], article['title'], level=3, size=12)
 
@@ -2214,7 +2228,6 @@ def export_all_docx():
                         else:
                             add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
 
-                        # Add table for Article 4
                         if article['table']:
                             table = doc.add_table(rows=len(article['table']), cols=len(article['table'][0]))
                             table.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -2240,7 +2253,10 @@ def export_all_docx():
                                             if line:
                                                 p = cell.add_paragraph(line)
                                                 p.paragraph_format.space_after = Pt(0)
-                                                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                                if i == 0:
+                                                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                                else:
+                                                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                                                 for run in p.runs:
                                                     run.font.size = Pt(12)
                                                     run.font.name = 'Calibri'
@@ -2249,26 +2265,34 @@ def export_all_docx():
                                         cell.text = row_data[key]
                                         for paragraph in cell.paragraphs:
                                             paragraph.paragraph_format.space_after = Pt(0)
-                                            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER if i == 0 or key != 'Deliverable' else WD_ALIGN_PARAGRAPH.LEFT
+                                            if i == 0:
+                                                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                            else:
+                                                if key == 'Deliverable':
+                                                    paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                                                else:
+                                                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
                                             for run in paragraph.runs:
                                                 run.font.size = Pt(12)
                                                 run.font.name = 'Calibri'
-                                                run.bold = i == 0 or key == 'Total Amount (USD)'
+                                                if i == 0:
+                                                    run.bold = True
+                                                elif key == 'Total Amount (USD)':
+                                                    run.bold = True
 
-                        # Add custom articles
                         for custom in custom_articles:
                             if custom['article_number'] == str(article['number']):
                                 add_paragraph(custom['custom_sentence'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
 
-                    # Add date
+                    # Signatures
                     add_paragraph(
-                        f"Date: {contract_data['agreement_start_date_display']}",
+                        f"Date: {contract_data.get('agreement_start_date_display', 'N/A')}",
                         WD_ALIGN_PARAGRAPH.CENTER,
                         bold=True,
                         size=11
                     )
 
-                    # Add signature table
+                    # Signature table
                     table = doc.add_table(rows=4, cols=2)
                     table.alignment = WD_TABLE_ALIGNMENT.CENTER
                     table.allow_autofit = True
@@ -2296,7 +2320,7 @@ def export_all_docx():
                         run.font.size = Pt(11)
 
                     cell4 = table.cell(3, 0)
-                    signer_position = next((person['position'] for person in party_a_info if person['name'] == contract_data.get('party_a_signature_name', '')), 'Executive Director')
+                    signer_position = next((person['position'] for person in party_a_info if person['name'] == contract_data.get('party_a_signature_name')), 'Executive Director')
                     p = cell4.add_paragraph(signer_position)
                     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                     for run in p.runs:
@@ -2356,6 +2380,7 @@ def export_all_docx():
         logger.error(f"Error exporting all contracts to ZIP: {str(e)}")
         flash("An error occurred while exporting all contracts.", 'danger')
         return redirect(url_for('contracts.index'))
+    
 # Export contract to excel (original, user-specific)
 @contracts_bp.route('/export_excel')
 @login_required
