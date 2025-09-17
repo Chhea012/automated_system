@@ -629,17 +629,28 @@ def export_docx(contract_id):
                     default_size=11,
                     bold_size=12,
                 )
-                # Financial lines (left-aligned with indentation)
+                # Financial lines (left-aligned with indentation, no space after, aligned with tab, labels at 12pt)
                 for line in article['financial_lines']:
                     if line:  # Only add non-empty lines
-                        add_paragraph_with_bold(
-                            [line],
-                            article['bold_parts'],
-                            WD_ALIGN_PARAGRAPH.LEFT,
-                            default_size=11,
-                            bold_size=12,
-                            indent=0.33
-                        )
+                        p = doc.add_paragraph()
+                        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                        p.paragraph_format.left_indent = Inches(0.33)
+                        p.paragraph_format.space_after = Pt(0)  # Remove space after paragraph
+                        if ':' in line:
+                            label, value = line.split(':', 1)
+                            p.paragraph_format.tab_stops.add_tab_stop(Inches(2.5))  # Adjust tab stop for better alignment
+                            run_label = p.add_run(label + ':')
+                            run_label.font.size = Pt(12)  # Set label font size to 12pt
+                            run_label.bold = True
+                            run_tab = p.add_run('\t')
+                            run_value = p.add_run(value.strip())
+                            run_value.font.size = Pt(12)  # Match value font size to 12pt
+                            run_value.bold = True
+                        else:
+                            # For VAT line or similar
+                            run = p.add_run(line)
+                            run.font.size = Pt(12)  # Match font size to 12pt
+                            run.bold = True
                 # Remaining content (justified)
                 add_paragraph_with_bold(
                     article['remaining_content'],
@@ -1757,7 +1768,7 @@ def export_all_docx():
                         installment['tax_amount'] = tax
                         installment['net_amount'] = net
 
-                    # Create DOCX document
+                    # Create a new DOCX document for each contract
                     doc = Document()
 
                     # Set document margins
@@ -2185,6 +2196,7 @@ def export_all_docx():
                         add_heading(article['number'], article['title'], level=3, size=12)
 
                         if article['number'] == 3:
+                            # First part (justified)
                             add_paragraph_with_bold(
                                 article['content'],
                                 article['bold_parts'],
@@ -2192,16 +2204,29 @@ def export_all_docx():
                                 default_size=11,
                                 bold_size=12,
                             )
+                            # Financial lines (left-aligned with indentation, no space after, aligned with tab, labels at 12pt)
                             for line in article['financial_lines']:
-                                if line:
-                                    add_paragraph_with_bold(
-                                        [line],
-                                        article['bold_parts'],
-                                        WD_ALIGN_PARAGRAPH.LEFT,
-                                        default_size=11,
-                                        bold_size=12,
-                                        indent=0.33
-                                    )
+                                if line:  # Only add non-empty lines
+                                    p = doc.add_paragraph()
+                                    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                                    p.paragraph_format.left_indent = Inches(0.33)
+                                    p.paragraph_format.space_after = Pt(0)  # Remove space after paragraph
+                                    if ':' in line:
+                                        label, value = line.split(':', 1)
+                                        p.paragraph_format.tab_stops.add_tab_stop(Inches(2.5))  # Adjust tab stop for better alignment
+                                        run_label = p.add_run(label + ':')
+                                        run_label.font.size = Pt(12)  # Set label font size to 12pt
+                                        run_label.bold = True
+                                        run_tab = p.add_run('\t')
+                                        run_value = p.add_run(value.strip())
+                                        run_value.font.size = Pt(12)  # Match value font size to 12pt
+                                        run_value.bold = True
+                                    else:
+                                        # For VAT line or similar
+                                        run = p.add_run(line)
+                                        run.font.size = Pt(12)  # Match font size to 12pt
+                                        run.bold = True
+                            # Remaining content (justified)
                             add_paragraph_with_bold(
                                 article['remaining_content'],
                                 article['bold_parts'],
