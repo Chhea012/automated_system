@@ -22,6 +22,7 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 from docx.shared import Inches, Pt, RGBColor
 import zipfile
+from docx.enum.text import WD_TAB_ALIGNMENT
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -735,7 +736,10 @@ def export_docx(contract_id):
                 if custom['article_number'] == str(article['number']):
                     add_paragraph(custom['custom_sentence'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
 
-        # Signatures
+        # Signatures (using paragraphs with tab stops for a professional layout with larger signature space)
+        # Add date centered with space before for separation
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(24)  # Add space before date for better visual separation
         add_paragraph(
             f"Date: {contract_data.get('agreement_start_date_display', 'N/A')}",
             WD_ALIGN_PARAGRAPH.CENTER,
@@ -743,66 +747,66 @@ def export_docx(contract_id):
             size=11
         )
 
-        # Signature table
-        table = doc.add_table(rows=4, cols=2)
-        table.alignment = WD_TABLE_ALIGNMENT.CENTER
-        table.allow_autofit = True
+        # Define tab position (adjust based on page width; assuming ~6.5in content width, center split at ~3.25in)
+        tab_position = Inches(3.5)  # Fine-tune this value if needed for better alignment
 
-        table.columns[0].width = Inches(3)
-        table.columns[1].width = Inches(3)
+        # "For" labels row
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(24)  # Space before signatures for professionalism
+        p.paragraph_format.space_after = Pt(0)    # Remove space after paragraph
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
+        run = p.add_run('For “Party A”')
+        run.bold = True
+        run.font.size = Pt(11)
+        p.add_run('\t')
+        run = p.add_run('For “Party B”')
+        run.bold = True
+        run.font.size = Pt(11)
 
-        cell1 = table.cell(0, 0)
-        p = cell1.add_paragraph("For “Party A”")
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for run in p.runs:
-            run.bold = True
-            run.font.size = Pt(11)
+        # First signature line row (larger space for signature)
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(12)  # Increased space before signature line
+        p.paragraph_format.space_after = Pt(12)   # Add space after for writing area
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
+        p.add_run('')  
+        p.add_run('\t')
+        p.add_run('')  
 
-        cell2 = table.cell(1, 0)
-        p = cell2.add_paragraph("_________________")
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.runs[0].font.size = Pt(11)
+        # Second signature line row (additional space for larger signature, no space after)
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(6)   # Minimal space before second line
+        p.paragraph_format.space_after = Pt(0)    # Remove space after for signature lines
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
+        p.add_run('__________________')  # Longer signature line
+        p.add_run('\t')
+        p.add_run('__________________')  # Longer signature line
 
-        cell3 = table.cell(2, 0)
-        p = cell3.add_paragraph(contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun'))
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for run in p.runs:
-            run.bold = True
-            run.font.size = Pt(11)
+        # Names row
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(0)   # Remove space before names
+        p.paragraph_format.space_after = Pt(0)    # Remove space after paragraph
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
+        run = p.add_run(contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun'))
+        run.bold = True
+        run.font.size = Pt(11)
+        p.add_run('\t')
+        run = p.add_run(contract_data.get('party_b_signature_name', 'N/A'))
+        run.bold = True
+        run.font.size = Pt(11)
 
-        cell4 = table.cell(3, 0)
+        # Positions row
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(0)   # No extra space before positions
+        p.paragraph_format.space_after = Pt(0)    # Remove space after paragraph
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
         signer_position = next((person['position'] for person in party_a_info if person['name'] == contract_data.get('party_a_signature_name')), 'Executive Director')
-        p = cell4.add_paragraph(signer_position)
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for run in p.runs:
-            run.bold = True
-            run.font.size = Pt(11)
-
-        cell5 = table.cell(0, 1)
-        p = cell5.add_paragraph("For “Party B”")
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for run in p.runs:
-            run.bold = True
-            run.font.size = Pt(11)
-
-        cell6 = table.cell(1, 1)
-        p = cell6.add_paragraph("_________________")
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.runs[0].font.size = Pt(11)
-
-        cell7 = table.cell(2, 1)
-        p = cell7.add_paragraph(contract_data.get('party_b_signature_name', 'N/A'))
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for run in p.runs:
-            run.bold = True
-            run.font.size = Pt(11)
-
-        cell8 = table.cell(3, 1)
-        p = cell8.add_paragraph(contract_data.get('party_b_position', 'N/A'))
-        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for run in p.runs:
-            run.bold = True
-            run.font.size = Pt(11)
+        run = p.add_run(signer_position)
+        run.bold = True
+        run.font.size = Pt(11)
+        p.add_run('\t')
+        run = p.add_run(contract_data.get('party_b_position', 'N/A'))
+        run.bold = True
+        run.font.size = Pt(11)
 
         # Save the document to a BytesIO stream
         output = BytesIO()
