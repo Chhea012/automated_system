@@ -345,10 +345,6 @@
                 <div class="col-12">
                     <button type="button" class="btn btn-primary btn-add-installment" onclick="addInstallmentField()">Add Payment Installment</button>
                 </div>
-                <div class="col-12">
-                    <label for="workshop_description" class="form-label">Workshop Description</label>
-                    <input type="text" class="form-control" id="workshop_description" name="workshop_description" value="{{ form_data.workshop_description | default('') }}" placeholder="e.g., Multi-stakeholder workshop">
-                </div>
             </div>
 
             <!-- Custom Article Sentences -->
@@ -402,10 +398,6 @@
                     <label for="party_b_signature_name_confirm" class="form-label">Party B Signature Name (Confirm)</label>
                     <input type="text" class="form-control" id="party_b_signature_name_confirm" name="party_b_signature_name_confirm" value="{{ form_data.party_b_signature_name_confirm | default('') }}" required>
                     <div class="invalid-feedback">Please confirm Party B signature name.</div>
-                </div>
-                <div class="col-md-6">
-                    <label for="title" class="form-label">Title</label>
-                    <input type="text" class="form-control" id="title" name="title" value="{{ form_data.title | default('') }}" placeholder="e.g., Consultant for Budget Analysis">
                 </div>
             </div>
 
