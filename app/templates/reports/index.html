@@ -87,55 +87,66 @@
             margin-top: 0.5rem;
         }
     }
-
-    /* Chart Container Improvements */
     .chart-container {
         position: relative;
-        height: 350px;
+        height: 300px; /* Fixed height for line chart */
         width: 100%;
+        margin: 0 auto; /* Center the chart */
+    }
+    @media (max-width: 768px) {
+        .chart-container {
+            height: 250px; /* Adjust height for smaller screens */
+        }
+    }
+    .dropdown-item.active {
+        background-color: #0d6efd;
+        color: #ffffff;
     }
 </style>
 
 <div class="department-container mt-4">
-        <div class="card card-1  border-0 rounded-3 mb-4">
+    <div class="card card-1 border-0 rounded-3 mb-4">
         <div class="card-body d-flex flex-wrap justify-content-between align-items-center">
-        <!-- Title -->
             <div>
-        <h4 class="mb-1 fw-bold">📑 Contract Report</h4>
-        <h6 class="text-muted mb-0">{{ month_year }}</h6>
-        </div>
-
-        <!-- Export Dropdown -->
-        <div class="dropdown">
-        <button class="btn btn-primary d-flex align-items-center gap-2 px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class="bx bx-download fs-5"></i>
-            <span>Generate Report</span>
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end shadow-sm rounded-3">
-            <li>
-            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('reports.export_contracts_excel', department_id='all', month_year=month_year, search=search) }}">
-                <i class="bx bx-building"></i> Export All Departments
-            </a>
-            </li>
-            <li>
-            <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('reports.export_contracts_excel', department_id=department_id, month_year=month_year, search=search) }}">
-                <i class="bx bx-buildings"></i> Export Current Department
-            </a>
-            </li>
-        </ul>
+                <h4 class="mb-1 fw-bold">📑 Contract Report</h4>
+                <h6 class="text-muted mb-0">{{ month_year_display }}</h6>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-primary d-flex align-items-center gap-2 px-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bx bx-download fs-5"></i>
+                    <span>Generate Report</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm rounded-3">
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('reports.export_contracts_excel', department_id='all', month_year=month_year, search=search, day_filter=day_filter) }}">
+                            <i class="bx bx-building"></i> Export All Departments
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item d-flex align-items-center gap-2" href="{{ url_for('reports.export_contracts_excel', department_id=department_id, month_year=month_year, search=search, day_filter=day_filter) }}">
+                            <i class="bx bx-buildings"></i> Export Current Department
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
-    </div>
-
 
     <!-- Charts Section -->
     <div class="row mb-4">
         <div class="col-lg-8">
             <div class="card card-1">
-                <div class="card-header bg-white border-0">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        Contracts Overview (Jan - Dec {{ month_year.split()[1] }})
-                    </h6>
+                <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">{{ chart_title }}</h6>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bx bx-dots-vertical-rounded"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item {{ 'active' if view_mode == 'monthly' else '' }}" href="#" onclick="changeView('monthly')">Monthly</a></li>
+                            <li><a class="dropdown-item {{ 'active' if view_mode == 'weekly' else '' }}" href="#" onclick="changeView('weekly')">Weekly</a></li>
+                        </ul>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="chart-container">
@@ -146,8 +157,23 @@
         </div>
         <div class="col-lg-4 mt-3 mt-lg-0">
             <div class="card card-1">
-                <div class="card-header bg-white border-0">
-                    <h6 class="m-0 font-weight-bold text-primary">Contracts by Department</h6>
+                <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">{{ pie_title }}</h6>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bx bx-dots-vertical-rounded"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item {{ 'active' if day_filter == 'All' else '' }}" href="#" onclick="changeDayFilter('All')">All</a></li>
+                            <li><a class="dropdown-item {{ 'active' if day_filter == 'Mon' else '' }}" href="#" onclick="changeDayFilter('Mon')">Mon</a></li>
+                            <li><a class="dropdown-item {{ 'active' if day_filter == 'Tue' else '' }}" href="#" onclick="changeDayFilter('Tue')">Tue</a></li>
+                            <li><a class="dropdown-item {{ 'active' if day_filter == 'Wed' else '' }}" href="#" onclick="changeDayFilter('Wed')">Wed</a></li>
+                            <li><a class="dropdown-item {{ 'active' if day_filter == 'Thu' else '' }}" href="#" onclick="changeDayFilter('Thu')">Thu</a></li>
+                            <li><a class="dropdown-item {{ 'active' if day_filter == 'Fri' else '' }}" href="#" onclick="changeDayFilter('Fri')">Fri</a></li>
+                            <li><a class="dropdown-item {{ 'active' if day_filter == 'Sat' else '' }}" href="#" onclick="changeDayFilter('Sat')">Sat</a></li>
+                            <li><a class="dropdown-item {{ 'active' if day_filter == 'Sun' else '' }}" href="#" onclick="changeDayFilter('Sun')">Sun</a></li>
+                        </ul>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="chart-container">
@@ -160,53 +186,50 @@
 
     <!-- Filters -->
     <div class="card card-1 mb-4">
-    <div class="card-body">
-        <form class="row g-3 align-items-center">
-        
-        <!-- Department -->
-        <div class="col-md-4">
-            <label for="departmentSelect" class="form-label fw-semibold">
-            <i class='bx bx-building me-1'></i> Department
-            </label>
-            <select id="departmentSelect" class="form-select" onchange="updateFilters()">
-            <option value="all" {% if department_id == 'all' %}selected{% endif %}>All Departments</option>
-            {% for dept in departments %}
-            <option value="{{ dept.id }}" {% if department_id == dept.id|string %}selected{% endif %}>
-                {{ dept.name }}
-            </option>
-            {% endfor %}
-            </select>
-        </div>
+        <div class="card-body">
+            <form class="row g-3 align-items-center">
+                <!-- Department -->
+                <div class="col-md-4">
+                    <label for="departmentSelect" class="form-label fw-semibold">
+                        <i class='bx bx-building me-1'></i> Department
+                    </label>
+                    <select id="departmentSelect" class="form-select" onchange="updateFilters()">
+                        <option value="all" {{ 'selected' if department_id == 'all' else '' }}>All Departments</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}" {{ 'selected' if department_id == dept.id|string else '' }}>
+                            {{ dept.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-        <!-- Month/Year -->
-        <div class="col-md-3">
-            <label for="monthYearSelect" class="form-label fw-semibold">
-            <i class='bx bx-calendar me-1'></i> Month / Year
-            </label>
-            <select id="monthYearSelect" class="form-select" onchange="updateFilters()">
-            {% for m in unique_months %}
-            <option {% if month_year == m %}selected{% endif %}>{{ m }}</option>
-            {% endfor %}
-            </select>
-        </div>
+                <!-- Month/Year -->
+                <div class="col-md-3">
+                    <label for="monthYearSelect" class="form-label fw-semibold">
+                        <i class='bx bx-calendar me-1'></i> Month / Year
+                    </label>
+                    <select id="monthYearSelect" class="form-select" onchange="updateFilters()">
+                        {% for m in unique_months %}
+                        <option {{ 'selected' if month_year_display == m else '' }} value="{{ m }}">{{ m }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-        <!-- Search -->
-        <div class="col-md-5">
-            <label for="searchInput" class="form-label fw-semibold">
-            <i class='bx bx-search me-1'></i> Search
-            </label>
-            <div class="input-group">
-            <input type="text" id="searchInput" class="form-control" 
-                    placeholder="Project Title, Manager, or Party B" 
-                    value="{{ search }}" oninput="debounceSearch()">
-            <button type="button" class="btn btn-primary btn-search" onclick="updateFilters()">Search</button>
-            </div>
+                <!-- Search -->
+                <div class="col-md-5">
+                    <label for="searchInput" class="form-label fw-semibold">
+                        <i class='bx bx-search me-1'></i> Search
+                    </label>
+                    <div class="input-group">
+                        <input type="text" id="searchInput" class="form-control" 
+                               placeholder="Project Title, Manager, or Party B" 
+                               value="{{ search }}" oninput="debounceSearch()">
+                        <button type="button" class="btn btn-primary btn-search" onclick="updateFilters()">Search</button>
+                    </div>
+                </div>
+            </form>
         </div>
-
-        </form>
     </div>
-    </div>
-
 
     <!-- Table -->
     <div class="card-1">
@@ -250,15 +273,15 @@
                 <ul class="pagination">
                     {% if pagination.has_prev %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('reports.contract_report', page=pagination.prev_num, department_id=department_id, search=search, month_year=month_year, sort=sort, per_page=per_page) }}">Previous</a>
+                        <a class="page-link" href="{{ url_for('reports.contract_report', page=pagination.prev_num, department_id=department_id, search=search, month_year=month_year, sort=sort, per_page=per_page, view_mode=view_mode, day_filter=day_filter) }}">Previous</a>
                     </li>
                     {% else %}
                     <li class="page-item disabled"><span class="page-link">Previous</span></li>
                     {% endif %}
                     {% for page_num in pagination.iter_pages() %}
                         {% if page_num %}
-                        <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
-                            <a class="page-link" href="{{ url_for('reports.contract_report', page=page_num, department_id=department_id, search=search, month_year=month_year, sort=sort, per_page=per_page) }}">{{ page_num }}</a>
+                        <li class="page-item {{ 'active' if page_num == pagination.page else '' }}">
+                            <a class="page-link" href="{{ url_for('reports.contract_report', page=page_num, department_id=department_id, search=search, month_year=month_year, sort=sort, per_page=per_page, view_mode=view_mode, day_filter=day_filter) }}">{{ page_num }}</a>
                         </li>
                         {% else %}
                         <li class="page-item disabled"><span class="page-link">...</span></li>
@@ -266,7 +289,7 @@
                     {% endfor %}
                     {% if pagination.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('reports.contract_report', page=pagination.next_num, department_id=department_id, search=search, month_year=month_year, sort=sort, per_page=per_page) }}">Next</a>
+                        <a class="page-link" href="{{ url_for('reports.contract_report', page=pagination.next_num, department_id=department_id, search=search, month_year=month_year, sort=sort, per_page=per_page, view_mode=view_mode, day_filter=day_filter) }}">Next</a>
                     </li>
                     {% else %}
                     <li class="page-item disabled"><span class="page-link">Next</span></li>
@@ -278,99 +301,119 @@
 </div>
 
 <!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>
-    // Enhanced Line Chart
-    new Chart(document.getElementById("contractsYearChart"), {
-        type: 'line',
-        data: {
-            labels: {{ chart_labels|tojson|safe }},
-            datasets: [{
-                label: "Contracts",
-                data: {{ chart_values|tojson|safe }},
-                borderColor: '#0d6efd',
-                backgroundColor: 'rgba(13, 110, 253, 0.08)',
-                borderWidth: 3,
-                fill: true,
-                tension: 0.4,
-                pointBackgroundColor: '#0d6efd',
-                pointBorderColor: '#ffffff',
-                pointBorderWidth: 2,
-                pointRadius: 5,
-                pointHoverRadius: 7,
-                pointHoverBackgroundColor: '#ffffff',
-                pointHoverBorderColor: '#0d6efd',
-                pointHoverBorderWidth: 2,
-                pointHitRadius: 10
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                intersect: false,
-                mode: 'index'
+    let contractsChart;
+
+    function initializeChart(labels, values) {
+        if (contractsChart) {
+            contractsChart.destroy();
+        }
+
+        contractsChart = new Chart(document.getElementById("contractsYearChart"), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: "Contracts",
+                    data: values,
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13, 110, 253, 0.08)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#0d6efd',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointHoverBackgroundColor: '#ffffff',
+                    pointHoverBorderColor: '#0d6efd',
+                    pointHoverBorderWidth: 2,
+                    pointHitRadius: 10
+                }]
             },
-            plugins: {
-                legend: { 
-                    display: false 
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
                 },
-                tooltip: {
-                    backgroundColor: 'rgba(0,0,0,0.85)',
-                    titleColor: 'white',
-                    bodyColor: 'white',
-                    cornerRadius: 8,
-                    displayColors: false,
-                    titleFont: { size: 13 },
-                    bodyFont: { size: 12 },
-                    padding: 12,
-                    callbacks: {
-                        title: function(context) {
-                            return context[0].label;
-                        },
-                        label: function(context) {
-                            return `Contracts: ${context.parsed.y}`;
+                plugins: {
+                    legend: { 
+                        display: false 
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.85)',
+                        titleColor: 'white',
+                        bodyColor: 'white',
+                        cornerRadius: 8,
+                        displayColors: false,
+                        titleFont: { size: 13, style: 'normal', family: 'Arial, Helvetica, sans-serif' },
+                        bodyFont: { size: 12, style: 'normal', family: 'Arial, Helvetica, sans-serif' },
+                        padding: 12,
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            },
+                            label: function(context) {
+                                return `Contracts: ${context.parsed.y}`;
+                            }
                         }
                     }
-                }
-            },
-            scales: {
-                x: { 
-                    grid: { 
-                        display: false,
-                        drawBorder: false 
+                },
+                scales: {
+                    x: { 
+                        grid: { 
+                            display: false,
+                            drawBorder: false 
+                        },
+                        ticks: {
+                            color: '#6c757d',
+                            font: { 
+                                size: 11,
+                                style: 'normal',
+                                family: 'Arial, Helvetica, sans-serif'
+                            },
+                            padding: 8,
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
                     },
-                    ticks: {
-                        color: '#6c757d',
-                        font: { size: 11 },
-                        padding: 8
+                    y: { 
+                        beginAtZero: true, 
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)',
+                            drawBorder: false,
+                            lineWidth: 1
+                        },
+                        ticks: { 
+                            stepSize: 1,
+                            color: '#6c757d',
+                            font: { 
+                                size: 11,
+                                style: 'normal',
+                                family: 'Arial, Helvetica, sans-serif'
+                            },
+                            padding: 8
+                        },
+                        border: {
+                            display: false
+                        }
                     }
                 },
-                y: { 
-                    beginAtZero: true, 
-                    grid: {
-                        color: 'rgba(0,0,0,0.05)',
-                        drawBorder: false,
-                        lineWidth: 1
-                    },
-                    ticks: { 
-                        stepSize: 1,
-                        color: '#6c757d',
-                        font: { size: 11 },
-                        padding: 8
-                    },
-                    border: {
-                        display: false
+                elements: {
+                    point: {
+                        hoverBorderWidth: 3
                     }
                 }
-            },
-            elements: {
-                point: {
-                    hoverBorderWidth: 3
-                }
             }
-        }
-    });
+        });
+    }
+
+    // Initialize chart with data from server
+    initializeChart({{ chart_labels|tojson|safe }}, {{ chart_values|tojson|safe }});
 
     // Enhanced Doughnut Chart
     new Chart(document.getElementById("contractsPieChart"), {
@@ -380,41 +423,42 @@
             datasets: [{
                 data: {{ pie_values|tojson|safe }},
                 backgroundColor: [
-                    '#0d6efd', 
-                    '#28a745', 
-                    '#17a2b8', 
-                    '#ffc107', 
-                    '#dc3545', 
-                    '#6f42c1'
+                    '#dc3545', // Red
+                    '#0d6efd', // Blue
+                    '#28a745', // Green
+                    '#ffc107', // Yellow
+                    '#17a2b8', // Cyan
+                    '#6f42c1'  // Purple
                 ],
                 borderColor: '#ffffff',
                 borderWidth: 3,
-                hoverOffset: 8,
+                hoverOffset: 10,
                 hoverBorderWidth: 2
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '65%',
+            cutout: '70%', // Thinner doughnut for better visuals
             plugins: {
                 legend: { 
                     position: 'bottom',
                     labels: {
-                        padding: 20,
+                        padding: 15,
                         usePointStyle: true,
                         pointStyle: 'circle',
                         font: {
-                            size: 11,
-                            family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                            size: 12,
+                            style: 'normal',
+                            family: 'Arial, Helvetica, sans-serif'
                         },
-                        color: '#6c757d',
+                        color: '#495057',
                         generateLabels: function(chart) {
                             const data = Chart.defaults.plugins.legend.labels.generateLabels(chart);
                             data.forEach((label, index) => {
                                 const value = chart.data.datasets[0].data[index];
                                 const total = chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                                const percentage = ((value / total) * 100).toFixed(1);
+                                const percentage = total ? ((value / total) * 100).toFixed(1) : 0;
                                 label.text += ` (${percentage}%)`;
                             });
                             return data;
@@ -427,8 +471,8 @@
                     bodyColor: 'white',
                     cornerRadius: 8,
                     displayColors: false,
-                    titleFont: { size: 13 },
-                    bodyFont: { size: 12 },
+                    titleFont: { size: 13, style: 'normal', family: 'Arial, Helvetica, sans-serif' },
+                    bodyFont: { size: 12, style: 'normal', family: 'Arial, Helvetica, sans-serif' },
                     padding: 12,
                     callbacks: {
                         title: function(context) {
@@ -437,7 +481,7 @@
                         label: function(context) {
                             const value = context.parsed;
                             const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((value / total) * 100).toFixed(1);
+                            const percentage = total ? ((value / total) * 100).toFixed(1) : 0;
                             return `${value} contracts (${percentage}%)`;
                         }
                     }
@@ -457,19 +501,48 @@
             timeout = setTimeout(() => func(...args), wait);
         };
     }
+
     function updateFilters() {
         const dept = document.getElementById('departmentSelect').value;
         const monthYear = document.getElementById('monthYearSelect').value;
         const search = document.getElementById('searchInput').value;
         const sort = '{{ sort }}';
         const per_page = '{{ per_page }}';
-        window.location.href = `{{ url_for('reports.contract_report') }}?department_id=${dept}&month_year=${monthYear}&search=${search}&sort=${sort}&per_page=${per_page}`;
+        const view_mode = '{{ view_mode }}';
+        const day_filter = '{{ day_filter }}';
+        window.location.href = `{{ url_for('reports.contract_report') }}?department_id=${dept}&month_year=${monthYear}&search=${encodeURIComponent(search)}&sort=${sort}&per_page=${per_page}&view_mode=${view_mode}&day_filter=${day_filter}`;
     }
+
+    function changeView(mode) {
+        const dept = '{{ department_id }}';
+        const monthYear = '{{ month_year }}';
+        const search = '{{ search }}';
+        const sort = '{{ sort }}';
+        const per_page = '{{ per_page }}';
+        const page = 1;
+        const day_filter = '{{ day_filter }}';
+        window.location.href = `{{ url_for('reports.contract_report') }}?department_id=${dept}&month_year=${monthYear}&search=${encodeURIComponent(search)}&sort=${sort}&per_page=${per_page}&page=${page}&view_mode=${mode}&day_filter=${day_filter}`;
+    }
+
+    function changeDayFilter(day) {
+        const dept = '{{ department_id }}';
+        const monthYear = '{{ month_year }}';
+        const search = '{{ search }}';
+        const sort = '{{ sort }}';
+        const per_page = '{{ per_page }}';
+        const page = 1;
+        const view_mode = '{{ view_mode }}';
+        window.location.href = `{{ url_for('reports.contract_report') }}?department_id=${dept}&month_year=${monthYear}&search=${encodeURIComponent(search)}&sort=${sort}&per_page=${per_page}&page=${page}&view_mode=${view_mode}&day_filter=${day}`;
+    }
+
     const debounceSearch = debounce(() => updateFilters(), 500);
+
     let sortDirections = {};
     function sortTable(column) {
         const dir = sortDirections[column] = sortDirections[column] === 'asc' ? 'desc' : 'asc';
-        window.location.href = `{{ url_for('reports.contract_report') }}?department_id={{ department_id }}&month_year={{ month_year }}&search={{ search }}&sort=${column}_${dir}&per_page={{ per_page }}&page=1`;
+        const view_mode = '{{ view_mode }}';
+        const day_filter = '{{ day_filter }}';
+        window.location.href = `{{ url_for('reports.contract_report') }}?department_id={{ department_id }}&month_year={{ month_year }}&search={{ search }}&sort=${column}_${dir}&per_page={{ per_page }}&page=1&view_mode=${view_mode}&day_filter=${day_filter}`;
     }
 </script>
 <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
