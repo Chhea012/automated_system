@@ -3,7 +3,7 @@ from flask_login import login_required
 from app import db
 from app.models.contract import Contract
 from app.models.department import Department
-from app.models.user import User  # Import User model explicitly
+from app.models.user import User
 from datetime import datetime
 import pandas as pd
 from io import BytesIO
@@ -24,21 +24,18 @@ def contract_report():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
 
-    # Parse month_year for filtering (e.g., 'September 2025' -> year=2025, month=9)
+    # Parse month_year (for filtering by year)
     try:
-        month_name, year_str = month_year.split()
-        month = datetime.strptime(month_name, '%B').month
+        _, year_str = month_year.split()
         year = int(year_str)
     except (ValueError, AttributeError):
-        month = datetime.now().month
         year = datetime.now().year
         month_year = datetime.now().strftime('%B %Y')
 
-    # Base query with left join to handle missing users
+    # Base query
     query = Contract.query.filter(Contract.deleted_at == None)\
                           .outerjoin(Contract.user)\
-                          .filter(db.extract('year', Contract.created_at) == year,
-                                  db.extract('month', Contract.created_at) == month)
+                          .filter(db.extract('year', Contract.created_at) == year)
 
     if department_id != 'all':
         query = query.filter(Contract.user.has(department_id=department_id))
@@ -66,17 +63,45 @@ def contract_report():
     # Totals
     total_contracts = query.count()
     departments = Department.query.all()
-    department_totals = {dept.name: Contract.query.filter(Contract.deleted_at == None)
-                                               .outerjoin(Contract.user)
-                                               .filter(Contract.user.has(department_id=dept.id))
-                                               .filter(db.extract('year', Contract.created_at) == year,
-                                                       db.extract('month', Contract.created_at) == month).count()
-                         for dept in departments}
+    department_totals = {
+        dept.name: Contract.query.filter(Contract.deleted_at == None)
+                                 .outerjoin(Contract.user)
+                                 .filter(Contract.user.has(department_id=dept.id))
+                                 .filter(db.extract('year', Contract.created_at) == year)
+                                 .count()
+        for dept in departments
+    }
 
-    # Unique month_years for dropdown (MySQL-compatible)
-    unique_months = db.session.query(db.func.distinct(db.func.date_format(Contract.created_at, '%M %Y')))\
-                              .filter(Contract.created_at != None).all()
+    # Unique month_years
+    unique_months = db.session.query(
+        db.func.distinct(db.func.date_format(Contract.created_at, '%M %Y'))
+    ).filter(Contract.created_at != None).all()
     unique_months = [m[0] for m in unique_months if m[0]]
+
+    # ----------------------------
+    # Chart Data (Jan → Dec)
+    # ----------------------------
+    monthly_counts = db.session.query(
+        db.func.month(Contract.created_at),
+        db.func.count(Contract.id)
+    ).filter(
+        Contract.deleted_at == None,
+        db.extract('year', Contract.created_at) == year
+    ).group_by(
+        db.func.month(Contract.created_at)
+    ).all()
+
+    monthly_dict = {m: c for m, c in monthly_counts}
+
+    chart_labels = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ]
+    chart_values = [monthly_dict.get(i, 0) for i in range(1, 13)]
+
+    # Pie chart (department distribution for the year)
+    pie_labels = list(department_totals.keys())
+    pie_values = list(department_totals.values())
 
     return render_template('reports/index.html',
                            contracts=contracts,
@@ -89,7 +114,11 @@ def contract_report():
                            per_page=per_page,
                            total_contracts=total_contracts,
                            department_totals=department_totals,
-                           unique_months=unique_months)
+                           unique_months=unique_months,
+                           chart_labels=chart_labels,
+                           chart_values=chart_values,
+                           pie_labels=pie_labels,
+                           pie_values=pie_values)
 
 @reports_bp.route('/export_contracts_excel')
 @login_required
@@ -99,17 +128,14 @@ def export_contracts_excel():
     search = request.args.get('search', '').strip().lower()
 
     try:
-        month_name, year_str = month_year.split()
-        month = datetime.strptime(month_name, '%B').month
+        _, year_str = month_year.split()
         year = int(year_str)
     except (ValueError, AttributeError):
-        month = datetime.now().month
         year = datetime.now().year
 
     query = Contract.query.filter(Contract.deleted_at == None)\
                           .outerjoin(Contract.user)\
-                          .filter(db.extract('year', Contract.created_at) == year,
-                                  db.extract('month', Contract.created_at) == month)
+                          .filter(db.extract('year', Contract.created_at) == year)
 
     if department_id != 'all' and department_id != 'current':
         query = query.filter(Contract.user.has(department_id=department_id))
@@ -138,14 +164,13 @@ def export_contracts_excel():
     ws = wb.active
     ws.title = "Contract Report"
 
-    # Add headers
     for r in dataframe_to_rows(df, index=False, header=True):
         ws.append(r)
 
-    # Styling
     header_font = Font(bold=True)
     alignment = Alignment(horizontal='center', vertical='center')
-    border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+    border = Border(left=Side(style='thin'), right=Side(style='thin'),
+                    top=Side(style='thin'), bottom=Side(style='thin'))
     fill = PatternFill(start_color='DDEBF7', end_color='DDEBF7', fill_type='solid')
 
     for cell in ws[1]:
@@ -154,7 +179,6 @@ def export_contracts_excel():
         cell.border = border
         cell.fill = fill
 
-    # Auto-adjust columns
     for col in ws.columns:
         max_length = 0
         column = col[0].column_letter
@@ -164,10 +188,8 @@ def export_contracts_excel():
                     max_length = len(cell.value)
             except:
                 pass
-        adjusted_width = (max_length + 2)
-        ws.column_dimensions[column].width = adjusted_width
+        ws.column_dimensions[column].width = (max_length + 2)
 
-    # Add totals row
     total_row = ws.max_row + 1
     ws.cell(row=total_row, column=1, value='Total Contracts').font = Font(bold=True)
     ws.cell(row=total_row, column=2, value=len(contracts)).font = Font(bold=True)
