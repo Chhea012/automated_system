@@ -735,26 +735,28 @@ def export_docx(contract_id):
             for custom in custom_articles:
                 if custom['article_number'] == str(article['number']):
                     add_paragraph(custom['custom_sentence'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
+        # ========================
+        # SIGNATURE BLOCK
+        # ========================
 
-        # Signatures (using paragraphs with tab stops for a professional layout with larger signature space)
-        # Add date centered with space before for separation
+        # Add date centered with space before
         p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(24)  # Add space before date for better visual separation
-        add_paragraph(
-            f"Date: {contract_data.get('agreement_start_date_display', 'N/A')}",
-            WD_ALIGN_PARAGRAPH.CENTER,
-            bold=True,
-            size=11
-        )
+        p.paragraph_format.space_before = Pt(24)
+        p.paragraph_format.space_after = Pt(0)  # remove space after
+        run = p.add_run(f"Date: {contract_data.get('agreement_start_date_display', '17th September 2025')}")
+        run.bold = True
+        run.font.size = Pt(11)
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        # Define tab position (adjust based on page width; assuming ~6.5in content width, center split at ~3.25in)
-        tab_position = Inches(3.5)  # Fine-tune this value if needed for better alignment
+        # Define tab stop position (move Party B further right)
+        tab_position = Inches(5.0)   # adjust between 5.0–5.25 if needed
 
         # "For" labels row
         p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(24)  # Space before signatures for professionalism
-        p.paragraph_format.space_after = Pt(0)    # Remove space after paragraph
+        p.paragraph_format.space_before = Pt(36)
+        p.paragraph_format.space_after = Pt(0)
         p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
+
         run = p.add_run('For “Party A”')
         run.bold = True
         run.font.size = Pt(11)
@@ -763,48 +765,47 @@ def export_docx(contract_id):
         run.bold = True
         run.font.size = Pt(11)
 
-        # First signature line row (larger space for signature)
+        # Signature lines row
         p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(12)  # Increased space before signature line
-        p.paragraph_format.space_after = Pt(12)   # Add space after for writing area
+        p.paragraph_format.space_before = Pt(24)  # enough space for writing
+        p.paragraph_format.space_after = Pt(0)    # no extra gap
         p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
-        p.add_run('')  
-        p.add_run('\t')
-        p.add_run('')  
 
-        # Second signature line row (additional space for larger signature, no space after)
-        p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(6)   # Minimal space before second line
-        p.paragraph_format.space_after = Pt(0)    # Remove space after for signature lines
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
-        p.add_run('__________________')  # Longer signature line
+        p.add_run('__________________')
         p.add_run('\t')
-        p.add_run('__________________')  # Longer signature line
+        p.add_run('__________________')
 
         # Names row
         p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(0)   # Remove space before names
-        p.paragraph_format.space_after = Pt(0)    # Remove space after paragraph
+        p.paragraph_format.space_before = Pt(6)
+        p.paragraph_format.space_after = Pt(0)
         p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
+
         run = p.add_run(contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun'))
         run.bold = True
         run.font.size = Pt(11)
         p.add_run('\t')
-        run = p.add_run(contract_data.get('party_b_signature_name', 'N/A'))
+        run = p.add_run(contract_data.get('party_b_signature_name', 'Mr. Leader Din'))
         run.bold = True
         run.font.size = Pt(11)
 
         # Positions row
         p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(0)   # No extra space before positions
-        p.paragraph_format.space_after = Pt(0)    # Remove space after paragraph
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(0)
         p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
-        signer_position = next((person['position'] for person in party_a_info if person['name'] == contract_data.get('party_a_signature_name')), 'Executive Director')
+
+        signer_position = next(
+            (person['position'] for person in party_a_info
+            if person['name'] == contract_data.get('party_a_signature_name')),
+            'Executive Director'
+        )
+
         run = p.add_run(signer_position)
         run.bold = True
         run.font.size = Pt(11)
         p.add_run('\t')
-        run = p.add_run(contract_data.get('party_b_position', 'N/A'))
+        run = p.add_run(contract_data.get('party_b_position', 'Freelance Consultant'))
         run.bold = True
         run.font.size = Pt(11)
 
