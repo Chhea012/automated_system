@@ -271,14 +271,14 @@
           </li>
           {% endif %}
 
+          <!-- Add to base.html in the navbar section -->
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle text {{ 'active' if request.endpoint in ['contracts.index', 'contracts.create'] }}"
-              href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><strong>Contract</strong></a>
-            <ul class="dropdown-menu dropdown-menu-end card-1">
-              <li><a class="dropdown-item" href="{{ url_for('contracts.index') }}">List of Contract</a></li>
-              <li><a class="dropdown-item" href="{{ url_for('contracts.create') }}">Request Contract</a></li>
-              <li><a class="dropdown-item" href="#">Report Contract</a></li>
-            </ul>
+              <a class="nav-link dropdown-toggle text {{ 'active' if request.endpoint in ['contracts.index', 'contracts.create', 'reports.contract_report'] }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><strong>Contract</strong></a>
+              <ul class="dropdown-menu dropdown-menu-end card-1">
+                  <li><a class="dropdown-item" href="{{ url_for('contracts.index') }}">List of Contract</a></li>
+                  <li><a class="dropdown-item" href="{{ url_for('contracts.create') }}">Request Contract</a></li>
+                  <li><a class="dropdown-item" href="{{ url_for('reports.contract_report') }}">Report Contract</a></li>
+              </ul>
           </li>
 
           <li class="nav-item">

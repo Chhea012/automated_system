@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% block title %}Contract Report{% endblock %}
+{% block content %}
+<style>
+    .table-custom {
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .table-custom thead th {
+        background-color: #0d6efd;
+        color: #ffffff;
+        font-weight: 600;
+        padding: 12px;
+        text-align: left;
+        border-bottom: 2px solid #dee2e6;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .table-custom tbody tr {
+        background-color: #ffffff;
+    }
+    .table-custom tbody tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+    .table-custom td {
+        padding: 12px;
+        vertical-align: middle;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .table-custom .dropdown-menu {
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .table-custom .dropdown-item {
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+    .table-custom .dropdown-item i {
+        margin-right: 8px;
+    }
+    .department-container {
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+        margin-right: 35px;
+        margin-left: 35px;
+    }
+    .filter-card {
+        padding: 1.5rem;
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    .filter-card .input-group {
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .filter-card .input-group-text {
+        background-color: #f1f3f5;
+        border: none;
+        font-size: 0.9rem;
+        color: #495057;
+    }
+    .filter-card .form-select,
+    .filter-card .form-control {
+        border: none;
+        font-size: 0.9rem;
+        padding: 0.75rem;
+    }
+    .filter-card .btn-search {
+        border-radius: 6px;
+        padding: 0.75rem 1.5rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    @media (max-width: 768px) {
+        .filter-card .input-group {
+            flex: 1 1 100%;
+        }
+        .filter-card .btn-search {
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+        .card-1 {
+            margin-bottom: 1rem;
+        }
+    }
+</style>
+
+<div class="department-container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2>Contract Report</h2>
+            <h5 class="text-muted">{{ month_year }}</h5>
+        </div>
+        <div class="dropdown">
+            <button class="btn btn-primary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class='bx bx-download'></i> Export to Excel
+            </button>
+            <ul class="dropdown-menu card-1">
+                <li><a class="dropdown-item" href="{{ url_for('reports.export_contracts_excel', department_id='all', month_year=month_year, search=search) }}"><i class='bx bx-file'></i> Export All Departments</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('reports.export_contracts_excel', department_id=department_id, month_year=month_year, search=search) }}"><i class='bx bx-file'></i> Export Current Department</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Summary Totals -->
+    <div class="row mb-4">
+    {% if department_totals %}
+        {% for dept_name, count in department_totals.items() %}
+        <div class="col-sm-6 col-xl-3 mt-2">
+            <div class="card card-1 h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-muted">{{ dept_name }}</h6>
+                            <h4 class="mb-1">{{ count }}</h4>
+                            <small class="text-muted">Contracts this month</small>
+                        </div>
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                            <i class="bx bx-file fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        <div class="col-sm-6 col-xl-3 mt-2">
+            <div class="card card-1 h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-muted">Grand Total</h6>
+                            <h4 class="mb-1">{{ total_contracts }}</h4>
+                            <small class="text-muted">All departments</small>
+                        </div>
+                        <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                            <i class="bx bx-bar-chart-alt-2 fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+            <div class="col-12">
+                <div class="card card-1 h-100">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted">No department totals available</h6>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+
+    <!-- Filters -->
+    <div class="filter-card  card-1 mb-4">
+        <div class="card-body">
+            <form class="d-flex flex-wrap gap-3 align-items-center">
+                <div class="input-group">
+                    <span class="input-group-text"><i class='bx bx-building'></i> Department</span>
+                    <select id="departmentSelect" class="form-select" onchange="updateFilters()">
+                        <option value="all" {% if department_id == 'all' %}selected{% endif %}>All Departments</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}" {% if department_id == dept.id|string %}selected{% endif %}>{{ dept.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="input-group">
+                    <span class="input-group-text"><i class='bx bx-calendar'></i> Month/Year</span>
+                    <select id="monthYearSelect" class="form-select" onchange="updateFilters()">
+                        {% for m in unique_months %}
+                        <option {% if month_year == m %}selected{% endif %}>{{ m }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="input-group flex-grow-1">
+                    <span class="input-group-text"><i class='bx bx-search'></i></span>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search by Project Title, Manager, or Party B" value="{{ search }}" oninput="debounceSearch()">
+                    <button type="button" class="btn btn-primary btn-search" onclick="updateFilters()">Search</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="shadow-sm card-1">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle table-custom">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable('contract_number')">No. <i class="bx bx-sort"></i></th>
+                            <th onclick="sortTable('project_title')">Project Title <i class="bx bx-sort"></i></th>
+                            <th>Department</th>
+                            <th>Manager</th>
+                            <th>Contract Date</th>
+                            <th>Party B</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if contracts %}
+                            {% for contract in contracts %}
+                            <tr>
+                                <td>{{ contract.contract_number or 'N/A' }}</td>
+                                <td>{{ contract.project_title or 'N/A' }}</td>
+                                <td>{{ contract.department_name or 'N/A' }}</td>
+                                <td>{{ contract.username or 'N/A' }}</td>
+                                <td>{{ contract.formatted_created_at or 'N/A' }}</td>
+                                <td>{{ contract.party_b_signature_name or 'N/A' }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">No contracts found</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Pagination Controls -->
+        <div class="d-flex justify-content-center mt-3">
+            <nav>
+                <ul class="pagination">
+                    {% if pagination.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('reports.contract_report', page=pagination.prev_num, department_id=department_id, search=search, month_year=month_year, sort=sort, per_page=per_page) }}">Previous</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Previous</span>
+                    </li>
+                    {% endif %}
+                    {% for page_num in pagination.iter_pages() %}
+                        {% if page_num %}
+                        <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('reports.contract_report', page=page_num, department_id=department_id, search=search, month_year=month_year, sort=sort, per_page=per_page) }}">{{ page_num }}</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if pagination.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('reports.contract_report', page=pagination.next_num, department_id=department_id, search=search, month_year=month_year, sort=sort, per_page=per_page) }}">Next</a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Next</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<script>
+    function debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func(...args), wait);
+        };
+    }
+
+    function updateFilters() {
+        const dept = document.getElementById('departmentSelect').value;
+        const monthYear = document.getElementById('monthYearSelect').value;
+        const search = document.getElementById('searchInput').value;
+        const sort = '{{ sort }}';
+        const per_page = '{{ per_page }}';
+        window.location.href = `{{ url_for('reports.contract_report') }}?department_id=${dept}&month_year=${monthYear}&search=${search}&sort=${sort}&per_page=${per_page}`;
+    }
+
+    const debounceSearch = debounce(() => updateFilters(), 500);
+
+    let sortDirections = {};
+    function sortTable(column) {
+        const dir = sortDirections[column] = sortDirections[column] === 'asc' ? 'desc' : 'asc';
+        window.location.href = `{{ url_for('reports.contract_report') }}?department_id={{ department_id }}&month_year={{ month_year }}&search={{ search }}&sort=${column}_${dir}&per_page={{ per_page }}&page=1`;
+    }
+</script>
+
+<!-- Boxicons CDN -->
+<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet" />
+{% endblock %}

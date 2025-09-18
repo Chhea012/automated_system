@@ -38,6 +38,7 @@ def create_app():
     from .routes.department import departments_bp
     from .routes.contract import contracts_bp
     from .routes.mydepartments import mydepartments_bp
+    from .routes.reports import reports_bp  # Added reports blueprint
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(main_bp)
@@ -47,6 +48,7 @@ def create_app():
     app.register_blueprint(departments_bp, url_prefix="/departments")
     app.register_blueprint(contracts_bp, url_prefix="/contracts")
     app.register_blueprint(mydepartments_bp, url_prefix="/mydepartments")
+    app.register_blueprint(reports_bp, url_prefix="/reports")  # Register reports blueprint
 
     from .models.user import User
     from .models.permission import Permission
