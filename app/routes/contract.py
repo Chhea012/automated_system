@@ -1713,7 +1713,6 @@ def delete(contract_id):
         flash("An error occurred while deleting the contract.", 'danger')
     return redirect(url_for('contracts.index'))
 
-#export all docx file
 @contracts_bp.route('/export_all_docx', methods=['GET'])
 @login_required
 def export_all_docx():
@@ -1778,16 +1777,16 @@ def export_all_docx():
                     # Create a new DOCX document for each contract
                     doc = Document()
 
-                    # Set document margins
+                    # Set document margins (adjusted top margin for the first page letterhead)
                     sections = doc.sections
                     for i, section in enumerate(sections):
-                        if i == 0:
-                            section.top_margin = Inches(1.5)
+                        if i == 0:  # Only modify the first section for letterhead space
+                            section.top_margin = Inches(1.5)  # Reduced to 1.5 inches for a more balanced letterhead space
                             section.left_margin = Inches(1)
                             section.right_margin = Inches(1)
                             section.bottom_margin = Inches(1)
                         else:
-                            section.top_margin = Inches(1)
+                            section.top_margin = Inches(1)  # Default margin for subsequent pages
                             section.left_margin = Inches(1)
                             section.right_margin = Inches(1)
                             section.bottom_margin = Inches(1)
@@ -1815,7 +1814,7 @@ def export_all_docx():
                                 run.font.size = Pt(size)
                                 run.bold = bold or part in bold_segments or part in ['“Party A”', '“Party B”']
                                 if part in email_addresses:
-                                    run.font.color.rgb = RGBColor(0, 0, 255)
+                                    run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
                                     run.underline = WD_UNDERLINE.SINGLE
                                 elif underline:
                                     run.underline = WD_UNDERLINE.SINGLE
@@ -1850,37 +1849,41 @@ def export_all_docx():
                         for para_text in paragraphs:
                             p = doc.add_paragraph()
                             p.alignment = alignment
+                            # Define pattern for bold_parts (including Party A/B if needed)
                             if bold_parts:
                                 bold_pattern_parts = [re.escape(bp) for bp in bold_parts] + ['“Party A”', '“Party B”']
                                 bold_pattern = r'(' + '|'.join(bold_pattern_parts) + r')'
                             else:
                                 bold_pattern = r'(“Party A”|“Party B”)'
+                            # Split on email_text first
                             email_parts = para_text.split(email_text)
                             for i, email_part in enumerate(email_parts):
+                                # Now split each email_part on bold_pattern
                                 if bold_pattern:
                                     sub_parts = re.split(bold_pattern, email_part)
                                 else:
                                     sub_parts = [email_part]
                                 for sub_part in sub_parts:
-                                    if sub_part.strip():
+                                    if sub_part.strip():  # Skip empty strings
                                         run = p.add_run(sub_part)
                                         is_bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
                                         run.bold = is_bold
                                         run.font.size = Pt(bold_size if is_bold else default_size)
+                                # Add the email_text as a separate run if not the last part
                                 if i < len(email_parts) - 1:
                                     email_run = p.add_run(email_text)
                                     email_run.font.size = Pt(default_size)
-                                    email_run.font.color.rgb = RGBColor(0, 0, 255)
+                                    email_run.font.color.rgb = RGBColor(0, 0, 255)  # Blue color
                                     email_run.underline = WD_UNDERLINE.SINGLE
                             ps.append(p)
                         return ps
 
-                    # Helper function to add heading
+                    # Updated Helper function to add heading with 12pt font size
                     def add_heading(number, title, level, size=12):
                         p = doc.add_paragraph()
                         p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                        p.paragraph_format.space_before = Pt(12)
-                        p.paragraph_format.space_after = Pt(0)
+                        p.paragraph_format.space_before = Pt(12)  # Add small space before for separation
+                        p.paragraph_format.space_after = Pt(0)   # Remove space after for compact layout
                         run1 = p.add_run(f"ARTICLE {number}")
                         run1.font.name = 'Calibri'
                         run1.font.size = Pt(size)
@@ -2138,15 +2141,21 @@ def export_all_docx():
                         for k, v in contract_data.get('custom_article_sentences', {}).items()
                     ]
 
-                    # Header
+                    # Header (adjusted for smaller letterhead space and no underline)
+                    # Add a paragraph with reduced space before the title for letterhead
                     p = doc.add_paragraph()
-                    p.paragraph_format.space_before = Pt(36)
+                    p.paragraph_format.space_before = Pt(36)  # Reduced to 0.5 inch (36 points) for a more compact letterhead space
+                    # Add "The Service Agreement" with no space after
                     p = add_paragraph('The Service Agreement', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14, underline=False)[0]
-                    p.paragraph_format.space_after = Pt(0)
+                    p.paragraph_format.space_after = Pt(0)  # Remove space after
+                    # Add "ON" with no space after
                     p = add_paragraph('ON', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)[0]
-                    p.paragraph_format.space_after = Pt(0)
+                    p.paragraph_format.space_after = Pt(0)  # Remove space after
+                    # Add project title (unchanged spacing)
                     add_paragraph(contract_data.get('project_title', 'N/A'), WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
+                    # Add contract number (unchanged spacing)
                     add_paragraph(f"No.: {contract_data.get('contract_number', 'N/A')}", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
+                    # Add "BETWEEN" (unchanged spacing)
                     add_paragraph('BETWEEN', WD_ALIGN_PARAGRAPH.CENTER, size=12)
 
                     # Party A
@@ -2280,9 +2289,10 @@ def export_all_docx():
                                 row_cells = table.rows[i].cells
                                 for j, key in enumerate(row_data.keys()):
                                     cell = row_cells[j]
+                                    # Handle 'Total Amount (USD)' as a list of lines
                                     if key == 'Total Amount (USD)' and isinstance(row_data[key], list):
                                         for line in row_data[key]:
-                                            if line:
+                                            if line:  # Only add non-empty lines
                                                 p = cell.add_paragraph(line)
                                                 p.paragraph_format.space_after = Pt(0)
                                                 if i == 0:
@@ -2315,75 +2325,79 @@ def export_all_docx():
                         for custom in custom_articles:
                             if custom['article_number'] == str(article['number']):
                                 add_paragraph(custom['custom_sentence'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
+                    # ========================
+                    # SIGNATURE BLOCK
+                    # ========================
 
-                    # Signatures
-                    add_paragraph(
-                        f"Date: {contract_data.get('agreement_start_date_display', 'N/A')}",
-                        WD_ALIGN_PARAGRAPH.CENTER,
-                        bold=True,
-                        size=11
+                    # Add date centered with space before
+                    p = doc.add_paragraph()
+                    p.paragraph_format.space_before = Pt(24)
+                    p.paragraph_format.space_after = Pt(0)  # remove space after
+                    run = p.add_run(f"Date: {contract_data.get('agreement_start_date_display', 'N/A')}")
+                    run.bold = True
+                    run.font.size = Pt(11)
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+                    # Define tab stop position (move Party B further right)
+                    tab_position = Inches(5.0)   # adjust between 5.0–5.25 if needed
+
+                    # "For" labels row
+                    p = doc.add_paragraph()
+                    p.paragraph_format.space_before = Pt(36)
+                    p.paragraph_format.space_after = Pt(0)
+                    p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
+
+                    run = p.add_run('For “Party A”')
+                    run.bold = True
+                    run.font.size = Pt(11)
+                    p.add_run('\t')
+                    run = p.add_run('For “Party B”')
+                    run.bold = True
+                    run.font.size = Pt(11)
+
+                    # Signature lines row
+                    p = doc.add_paragraph()
+                    p.paragraph_format.space_before = Pt(24)  # enough space for writing
+                    p.paragraph_format.space_after = Pt(0)    # no extra gap
+                    p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
+
+                    p.add_run('__________________')
+                    p.add_run('\t')
+                    p.add_run('__________________')
+
+                    # Names row
+                    p = doc.add_paragraph()
+                    p.paragraph_format.space_before = Pt(6)
+                    p.paragraph_format.space_after = Pt(0)
+                    p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
+
+                    run = p.add_run(contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun'))
+                    run.bold = True
+                    run.font.size = Pt(11)
+                    p.add_run('\t')
+                    run = p.add_run(contract_data.get('party_b_signature_name', 'N/A'))
+                    run.bold = True
+                    run.font.size = Pt(11)
+
+                    # Positions row
+                    p = doc.add_paragraph()
+                    p.paragraph_format.space_before = Pt(0)
+                    p.paragraph_format.space_after = Pt(0)
+                    p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
+
+                    signer_position = next(
+                        (person['position'] for person in party_a_info
+                        if person['name'] == contract_data.get('party_a_signature_name')),
+                        'Executive Director'
                     )
 
-                    # Signature table
-                    table = doc.add_table(rows=4, cols=2)
-                    table.alignment = WD_TABLE_ALIGNMENT.CENTER
-                    table.allow_autofit = True
-
-                    table.columns[0].width = Inches(3)
-                    table.columns[1].width = Inches(3)
-
-                    cell1 = table.cell(0, 0)
-                    p = cell1.add_paragraph("For “Party A”")
-                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    for run in p.runs:
-                        run.bold = True
-                        run.font.size = Pt(11)
-
-                    cell2 = table.cell(1, 0)
-                    p = cell2.add_paragraph("_________________")
-                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    p.runs[0].font.size = Pt(11)
-
-                    cell3 = table.cell(2, 0)
-                    p = cell3.add_paragraph(contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun'))
-                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    for run in p.runs:
-                        run.bold = True
-                        run.font.size = Pt(11)
-
-                    cell4 = table.cell(3, 0)
-                    signer_position = next((person['position'] for person in party_a_info if person['name'] == contract_data.get('party_a_signature_name')), 'Executive Director')
-                    p = cell4.add_paragraph(signer_position)
-                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    for run in p.runs:
-                        run.bold = True
-                        run.font.size = Pt(11)
-
-                    cell5 = table.cell(0, 1)
-                    p = cell5.add_paragraph("For “Party B”")
-                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    for run in p.runs:
-                        run.bold = True
-                        run.font.size = Pt(11)
-
-                    cell6 = table.cell(1, 1)
-                    p = cell6.add_paragraph("_________________")
-                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    p.runs[0].font.size = Pt(11)
-
-                    cell7 = table.cell(2, 1)
-                    p = cell7.add_paragraph(contract_data.get('party_b_signature_name', 'N/A'))
-                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    for run in p.runs:
-                        run.bold = True
-                        run.font.size = Pt(11)
-
-                    cell8 = table.cell(3, 1)
-                    p = cell8.add_paragraph(contract_data.get('party_b_position', 'N/A'))
-                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    for run in p.runs:
-                        run.bold = True
-                        run.font.size = Pt(11)
+                    run = p.add_run(signer_position)
+                    run.bold = True
+                    run.font.size = Pt(11)
+                    p.add_run('\t')
+                    run = p.add_run(contract_data.get('party_b_position', 'Freelance Consultant'))
+                    run.bold = True
+                    run.font.size = Pt(11)
 
                     # Save document to buffer
                     doc_buffer = BytesIO()
