@@ -227,6 +227,39 @@
         background-color: #f8f9fa;
         border-left: 4px solid #0d6efd;
       }
+
+      /* NEW HEADER + FOOTER STYLES */
+      .notif-header {
+        background-color: #0d6efd;
+        color: #fff;
+        font-weight: bold;
+        padding: 8px 15px;
+        font-size: 14px;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid #f6a401;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+      .notif-footer {
+        background-color: #f8f9fa;
+        text-align: center;
+        padding: 8px 0;
+        position: sticky;
+        bottom: 0;
+        z-index: 1;
+      }
+      .notif-footer a {
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
+        color: #0d6efd;
+      }
+      .notif-body {
+        max-height: 320px; /* Adjusted to fit within total dropdown height */
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
     </style>
   </head>
 
@@ -311,33 +344,39 @@
                 {% endif %}
               </a>
               <div class="dropdown-menu dropdown-menu-end card-1 p-0"
-                   style="width: 360px; max-height: 420px; overflow-y: auto; overflow-x: hidden;">
-                {% if notifications %}
-                  {% for notif in notifications %}
-                  <a href="{{ url_for('contracts.index') }}" 
-                     class="dropdown-item d-flex align-items-start gap-3 py-3 border-bottom {% if not notif.is_read %}unread{% endif %}">
-                    <img src="{{ notif.creator_image }}" 
-                         class="rounded-circle flex-shrink-0" width="45" height="45" alt="Creator Avatar">
-                    <div class="flex-grow-1 text-wrap" style="white-space: normal;">
-                      <div class="fw-bold text-dark small">{{ notif.creator_username }}</div>
-                      <div class="text-muted small">
-                        {{ notif.title }} — 
-                        <span class="fw-semibold">Contract:</span> {{ notif.contract_number }}
+                   style="width: 380px; max-height: 420px;">
+                <!-- HEADER -->
+                <div class="notif-header">MESSAGE CONTRACT</div>
+
+                <!-- BODY -->
+                <div class="notif-body">
+                  {% if notifications %}
+                    {% for notif in notifications %}
+                    <a href="{{ url_for('contracts.index') }}" 
+                       class="dropdown-item d-flex align-items-start gap-3 py-3 border-bottom {% if not notif.is_read %}unread{% endif %}">
+                      <img src="{{ notif.creator_image }}" 
+                           class="rounded-circle flex-shrink-0" width="45" height="45" alt="Creator Avatar">
+                      <div class="flex-grow-1 text-wrap" style="white-space: normal;">
+                        <div class="fw-bold text-dark small">{{ notif.creator_username }}</div>
+                        <div class="text-muted small">
+                          {{ notif.title }} — 
+                          <span class="fw-semibold">Contract:</span> {{ notif.contract_number }}
+                        </div>
+                        <div class="text-secondary text-end fst-italic" style="font-size: 12px;">
+                          {{ notif.created_at }}
+                        </div>
                       </div>
-                      <div class="text-secondary text-end fst-italic" style="font-size: 12px;">
-                        {{ notif.created_at }}
-                      </div>
-                    </div>
-                  </a>
-                  {% endfor %}
-                {% else %}
-                  <div class="dropdown-item text-center py-3 text-muted">No notifications yet.</div>
-                {% endif %}
-                {% if notifications|length > 6 %}
-                <div class="dropdown-item text-center py-2">
-                  <a href="{{ url_for('contracts.index') }}" class="text-decoration-none small">View All Contracts</a>
+                    </a>
+                    {% endfor %}
+                  {% else %}
+                    <div class="dropdown-item text-center py-3 text-muted">No notifications yet.</div>
+                  {% endif %}
                 </div>
-                {% endif %}
+
+                <!-- FOOTER -->
+                <div class="notif-footer">
+                  <a href="{{ url_for('contracts.index') }}">View All Contracts</a>
+                </div>
               </div>
             </li>
             {% endif %}
