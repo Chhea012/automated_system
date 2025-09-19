@@ -2465,18 +2465,16 @@ def export_excel():
         contracts = [contract.to_dict() for contract in query.all()]
         data = []
 
-        # Sequential NGOF numbering
-        year = datetime.now().year
-        for contract_index, contract in enumerate(contracts, 1):
+        for contract in contracts:
             total_fee_usd = float(contract['total_fee_usd']) if contract['total_fee_usd'] else 0.0
             tax_percentage = float(contract.get('tax_percentage', 15.0))
             if contract.get('project_title') == 'REJECTED':
                 continue
+
+            # Use the actual contract_number from the database
+            formatted_contract_no = contract.get('contract_number', '')
+
             payment_installments = contract.get('payment_installments', [])
-
-            # Format sequential contract number NGOF/YYYY-XXX
-            formatted_contract_no = f"NGOF/{year}-{contract_index:03d}"
-
             for idx, installment in enumerate(payment_installments, 1):
                 match = re.search(r'\((\d+\.?\d*)\%\)', installment['description'])
                 percentage = float(match.group(1)) if match else 0.0
@@ -2664,18 +2662,16 @@ def export_excel_all():
             return redirect(url_for('contracts.index'))
 
         data = []
-        # Sequential NGOF numbering
-        year = datetime.now().year
-        for contract_index, contract in enumerate(contracts, 1):
+        for contract in contracts:
             total_fee_usd = float(contract.get('total_fee_usd', 0.0)) if contract.get('total_fee_usd') is not None else 0.0
             tax_percentage = float(contract.get('tax_percentage', 15.0))
             if contract.get('project_title') == 'REJECTED':
                 continue
+
+            # Use the actual contract_number from the database
+            formatted_contract_no = contract.get('contract_number', '')
+
             payment_installments = contract.get('payment_installments', []) or []
-
-            # Format sequential contract number NGOF/YYYY-XXX
-            formatted_contract_no = f"NGOF/{year}-{contract_index:03d}"
-
             for idx, installment in enumerate(payment_installments, 1):
                 match = re.search(r'\((\d+\.?\d*)\%\)', installment.get('description', ''))
                 percentage = float(match.group(1)) if match else 0.0
@@ -2817,7 +2813,7 @@ def export_excel_all():
         logger.error(f"Error exporting all contracts to Excel: {str(e)}")
         flash("An error occurred while exporting all contracts to Excel.", 'danger')
         return redirect(url_for('contracts.index'))
-#view 
+#view contract file
 @contracts_bp.route('/view/<contract_id>')
 @login_required
 def view(contract_id):
