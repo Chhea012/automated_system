@@ -2357,7 +2357,7 @@ def export_all_docx():
 
                     # Signature lines row
                     p = doc.add_paragraph()
-                    p.paragraph_format.space_before = Pt(24)  # enough space for writing
+                    p.paragraph_format.space_before = Pt(45)  # enough space for writing
                     p.paragraph_format.space_after = Pt(0)    # no extra gap
                     p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
 
@@ -2367,7 +2367,7 @@ def export_all_docx():
 
                     # Names row
                     p = doc.add_paragraph()
-                    p.paragraph_format.space_before = Pt(6)
+                    p.paragraph_format.space_before = Pt(0) #update the remove space before paragraph to zero pt
                     p.paragraph_format.space_after = Pt(0)
                     p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
 
