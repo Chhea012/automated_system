@@ -670,7 +670,7 @@ def export_docx(contract_id):
         # Create DOCX document
         doc = Document()
 
-        # Set document margins (adjusted top margin for the first page letterhead)
+        # Set document margins and add footer to each section
         sections = doc.sections
         for i, section in enumerate(sections):
             if i == 0:  # Only modify the first section for letterhead space
@@ -683,6 +683,43 @@ def export_docx(contract_id):
                 section.left_margin = Inches(1)
                 section.right_margin = Inches(1)
                 section.bottom_margin = Inches(1)
+
+            # Add footer with "Page X of Y"
+            footer = section.footer
+            footer_para = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
+            footer_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT  # Changed to right-aligned
+            footer_para.paragraph_format.space_before = Pt(0)
+            footer_para.paragraph_format.space_after = Pt(0)
+            run = footer_para.add_run()
+            run.font.name = 'Calibri'
+            run.font.size = Pt(11)
+
+            # Add "Page" text
+            run.add_text('Page ')
+
+            # Add page number field
+            fldChar1 = OxmlElement('w:fldChar')
+            fldChar1.set(qn('w:fldCharType'), 'begin')
+            run._r.append(fldChar1)
+            instrText = OxmlElement('w:instrText')
+            instrText.text = 'PAGE'
+            run._r.append(instrText)
+            fldChar2 = OxmlElement('w:fldChar')
+            fldChar2.set(qn('w:fldCharType'), 'end')
+            run._r.append(fldChar2)
+
+            run.add_text(' of ')
+
+            # Add total pages field
+            fldChar3 = OxmlElement('w:fldChar')
+            fldChar3.set(qn('w:fldCharType'), 'begin')
+            run._r.append(fldChar3)
+            instrText2 = OxmlElement('w:instrText')
+            instrText2.text = 'NUMPAGES'
+            run._r.append(instrText2)
+            fldChar4 = OxmlElement('w:fldChar')
+            fldChar4.set(qn('w:fldCharType'), 'end')
+            run._r.append(fldChar4)
 
         # Set default font
         doc.styles['Normal'].font.name = 'Calibri'
