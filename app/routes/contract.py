@@ -629,7 +629,7 @@ def mark_notifications_read():
     except Exception as e:
         logger.error(f"Error marking notifications as read: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500    
-
+#export docx file
 @contracts_bp.route('/export_docx/<contract_id>')
 @login_required
 def export_docx(contract_id):
@@ -690,7 +690,7 @@ def export_docx(contract_id):
         sections = doc.sections
         for i, section in enumerate(sections):
             if i == 0:  # Only modify the first section for letterhead space
-                section.top_margin = Inches(1.5)  # Reduced to 1.5 inches for a more balanced letterhead space
+                section.top_margin = Inches(1.2)  # Reduced to 1.2 inches for a more balanced letterhead space
                 section.left_margin = Inches(1)
                 section.right_margin = Inches(1)
                 section.bottom_margin = Inches(1)
@@ -708,7 +708,7 @@ def export_docx(contract_id):
             footer_para.paragraph_format.space_after = Pt(0)
             run = footer_para.add_run()
             run.font.name = 'Calibri'
-            run.font.size = Pt(11)
+            run.font.size = Pt(10)
 
             # Add "Page" text
             run.add_text('Page ')
