@@ -40,25 +40,17 @@
     .party-a-select, .focal-person-select {
         margin-bottom: 10px;
     }
-    #party_b_new_name_container, #deduct_tax_code_container {
+    #party_b_new_name_container, #deduct_tax_code_container, #vat_organization_name_container {
         display: none;
     }
-
-    /* ✅ Center & style form card */
     .form-card {
         width: 1200px;
-        margin:  auto; /* centers horizontally */
+        margin: auto;
         background: #fff;
         padding: 25px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        margin-bottom:2%;
+        margin-bottom: 2%;
     }
-
-    .form-header h1 {
-        font-size: 1.8rem;
-        font-weight: 600;
-    }
-
     .form-header {
         font-size: 1.2rem;
         font-weight: 500;
@@ -66,9 +58,12 @@
         border-bottom: 2px solid #dee2e6;
         padding-bottom: 5px;
         width: 1200px;
-        margin:  auto; /* centers horizontally */
+        margin: auto;
     }
-    
+    .form-header h1 {
+        font-size: 1.8rem;
+        font-weight: 600;
+    }
 </style>
 
 <div class="container mt-4">
@@ -101,7 +96,7 @@
                 <div class="col-md-6">
                     <label for="tax_percentage" class="form-label">Tax Percentage (%)</label>
                     <div class="input-group">
-                        <select class="form-select" id="tax_percentage" name="tax_percentage" required onchange="toggleDeductTaxCode()">
+                        <select class="form-select" id="tax_percentage" name="tax_percentage" required onchange="toggleTaxFields()">
                             <option value="0" {{ 'selected' if form_data.tax_percentage == 0 else '' }}>0</option>
                             <option value="5" {{ 'selected' if form_data.tax_percentage == 5 else '' }}>5</option>
                             <option value="10" {{ 'selected' if form_data.tax_percentage == 10 else '' }}>10</option>
@@ -109,6 +104,12 @@
                             <option value="20" {{ 'selected' if form_data.tax_percentage == 20 else '' }}>20</option>
                         </select>
                         <div class="invalid-feedback">Please select a tax percentage.</div>
+                    </div>
+                    <div id="vat_organization_name_container" class="mt-2">
+                        <label for="vat_organization_name" class="form-label">VAT Organization Name</label>
+                        <input type="text" class="form-control" id="vat_organization_name" name="vat_organization_name" value="{{ form_data.vat_organization_name | default('') }}" placeholder="e.g., The NGO Forum on Cambodia" pattern="[a-zA-Z\s\.]+" maxlength="100">
+                        <small class="form-text text-muted">Enter the organization name for VAT (letters, spaces, and periods only, max 100 characters).</small>
+                        <div class="invalid-feedback">Please enter a valid VAT Organization Name.</div>
                     </div>
                     <div id="deduct_tax_code_container" class="mt-2">
                         <label for="deduct_tax_code" class="form-label">Deduct TAX Code</label>
@@ -468,16 +469,23 @@
         return words ? words + ' US Dollars only' : 'Zero US Dollars only';
     }
 
-    function toggleDeductTaxCode() {
+    function toggleTaxFields() {
         const taxPercentage = document.getElementById('tax_percentage').value;
+        const vatOrgContainer = document.getElementById('vat_organization_name_container');
         const deductTaxCodeContainer = document.getElementById('deduct_tax_code_container');
+        const vatOrgInput = document.getElementById('vat_organization_name');
         const deductTaxCodeInput = document.getElementById('deduct_tax_code');
         if (taxPercentage === '0') {
+            vatOrgContainer.style.display = 'block';
             deductTaxCodeContainer.style.display = 'block';
+            vatOrgInput.required = true;
             deductTaxCodeInput.required = true;
         } else {
+            vatOrgContainer.style.display = 'none';
             deductTaxCodeContainer.style.display = 'none';
+            vatOrgInput.required = false;
             deductTaxCodeInput.required = false;
+            vatOrgInput.value = '';
             deductTaxCodeInput.value = '';
         }
     }
@@ -775,7 +783,7 @@
         const removeButton = newInstallment.querySelector('.btn-remove-installment');
         removeButton.classList.remove('d-none');
 
-        removeButton.addEventListener('click', function () {
+        removeButton.addEventListener('click', function() {
             newInstallment.remove();
             updateRemoveButtons();
             assignPercentages();
@@ -785,10 +793,10 @@
 
         const dateInput = newInstallment.querySelector('input[type="date"]');
         const calendarIcon = newInstallment.querySelector('.input-group-text');
-        dateInput.addEventListener('click', function () {
+        dateInput.addEventListener('click', function() {
             this.showPicker();
         });
-        calendarIcon.addEventListener('click', function () {
+        calendarIcon.addEventListener('click', function() {
             dateInput.focus();
             dateInput.showPicker();
         });
@@ -824,10 +832,10 @@
     }
 
     // Initialize form
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
         // Bootstrap form validation
         const form = document.getElementById('contractForm');
-        form.addEventListener('submit', function (event) {
+        form.addEventListener('submit', function(event) {
             if (!form.checkValidity()) {
                 event.preventDefault();
                 event.stopPropagation();
@@ -918,8 +926,8 @@
         });
         totalFeeWordsInput.value = numberToWords(parseFloat(totalFeeInput.value) || 0);
 
-        // Initialize deduct tax code visibility
-        toggleDeductTaxCode();
+        // Initialize tax fields visibility
+        toggleTaxFields();
     });
 </script>
 {% endblock %}

@@ -1430,6 +1430,7 @@ def update(contract_id):
             party_b_name = request.form.get('party_b_signature_name', '').strip() if party_b_select == 'new' else party_b_select
             party_a_signer = request.form.get('party_a_signer', '').strip()
             deduct_tax_code = request.form.get('deduct_tax_code', '').strip()
+            vat_organization_name = request.form.get('vat_organization_name', '').strip()
 
             form_data = {
                 'project_title': request.form.get('project_title', '').strip(),
@@ -1437,6 +1438,7 @@ def update(contract_id):
                 'output_description': request.form.get('output_description', '').strip(),
                 'tax_percentage': float(request.form.get('tax_percentage', '15.0').strip() or 15.0),
                 'deduct_tax_code': deduct_tax_code,
+                'vat_organization_name': vat_organization_name,
                 'organization_name': request.form.get('organization_name', '').strip(),
                 'party_b_signature_name': party_b_name,
                 'party_b_position': request.form.get('party_b_position', '').strip(),
@@ -1495,8 +1497,26 @@ def update(contract_id):
                 form_data['articles'] = []
                 return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
 
-            # Validate deduct_tax_code when tax_percentage is 0
+            # Validate vat_organization_name and deduct_tax_code when tax_percentage is 0
             if form_data['tax_percentage'] == 0:
+                if not vat_organization_name:
+                    flash('VAT Organization Name is required when tax percentage is 0%.', 'danger')
+                    form_data['payment_installments'] = []
+                    form_data['focal_person_info'] = []
+                    form_data['articles'] = []
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                if not re.match(r'^[a-zA-Z\s\.]+$', vat_organization_name):
+                    flash('VAT Organization Name must contain only letters, spaces, and periods.', 'danger')
+                    form_data['payment_installments'] = []
+                    form_data['focal_person_info'] = []
+                    form_data['articles'] = []
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                if len(vat_organization_name) > 100:
+                    flash('VAT Organization Name must not exceed 100 characters.', 'danger')
+                    form_data['payment_installments'] = []
+                    form_data['focal_person_info'] = []
+                    form_data['articles'] = []
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
                 if not deduct_tax_code:
                     flash('Deduct TAX Code is required when tax percentage is 0%.', 'danger')
                     form_data['payment_installments'] = []
@@ -1706,6 +1726,7 @@ def update(contract_id):
             contract.gross_amount_usd = form_data['gross_amount_usd']
             contract.tax_percentage = form_data['tax_percentage']
             contract.deduct_tax_code = form_data['deduct_tax_code'] if form_data['tax_percentage'] == 0 else None
+            contract.vat_organization_name = form_data['vat_organization_name'] if form_data['tax_percentage'] == 0 else None
             contract.payment_gross = form_data['payment_gross']
             contract.payment_net = form_data['payment_net']
             contract.workshop_description = form_data['workshop_description']
@@ -1737,7 +1758,7 @@ def update(contract_id):
     form_data['custom_article_sentences'] = form_data.get('custom_article_sentences') or {}
     form_data['party_a_signer'] = form_data.get('party_a_signature_name') or 'Mr. SOEUNG Saroeun'
     form_data['deduct_tax_code'] = form_data.get('deduct_tax_code') or ''
-    # Determine party_b_select: if existing party_b_signature_name matches a key in party_b_data, use it; else 'new'
+    form_data['vat_organization_name'] = form_data.get('vat_organization_name') or ''
     party_b_lower = form_data.get('party_b_signature_name', '').lower().strip()
     form_data['party_b_select'] = next((key for key in party_b_data if key == party_b_lower), 'new')
 
@@ -1802,6 +1823,7 @@ def export_all_docx():
                         total_fee_usd = float(contract_data.get('total_fee_usd', 0.0)) if contract_data.get('total_fee_usd') else 0.0
                         tax_percentage = float(contract_data.get('tax_percentage', 15.0))
                         deduct_tax_code = contract_data.get('deduct_tax_code', '')
+                        vat_organization_name = contract_data.get('vat_organization_name', '')  # New field
                     except (ValueError, TypeError) as e:
                         logger.error(f"Error converting financial data for contract {contract.id}: {str(e)}")
                         continue
@@ -1931,11 +1953,11 @@ def export_all_docx():
                             ps.append(p)
                         return ps
 
-                    # Updated Helper function to add heading with 12pt font size
-                    def add_heading(number, title, level, size=12):
+                    # Updated Helper function to add heading with 11pt font size
+                    def add_heading(number, title, level, size=11):
                         p = doc.add_paragraph()
                         p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                        p.paragraph_format.space_before = Pt(12)  # Add small space before for separation
+                        p.paragraph_format.space_before = Pt(10)  # Add small space before for separation
                         p.paragraph_format.space_after = Pt(0)   # Remove space after for compact layout
                         run1 = p.add_run(f"ARTICLE {number}")
                         run1.font.name = 'Calibri'
@@ -1989,7 +2011,8 @@ def export_all_docx():
                                 f') {"excluding" if tax_percentage == 0 else "including"} tax for the whole assignment period.'
                             ],
                             'financial_lines': [
-                                f'VAT TIN {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
+                                f'{vat_organization_name}' if tax_percentage == 0 and vat_organization_name and deduct_tax_code else '',
+                                f'VAT TIN: {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
                                 f'Total Service Fee: {contract_data["total_gross"]}',
                                 f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
                                 f'Net amount: {contract_data["total_net"]}',
@@ -2004,7 +2027,8 @@ def export_all_docx():
                             'bold_parts': [
                                 contract_data["total_gross"],
                                 f'{contract_data["total_fee_words"]} ',
-                                f'VAT TIN {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
+                                f'{vat_organization_name}' if tax_percentage == 0 and vat_organization_name and deduct_tax_code else '',
+                                f'VAT TIN: {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
                                 f'Total Service Fee: {contract_data["total_gross"]}',
                                 f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
                                 f'Net amount: {contract_data["total_net"]}',
@@ -2202,7 +2226,7 @@ def export_all_docx():
                     p = add_paragraph('The Service Agreement', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14, underline=False)[0]
                     p.paragraph_format.space_after = Pt(0)  # Remove space after
                     # Add "ON" with no space after
-                    p = add_paragraph('ON', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)[0]
+                    p = add_paragraph('On', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)[0]
                     p.paragraph_format.space_after = Pt(0)  # Remove space after
                     # Add project title (unchanged spacing)
                     add_paragraph(contract_data.get('project_title', 'N/A'), WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
@@ -2258,11 +2282,11 @@ def export_all_docx():
                         f"Whereas NGOF will engage the services of “Party B” which accepts the engagement under the following terms and conditions.",
                         WD_ALIGN_PARAGRAPH.JUSTIFY, size=11
                     )
-                    add_paragraph("Both Parties Agreed as follows:", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)
+                    add_paragraph("Both Parties Agreed as follows:", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=11)
 
                     # Articles
                     for article in standard_articles:
-                        add_heading(article['number'], article['title'], level=3, size=12)
+                        add_heading(article['number'], article['title'], level=3, size=11)
 
                         if article['number'] == 3:
                             # First part (justified)
@@ -2291,7 +2315,7 @@ def export_all_docx():
                                         run_value.font.size = Pt(12)  # Match value font size to 12pt
                                         run_value.bold = True
                                     else:
-                                        # For VAT line or similar
+                                        # For VAT line or organization name
                                         run = p.add_run(line)
                                         run.font.size = Pt(12)  # Match font size to 12pt
                                         run.bold = True
@@ -2420,7 +2444,7 @@ def export_all_docx():
 
                     # Names row
                     p = doc.add_paragraph()
-                    p.paragraph_format.space_before = Pt(0) #update the remove space before paragraph to zero pt
+                    p.paragraph_format.space_before = Pt(0)
                     p.paragraph_format.space_after = Pt(0)
                     p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
 
