@@ -808,11 +808,11 @@ def export_docx(contract_id):
                 ps.append(p)
             return ps
 
-        # Updated Helper function to add heading with 12pt font size
-        def add_heading(number, title, level, size=12):
+        # Updated Helper function to add heading with 11pt font size
+        def add_heading(number, title, level, size=11):
             p = doc.add_paragraph()
             p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-            p.paragraph_format.space_before = Pt(12)  # Add small space before for separation
+            p.paragraph_format.space_before = Pt(10)  # Add small space before for separation
             p.paragraph_format.space_after = Pt(0)   # Remove space after for compact layout
             run1 = p.add_run(f"ARTICLE {number}")
             run1.font.name = 'Calibri'
@@ -1079,7 +1079,7 @@ def export_docx(contract_id):
         p = add_paragraph('The Service Agreement', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14, underline=False)[0]
         p.paragraph_format.space_after = Pt(0)  # Remove space after
         # Add "ON" with no space after
-        p = add_paragraph('ON', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)[0]
+        p = add_paragraph('On', WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)[0]
         p.paragraph_format.space_after = Pt(0)  # Remove space after
         # Add project title (unchanged spacing)
         add_paragraph(contract_data.get('project_title', 'N/A'), WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
@@ -1135,11 +1135,11 @@ def export_docx(contract_id):
             f"Whereas NGOF will engage the services of “Party B” which accepts the engagement under the following terms and conditions.",
             WD_ALIGN_PARAGRAPH.JUSTIFY, size=11
         )
-        add_paragraph("Both Parties Agreed as follows:", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=12)
+        add_paragraph("Both Parties Agreed as follows:", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=11)
 
         # Articles
         for article in standard_articles:
-            add_heading(article['number'], article['title'], level=3, size=12)
+            add_heading(article['number'], article['title'], level=3, size=11)
 
             if article['number'] == 3:
                 # First part (justified)
@@ -1297,7 +1297,7 @@ def export_docx(contract_id):
 
         # Names row
         p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(0) # update the remove space before paragraph
+        p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = Pt(0)
         p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
 
@@ -1348,8 +1348,6 @@ def export_docx(contract_id):
         return redirect(url_for('contracts.index'))
     
 
-
-  
 # Update contract
 @contracts_bp.route('/update/<contract_id>', methods=['GET', 'POST'])
 @login_required
