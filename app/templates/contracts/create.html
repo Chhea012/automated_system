@@ -111,10 +111,13 @@
                         <div class="invalid-feedback">Please select a tax percentage.</div>
                     </div>
                     <div id="deduct_tax_code_container" class="mt-2" style="display: none;">
-                        <label for="deduct_tax_code" class="form-label">Deduct TAX Code</label>
+                        <label for="vat_organization_name" class="form-label">Name of Organization</label>
+                        <input type="text" class="form-control" id="vat_organization_name" name="vat_organization_name" value="{{ form_data.vat_organization_name | default('The NGO Forum on Cambodia') }}" placeholder="e.g., The NGO Forum on Cambodia" maxlength="255">
+                        <div class="invalid-feedback">Please enter the name of the organization.</div>
+                        <label for="deduct_tax_code" class="form-label">VAT TIN</label>
                         <input type="text" class="form-control" id="deduct_tax_code" name="deduct_tax_code" value="{{ form_data.deduct_tax_code | default('') }}" placeholder="e.g., K002-100054102" pattern="[A-Z0-9\-]+" maxlength="50">
-                        <small class="form-text text-muted">Enter the tax exemption code (uppercase letters, numbers, and hyphens only, max 50 characters).</small>
-                        <div class="invalid-feedback">Please enter a valid Deduct TAX Code (uppercase letters, numbers, and hyphens only).</div>
+                        <small class="form-text text-muted">Enter the VAT TIN (uppercase letters, numbers, and hyphens only, max 50 characters).</small>
+                        <div class="invalid-feedback">Please enter a valid VAT TIN (uppercase letters, numbers, and hyphens only).</div>
                     </div>
                 </div>
             </div>
@@ -471,13 +474,17 @@
         const taxPercentage = document.getElementById('tax_percentage').value;
         const deductTaxCodeContainer = document.getElementById('deduct_tax_code_container');
         const deductTaxCodeInput = document.getElementById('deduct_tax_code');
+        const vatOrgInput = document.getElementById('vat_organization_name');
         if (taxPercentage === '0') {
             deductTaxCodeContainer.style.display = 'block';
             deductTaxCodeInput.required = true;
+            vatOrgInput.required = true;
         } else {
             deductTaxCodeContainer.style.display = 'none';
             deductTaxCodeInput.required = false;
             deductTaxCodeInput.value = '';
+            vatOrgInput.required = false;
+            vatOrgInput.value = '';
         }
     }
 
@@ -759,15 +766,21 @@
             }
             const taxPercentage = document.getElementById('tax_percentage').value;
             const deductTaxCode = document.getElementById('deduct_tax_code').value;
+            const vatOrgName = document.getElementById('vat_organization_name').value;
             if (taxPercentage === '0' && !deductTaxCode) {
                 event.preventDefault();
                 event.stopPropagation();
-                alert('Deduct TAX Code is required when tax percentage is 0%.');
+                alert('VAT TIN is required when tax percentage is 0%.');
+            }
+            if (taxPercentage === '0' && !vatOrgName) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Name of Organization is required when tax percentage is 0%.');
             }
             if (taxPercentage === '0' && deductTaxCode && !/^[A-Z0-9\-]+$/.test(deductTaxCode)) {
                 event.preventDefault();
                 event.stopPropagation();
-                alert('Deduct TAX Code must contain only uppercase letters, numbers, and hyphens.');
+                alert('VAT TIN must contain only uppercase letters, numbers, and hyphens.');
             }
             form.classList.add('was-validated');
         }, false);

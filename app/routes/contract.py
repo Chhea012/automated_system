@@ -275,6 +275,7 @@ def create():
             party_b_name = request.form.get('party_b_signature_name', '').strip() if party_b_select == 'new' else party_b_select
             party_a_signer = request.form.get('party_a_signer', '').strip()
             deduct_tax_code = request.form.get('deduct_tax_code', '').strip()
+            vat_organization_name = request.form.get('vat_organization_name', '').strip()  # New field
 
             form_data = {
                 'project_title': request.form.get('project_title', '').strip(),
@@ -282,6 +283,7 @@ def create():
                 'output_description': request.form.get('output_description', '').strip(),
                 'tax_percentage': float(request.form.get('tax_percentage', '15.0').strip() or 15.0),
                 'deduct_tax_code': deduct_tax_code,
+                'vat_organization_name': vat_organization_name,  # New in form_data
                 'organization_name': request.form.get('organization_name', '').strip(),
                 'party_b_signature_name': party_b_name,
                 'party_b_position': request.form.get('party_b_position', '').strip(),
@@ -340,22 +342,34 @@ def create():
                 form_data['articles'] = []
                 return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
 
-            # Validate deduct_tax_code when tax_percentage is 0
+            # Validate deduct_tax_code and vat_organization_name when tax_percentage is 0
             if form_data['tax_percentage'] == 0:
                 if not deduct_tax_code:
-                    flash('Deduct TAX Code is required when tax percentage is 0%.', 'danger')
+                    flash('VAT TIN is required when tax percentage is 0%.', 'danger')
                     form_data['payment_installments'] = []
                     form_data['focal_person_info'] = []
                     form_data['articles'] = []
                     return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
                 if not re.match(r'^[A-Z0-9\-]+$', deduct_tax_code):
-                    flash('Deduct TAX Code must contain only uppercase letters, numbers, and hyphens.', 'danger')
+                    flash('VAT TIN must contain only uppercase letters, numbers, and hyphens.', 'danger')
                     form_data['payment_installments'] = []
                     form_data['focal_person_info'] = []
                     form_data['articles'] = []
                     return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
                 if len(deduct_tax_code) > 50:
-                    flash('Deduct TAX Code must not exceed 50 characters.', 'danger')
+                    flash('VAT TIN must not exceed 50 characters.', 'danger')
+                    form_data['payment_installments'] = []
+                    form_data['focal_person_info'] = []
+                    form_data['articles'] = []
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                if not vat_organization_name:
+                    flash('Name of Organization is required when tax percentage is 0%.', 'danger')
+                    form_data['payment_installments'] = []
+                    form_data['focal_person_info'] = []
+                    form_data['articles'] = []
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                if len(vat_organization_name) > 255:
+                    flash('Name of Organization must not exceed 255 characters.', 'danger')
                     form_data['payment_installments'] = []
                     form_data['focal_person_info'] = []
                     form_data['articles'] = []
@@ -549,6 +563,7 @@ def create():
                 gross_amount_usd=form_data['gross_amount_usd'],
                 tax_percentage=form_data['tax_percentage'],
                 deduct_tax_code=form_data['deduct_tax_code'] if form_data['tax_percentage'] == 0 else None,
+                vat_organization_name=form_data['vat_organization_name'] if form_data['tax_percentage'] == 0 else None,  # New field
                 payment_gross=form_data['payment_gross'],
                 payment_net=form_data['payment_net'],
                 workshop_description=form_data['workshop_description'],
@@ -596,7 +611,8 @@ def create():
         'articles': [],
         'custom_article_sentences': {},
         'party_a_signer': 'Mr. SOEUNG Saroeun',
-        'deduct_tax_code': ''
+        'deduct_tax_code': '',
+        'vat_organization_name': ''  # New in init
     }
     return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
 
@@ -614,7 +630,6 @@ def mark_notifications_read():
         logger.error(f"Error marking notifications as read: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500    
 
-#export docx contract file
 @contracts_bp.route('/export_docx/<contract_id>')
 @login_required
 def export_docx(contract_id):
@@ -641,6 +656,7 @@ def export_docx(contract_id):
             total_fee_usd = float(contract_data['total_fee_usd']) if contract_data['total_fee_usd'] else 0.0
             tax_percentage = float(contract_data.get('tax_percentage', 15.0))
             deduct_tax_code = contract_data.get('deduct_tax_code', '')
+            vat_organization_name = contract_data.get('vat_organization_name', '')  # New field
         except (ValueError, TypeError) as e:
             logger.error(f"Error converting financial data for contract {contract_id}: {str(e)}")
             flash("An error occurred while exporting the contract.", 'danger')
@@ -866,7 +882,8 @@ def export_docx(contract_id):
                     f') {"excluding" if tax_percentage == 0 else "including"} tax for the whole assignment period.'
                 ],
                 'financial_lines': [
-                    f'VAT TIN {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
+                    f'{vat_organization_name}' if tax_percentage == 0 and vat_organization_name and deduct_tax_code else '',
+                    f'VAT TIN: {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
                     f'Total Service Fee: {contract_data["total_gross"]}',
                     f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
                     f'Net amount: {contract_data["total_net"]}',
@@ -881,7 +898,8 @@ def export_docx(contract_id):
                 'bold_parts': [
                     contract_data["total_gross"],
                     f'{contract_data["total_fee_words"]} ',
-                    f'VAT TIN {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
+                    f'{vat_organization_name}' if tax_percentage == 0 and vat_organization_name and deduct_tax_code else '',
+                    f'VAT TIN: {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
                     f'Total Service Fee: {contract_data["total_gross"]}',
                     f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
                     f'Net amount: {contract_data["total_net"]}',
@@ -1168,7 +1186,7 @@ def export_docx(contract_id):
                             run_value.font.size = Pt(12)  # Match value font size to 12pt
                             run_value.bold = True
                         else:
-                            # For VAT line or similar
+                            # For VAT line or organization name
                             run = p.add_run(line)
                             run.font.size = Pt(12)  # Match font size to 12pt
                             run.bold = True
@@ -2848,7 +2866,6 @@ def export_excel_all():
         logger.error(f"Error exporting all contracts to Excel: {str(e)}")
         flash("An error occurred while exporting all contracts to Excel.", 'danger')
         return redirect(url_for('contracts.index'))
-#view contract file
 @contracts_bp.route('/view/<contract_id>')
 @login_required
 def view(contract_id):
@@ -2872,6 +2889,7 @@ def view(contract_id):
         total_fee_usd = float(contract_data['total_fee_usd']) if contract_data['total_fee_usd'] else 0.0
         tax_percentage = float(contract_data.get('tax_percentage', 15.0))
         deduct_tax_code = contract_data.get('deduct_tax_code', '')
+        vat_organization_name = contract_data.get('vat_organization_name', '')  # New field
         contract_data['total_fee_usd'] = total_fee_usd
         contract_data['gross_amount_usd'] = total_fee_usd
         contract_data['total_fee_words'] = contract_data.get('total_fee_words') or number_to_words(total_fee_usd)
@@ -2925,7 +2943,7 @@ def view(contract_id):
                     f'The professional fee is the total amount of <span style="font-size: 16px;"> <strong> {contract_data["total_gross"]} </strong></span>'
                     f'<span style="font-size: 16px; "><strong> ({contract_data["total_fee_words"]})</strong></span> '
                     f'{"excluding" if tax_percentage == 0 else "including"} tax for the whole assignment period.'
-                    f'{"\n\n<span style=\"font-size: 16px; margin-left:40px;\"><strong>VAT TIN : " + deduct_tax_code + "</strong></span>" if tax_percentage == 0 and deduct_tax_code else ""}\n\n'
+                    f'{"\n\n<span style=\"font-size: 16px; margin-left:40px;\"><strong>" + vat_organization_name + "</strong></span>\n<span style=\"font-size: 16px; margin-left:40px;\"><strong>VAT TIN: " + deduct_tax_code + "</strong></span>" if tax_percentage == 0 and deduct_tax_code and vat_organization_name else ""}\n\n'
                     f'<span style="font-size: 16px; margin-left:40px;"><strong>Total Service Fee: {contract_data["total_gross"]}</strong></span>\n'
                     f'{"<span style=\"font-size: 16px; margin-left:40px;\"><strong>Withholding Tax " + f"{tax_percentage}%: USD{contract_data['total_gross_amount'] * (tax_percentage/100):.2f}</strong></span>\n" if tax_percentage > 0 else ""}'
                     f'<span style="font-size: 16px; margin-left:40px;"><strong>Net amount: {contract_data["total_net"]}</strong></span>\n\n'
