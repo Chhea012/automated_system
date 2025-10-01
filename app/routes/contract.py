@@ -405,7 +405,7 @@ def generate_docx(contract):
                                 f'- Tax {tax_percentage}%: ${installment["tax_amount"]:.2f}' if tax_percentage > 0 else '',
                                 f'- Net pay: ${installment["net_amount"]:.2f}'
                             ],
-                            'Deliverable': '\n- '.join([d.strip() for d in installment['deliverables'].split(';') if d.strip()]),
+                            'Deliverable': '\n'.join('- ' + d.strip() for d in installment['deliverables'].split(';') if d.strip()),
                             'Due date': installment['dueDate_display']
                         }
                         for installment in contract_data.get('payment_installments', [])
@@ -718,11 +718,12 @@ def generate_docx(contract):
                             for line in row_data[key]:
                                 if line:
                                     p = cell.add_paragraph(line)
+                                    p.paragraph_format.space_before = Pt(0)
                                     p.paragraph_format.space_after = Pt(0)
                                     if i == 0:
                                         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                                     else:
-                                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
                                     for run in p.runs:
                                         run.font.size = Pt(12)
                                         run.font.name = 'Calibri'
@@ -730,6 +731,7 @@ def generate_docx(contract):
                         else:
                             cell.text = row_data[key]
                             for paragraph in cell.paragraphs:
+                                paragraph.paragraph_format.space_before = Pt(0)
                                 paragraph.paragraph_format.space_after = Pt(0)
                                 if i == 0:
                                     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
