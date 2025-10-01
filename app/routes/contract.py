@@ -33,9 +33,11 @@ logger = logging.getLogger(__name__)
 contracts_bp = Blueprint('contracts', __name__)
 
 def sanitize_filename(name):
+    """Sanitize filename by replacing invalid characters."""
     return re.sub(r'[^\w\s.-]', ' ', name.replace(' ', ' ')).strip()
 
 def generate_next_contract_number(last_contract_number, current_year):
+    """Generate the next contract number based on the last contract number and year."""
     if not last_contract_number:
         return f"NGOF/{current_year}-001"
     try:
@@ -54,6 +56,7 @@ def generate_next_contract_number(last_contract_number, current_year):
         return f"NGOF/{current_year}-001"
 
 def format_date(iso_date):
+    """Format an ISO date to a readable format with superscript ordinals."""
     try:
         if not iso_date or iso_date.lower() in ['n/a', '']:
             return ''
@@ -84,6 +87,7 @@ def format_date(iso_date):
         return iso_date or ''
 
 def number_to_words(num):
+    """Convert a number to words (e.g., for financial amounts)."""
     try:
         if not num or num < 0:
             return "Zero US Dollars only"
@@ -98,6 +102,7 @@ def number_to_words(num):
         return "N/A"
 
 def normalize_to_list(field):
+    """Convert input field to a list, handling strings or lists."""
     if isinstance(field, list):
         return [str(item).strip() for item in field if str(item).strip()]
     elif isinstance(field, str):
@@ -105,6 +110,7 @@ def normalize_to_list(field):
     return []
 
 def calculate_installment_payments(total_fee_usd, tax_percentage, percentage):
+    """Calculate gross, tax, and net amounts for an installment."""
     try:
         gross_amount = (total_fee_usd * percentage) / 100
         tax_amount = gross_amount * (tax_percentage / 100)
@@ -115,6 +121,7 @@ def calculate_installment_payments(total_fee_usd, tax_percentage, percentage):
         return 0.0, 0.0, 0.0
 
 def calculate_payments(total_fee_usd, tax_percentage, payment_installments):
+    """Calculate total gross and net amounts for all payment installments."""
     try:
         total_gross = 0.0
         total_net = 0.0
@@ -133,8 +140,8 @@ def calculate_payments(total_fee_usd, tax_percentage, payment_installments):
         logger.error(f"Error calculating payments: {str(e)}")
         return 0.0, 0.0
 
-# New function: Generate DOCX and return BytesIO + filename
 def generate_docx(contract):
+    """Generate a DOCX file for a contract and return it as BytesIO with filename."""
     try:
         contract_data = contract.to_dict()
         if 'custom_article_sentences' not in contract_data or contract_data['custom_article_sentences'] is None:
@@ -300,7 +307,7 @@ def generate_docx(contract):
                 ps.append(p)
             return ps
 
-        # Updated Helper function to add heading with 11pt font size
+        # Helper function to add heading with 11pt font size
         def add_heading(number, title, level, size=11):
             p = doc.add_paragraph()
             p.alignment = WD_ALIGN_PARAGRAPH.LEFT
@@ -683,6 +690,10 @@ def generate_docx(contract):
             else:
                 add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
 
+            for custom in custom_articles:
+                if custom['article_number'] == str(article['number']):
+                    add_paragraph(custom['custom_sentence'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
+
             if article['table']:
                 table = doc.add_table(rows=len(article['table']), cols=len(article['table'][0]))
                 table.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -734,10 +745,6 @@ def generate_docx(contract):
                                         run.bold = True
                                     elif key == 'Total Amount (USD)':
                                         run.bold = True
-
-            for custom in custom_articles:
-                if custom['article_number'] == str(article['number']):
-                    add_paragraph(custom['custom_sentence'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
 
         # Signature Block
         p = doc.add_paragraph()
@@ -812,6 +819,7 @@ def generate_docx(contract):
 @contracts_bp.route('/export_docx/<contract_id>')
 @login_required
 def export_docx(contract_id):
+    """Export a contract as a DOCX file."""
     try:
         contract = Contract.query.get_or_404(contract_id)
         if not current_user.has_role('admin') and contract.user_id != current_user.id:
@@ -837,14 +845,43 @@ def export_docx(contract_id):
 @contracts_bp.route('/send_docx', methods=['POST'])
 @login_required
 def send_docx():
+    """Send a contract DOCX file to multiple email recipients."""
     try:
         contract_id = request.form.get('contract_id')
-        email = request.form.get('email')
+        email_input = request.form.get('emails')
 
-        if not email or not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
-            flash('Please provide a valid email address.', 'danger')
+        if not contract_id:
+            flash('No contract ID provided.', 'danger')
             return redirect(url_for('contracts.index'))
 
+        if not email_input:
+            flash('Please provide at least one email address.', 'danger')
+            return redirect(url_for('contracts.index'))
+
+        # Split comma-separated emails, strip whitespace, and filter empty entries
+        emails = [e.strip() for e in email_input.split(',') if e.strip()]
+        if not emails:
+            flash('No valid email addresses provided.', 'danger')
+            return redirect(url_for('contracts.index'))
+
+        # Validate email addresses
+        valid_emails = []
+        invalid_emails = []
+        email_regex = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+        for email in emails:
+            if re.match(email_regex, email):
+                valid_emails.append(email)
+            else:
+                invalid_emails.append(email)
+
+        if invalid_emails:
+            flash(f'Invalid email addresses: {", ".join(invalid_emails)}. These were skipped.', 'warning')
+
+        if not valid_emails:
+            flash('No valid email addresses provided.', 'danger')
+            return redirect(url_for('contracts.index'))
+
+        # Retrieve and validate contract
         contract = Contract.query.get_or_404(contract_id)
         if not current_user.has_role('admin') and contract.user_id != current_user.id:
             flash("You are not authorized to send this contract.", 'danger')
@@ -853,19 +890,21 @@ def send_docx():
             flash("This contract has been deleted and cannot be sent.", 'danger')
             return redirect(url_for('contracts.index'))
 
+        # Generate DOCX file
         output, filename = generate_docx(contract)
 
+        # Send email
         msg = Message(
-            subject="Consultant Contract Document - NGOF",
+            subject=f"Consultant Contract Document - NGOF ({contract.contract_number or 'N/A'})",
             sender=mail.sender,
-            recipients=[email]
+            recipients=valid_emails
         )
         msg.body = f"""
-Dear Recipient,
+Dear Recipient(s),
 
-Please find attached the consultant contract document for "{contract.project_title or 'N/A'}" (Contract No.: {contract.contract_number or 'N/A'}).
+Attached is the consultant contract document for "{contract.project_title or 'N/A'}" (Contract No.: {contract.contract_number or 'N/A'}).
 
-This document outlines the terms, deliverables, and payment details. If you have any questions, please contact us.
+This document outlines the terms, deliverables, and payment details. Please review it carefully. If you have any questions, feel free to contact us.
 
 Best regards,
 {current_user.username} ({current_user.email})
@@ -877,12 +916,14 @@ Email: info@ngoforum.org.kh
         msg.attach(filename, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", output.read())
         mail.send(msg)
 
-        flash(f'Contract sent successfully to {email}!', 'success')
+        flash(f'Contract sent successfully to {", ".join(valid_emails)}!', 'success')
+        return redirect(url_for('contracts.index'))
+
     except Exception as e:
         logger.error(f"Error sending email for contract {contract_id}: {str(e)}")
         flash('An error occurred while sending the email. Please try again.', 'danger')
+        return redirect(url_for('contracts.index'))
 
-    return redirect(url_for('contracts.index'))
 #list of the contract
 @contracts_bp.route('/')
 @login_required

@@ -182,8 +182,9 @@
                     <div class="modal-body">
                         <form id="sendEmailForm" action="{{ url_for('contracts.send_docx') }}" method="POST">
                             <div class="mb-3">
-                                <label for="recipientEmail" class="form-label">Recipient's Email Address</label>
-                                <input type="email" class="form-control" id="recipientEmail" name="email" placeholder="example@domain.com" required>
+                                <label for="recipientEmail" class="form-label">Recipient Email Addresses (comma-separated)</label>
+                                <input type="text" class="form-control" id="recipientEmail" name="emails" placeholder="example1@domain.com, example2@domain.com" required>
+                                <small class="form-text text-muted">Enter multiple email addresses separated by commas.</small>
                             </div>
                             <input type="hidden" id="contractId" name="contract_id">
                             <button type="submit" class="btn btn-primary">Send Email</button>
@@ -234,7 +235,7 @@
 <script>
     function debounce(func, wait) {
         let timeout;
-        return function(...args) {
+        return function (...args) {
             clearTimeout(timeout);
             timeout = setTimeout(() => func(...args), wait);
         }
