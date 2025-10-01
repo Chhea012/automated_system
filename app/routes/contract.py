@@ -845,40 +845,46 @@ def export_docx(contract_id):
 @contracts_bp.route('/send_docx', methods=['POST'])
 @login_required
 def send_docx():
-    """Send a contract DOCX file to multiple email recipients."""
+    """Send a contract DOCX file to multiple email recipients with CC and BCC support."""
     try:
         contract_id = request.form.get('contract_id')
-        email_input = request.form.get('emails')
+        to_input = request.form.get('to_emails')
+        cc_input = request.form.get('cc_emails', '')
+        bcc_input = request.form.get('bcc_emails', '')
 
         if not contract_id:
             flash('No contract ID provided.', 'danger')
             return redirect(url_for('contracts.index'))
 
-        if not email_input:
-            flash('Please provide at least one email address.', 'danger')
+        if not to_input:
+            flash('Please provide at least one "To" email address.', 'danger')
             return redirect(url_for('contracts.index'))
 
-        # Split comma-separated emails, strip whitespace, and filter empty entries
-        emails = [e.strip() for e in email_input.split(',') if e.strip()]
-        if not emails:
-            flash('No valid email addresses provided.', 'danger')
-            return redirect(url_for('contracts.index'))
+        # Function to process and validate emails from input string
+        def process_emails(email_str):
+            emails = [e.strip() for e in email_str.split(',') if e.strip()]
+            valid = []
+            invalid = []
+            email_regex = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+            for email in emails:
+                if re.match(email_regex, email):
+                    valid.append(email)
+                else:
+                    invalid.append(email)
+            return valid, invalid
 
-        # Validate email addresses
-        valid_emails = []
-        invalid_emails = []
-        email_regex = r'^[\w\.-]+@[\w\.-]+\.\w+$'
-        for email in emails:
-            if re.match(email_regex, email):
-                valid_emails.append(email)
-            else:
-                invalid_emails.append(email)
+        # Process each field
+        valid_to, invalid_to = process_emails(to_input)
+        valid_cc, invalid_cc = process_emails(cc_input)
+        valid_bcc, invalid_bcc = process_emails(bcc_input)
 
-        if invalid_emails:
-            flash(f'Invalid email addresses: {", ".join(invalid_emails)}. These were skipped.', 'warning')
+        # Collect all invalid emails for flashing
+        all_invalid = invalid_to + invalid_cc + invalid_bcc
+        if all_invalid:
+            flash(f'Invalid email addresses skipped: {", ".join(all_invalid)}.', 'warning')
 
-        if not valid_emails:
-            flash('No valid email addresses provided.', 'danger')
+        if not valid_to:
+            flash('No valid "To" email addresses provided.', 'danger')
             return redirect(url_for('contracts.index'))
 
         # Retrieve and validate contract
@@ -897,7 +903,9 @@ def send_docx():
         msg = Message(
             subject=f"Consultant Contract Document - NGOF ({contract.contract_number or 'N/A'})",
             sender=mail.sender,
-            recipients=valid_emails
+            recipients=valid_to,
+            cc=valid_cc,
+            bcc=valid_bcc
         )
         msg.body = f"""
 Dear Recipient,
@@ -916,7 +924,10 @@ Email: info@ngoforum.org.kh
         msg.attach(filename, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", output.read())
         mail.send(msg)
 
-        flash(f'Contract sent successfully to {", ".join(valid_emails)}!', 'success')
+        sent_to = ", ".join(valid_to)
+        sent_cc = f" (CC: {', '.join(valid_cc)})" if valid_cc else ""
+        sent_bcc = f" (BCC: {', '.join(valid_bcc)})" if valid_bcc else ""
+        flash(f'Contract sent successfully to {sent_to}{sent_cc}{sent_bcc}!', 'success')
         return redirect(url_for('contracts.index'))
 
     except Exception as e:

@@ -2,7 +2,6 @@
 {% block title %}Contract List{% endblock %}
 {% block content %}
 <div class="container mt-4">
-
     <!-- Total Contracts Cards -->
     <div class="row mb-4">
         <!-- User-specific Total Contracts Card -->
@@ -171,9 +170,9 @@
             </tbody>
         </table>
 
-        <!-- Send Email Modal -->
+        <!-- Send Email Modal (Updated UI) -->
         <div class="modal fade" id="sendEmailModal" tabindex="-1" aria-labelledby="sendEmailModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
+            <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title" id="sendEmailModalLabel">Send Contract via Email</h5>
@@ -182,9 +181,25 @@
                     <div class="modal-body">
                         <form id="sendEmailForm" action="{{ url_for('contracts.send_docx') }}" method="POST">
                             <div class="mb-3">
-                                <label for="recipientEmail" class="form-label">Recipient Email Addresses (comma-separated)</label>
-                                <input type="text" class="form-control" id="recipientEmail" name="emails" placeholder="example1@domain.com, example2@domain.com" required>
-                                <small class="form-text text-muted">Enter multiple email addresses separated by commas.</small>
+                                <label for="toEmail" class="form-label">To (required, comma-separated for multiple)</label>
+                                <input type="text" class="form-control" id="toEmail" name="to_emails" placeholder="example1@domain.com, example2@domain.com" required>
+                                <small class="form-text text-muted">Enter primary recipient emails, separated by commas.</small>
+                            </div>
+                            <div class="mb-3">
+                                <a href="#" id="toggleCc" class="text-primary text-decoration-none"><i class="bx bx-plus-circle"></i> Add CC</a>
+                                <div id="ccInputGroup" class="mt-2 d-none fade">
+                                    <label for="ccEmail" class="form-label">CC (optional, comma-separated)</label>
+                                    <input type="text" class="form-control" id="ccEmail" name="cc_emails" placeholder="cc1@domain.com, cc2@domain.com">
+                                    <small class="form-text text-muted">Enter carbon copy emails, separated by commas.</small>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <a href="#" id="toggleBcc" class="text-primary text-decoration-none"><i class="bx bx-plus-circle"></i> Add BCC</a>
+                                <div id="bccInputGroup" class="mt-2 d-none fade">
+                                    <label for="bccEmail" class="form-label">BCC (optional, comma-separated)</label>
+                                    <input type="text" class="form-control" id="bccEmail" name="bcc_emails" placeholder="bcc1@domain.com, bcc2@domain.com">
+                                    <small class="form-text text-muted">Enter blind carbon copy emails, separated by commas.</small>
+                                </div>
                             </div>
                             <input type="hidden" id="contractId" name="contract_id">
                             <button type="submit" class="btn btn-primary">Send Email</button>
@@ -267,6 +282,50 @@
         const contractId = button.getAttribute('data-contract-id');
         const modalContractId = sendEmailModal.querySelector('#contractId');
         modalContractId.value = contractId;
+
+        // Reset CC and BCC inputs when modal opens
+        const ccInputGroup = document.getElementById('ccInputGroup');
+        const bccInputGroup = document.getElementById('bccInputGroup');
+        const ccEmail = document.getElementById('ccEmail');
+        const bccEmail = document.getElementById('bccEmail');
+        ccInputGroup.classList.add('d-none');
+        bccInputGroup.classList.add('d-none');
+        ccEmail.value = '';
+        bccEmail.value = '';
+    });
+
+    // Toggle CC input
+    const toggleCc = document.getElementById('toggleCc');
+    toggleCc.addEventListener('click', event => {
+        event.preventDefault();
+        const ccInputGroup = document.getElementById('ccInputGroup');
+        ccInputGroup.classList.toggle('d-none');
+        ccInputGroup.classList.toggle('fade');
+        if (!ccInputGroup.classList.contains('d-none')) {
+            document.getElementById('ccEmail').focus();
+        }
+    });
+
+    // Toggle BCC input
+    const toggleBcc = document.getElementById('toggleBcc');
+    toggleBcc.addEventListener('click', event => {
+        event.preventDefault();
+        const bccInputGroup = document.getElementById('bccInputGroup');
+        bccInputGroup.classList.toggle('d-none');
+        bccInputGroup.classList.toggle('fade');
+        if (!bccInputGroup.classList.contains('d-none')) {
+            document.getElementById('bccEmail').focus();
+        }
+    });
+
+    // Basic client-side validation for email form
+    const sendEmailForm = document.getElementById('sendEmailForm');
+    sendEmailForm.addEventListener('submit', event => {
+        const toEmail = document.getElementById('toEmail').value.trim();
+        if (!toEmail) {
+            event.preventDefault();
+            alert('Please provide at least one "To" email address.');
+        }
     });
 </script>
 {% endblock %}
