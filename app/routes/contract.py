@@ -900,7 +900,7 @@ def send_docx():
             recipients=valid_emails
         )
         msg.body = f"""
-Dear Recipient(s),
+Dear Recipient,
 
 Attached is the consultant contract document for "{contract.project_title or 'N/A'}" (Contract No.: {contract.contract_number or 'N/A'}).
 
