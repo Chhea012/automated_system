@@ -4,42 +4,43 @@
 <div class="container mt-4">
 
     <!-- Total Contracts Cards -->
-<div class="row mb-4">
-    <!-- User-specific Total Contracts Card -->
-    <div class="col-sm-6 col-xl-3">
-        <div class="card card-1 h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-title text-muted">{{ 'Your Contracts' if not is_admin else 'Total Contracts (Filtered)' }}</h6>
-                        <h4 class="mb-1">{{ total_contracts }}</h4>
-                        <small class="text-muted">Last Contract: <strong>{{ last_contract_number if last_contract_number else 'None' }}</strong></small>
+    <div class="row mb-4">
+        <!-- User-specific Total Contracts Card -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-1 h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-muted">{{ 'Your Contracts' if not is_admin else 'Total Contracts (Filtered)' }}</h6>
+                            <h4 class="mb-1">{{ total_contracts }}</h4>
+                            <small class="text-muted">Last Contract: <strong>{{ last_contract_number if last_contract_number else 'None' }}</strong></small>
+                        </div>
+                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                            <i class="bx bx-file fs-4"></i>
+                        </div>
                     </div>
-                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                        <i class="bx bx-file fs-4"></i>
+                </div>
+            </div>
+        </div>
+        <!-- Global Total Contracts Card -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-1 h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title text-muted">Global Contracts</h6>
+                            <h4 class="mb-1">{{ total_contracts_global }}</h4>
+                            <small class="text-muted">Across all users</small>
+                        </div>
+                        <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                            <i class="bx bx-globe fs-4"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <!-- Global Total Contracts Card -->
-    <div class="col-sm-6 col-xl-3">
-        <div class="card card-1 h-100">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-title text-muted">Global Contracts</h6>
-                        <h4 class="mb-1">{{ total_contracts_global }}</h4>
-                        <small class="text-muted">Across all users</small>
-                    </div>
-                    <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                        <i class="bx bx-globe fs-4"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+
     <!-- Filter Form -->
     <div class="table-card card-1">
         <form id="filterForm" action="{{ url_for('contracts.index') }}" method="get" class="d-flex flex-wrap gap-3 mb-4 align-items-center justify-content-between">
@@ -138,7 +139,8 @@
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('contracts.view', contract_id=contract.id) }}"><i class="bx bx-show"></i> View</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('contracts.update', contract_id=contract.id) }}"><i class="bx bx-edit"></i> Edit</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('contracts.export_docx', contract_id=contract.id) }}"><i class="bx bx-download"></i> Generate Docx</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('contracts.export_docx', contract_id=contract.id) }}"><i class="bx bx-download"></i> Download Docx</a></li>
+                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#sendEmailModal" data-contract-id="{{ contract.id }}"><i class="bx bx-envelope"></i> Send via Email</a></li>
                                 <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal{{ contract.id }}"><i class="bx bx-trash"></i> Delete</a></li>
                             </ul>
                         </div>
@@ -168,6 +170,31 @@
                 {% endfor %}
             </tbody>
         </table>
+
+        <!-- Send Email Modal -->
+        <div class="modal fade" id="sendEmailModal" tabindex="-1" aria-labelledby="sendEmailModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="sendEmailModalLabel">Send Contract via Email</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="sendEmailForm" action="{{ url_for('contracts.send_docx') }}" method="POST">
+                            <div class="mb-3">
+                                <label for="recipientEmail" class="form-label">Recipient's Email Address</label>
+                                <input type="email" class="form-control" id="recipientEmail" name="email" placeholder="example@domain.com" required>
+                            </div>
+                            <input type="hidden" id="contractId" name="contract_id">
+                            <button type="submit" class="btn btn-primary">Send Email</button>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Pagination -->
         <div class="d-flex justify-content-between align-items-center mt-3">
@@ -230,6 +257,15 @@
 
     window.addEventListener('load', () => {
         searchSpinner.style.display = 'none';
+    });
+
+    // Set contract_id when modal opens
+    const sendEmailModal = document.getElementById('sendEmailModal');
+    sendEmailModal.addEventListener('show.bs.modal', event => {
+        const button = event.relatedTarget;
+        const contractId = button.getAttribute('data-contract-id');
+        const modalContractId = sendEmailModal.querySelector('#contractId');
+        modalContractId.value = contractId;
     });
 </script>
 {% endblock %}
