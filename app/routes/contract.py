@@ -87,6 +87,28 @@ def format_date(iso_date):
     except (ValueError, TypeError) as e:
         logger.warning(f"Error formatting date '{iso_date}': {str(e)}")
         return iso_date or ''
+def format_usd(value: str) -> str:
+    """
+    Formats USD currency values inside strings:
+    - Ensures prefix USD
+    - Removes .00 if whole number
+    - Adds commas
+    - Keeps decimals if not .00
+    """
+    def repl(match):
+        num_str = match.group(1).replace(",", "")
+        try:
+            num_val = float(num_str)
+            if num_val.is_integer():
+                return f"USD{int(num_val):,}"
+            else:
+                return f"USD{num_val:,.2f}"
+        except ValueError:
+            return match.group(0)
+    
+    # Normalize both $ and USD prefixes
+    value = value.replace("$", "USD")
+    return re.sub(r"USD([\d,]+(?:\.\d{1,2})?)", repl, value)
 
 def number_to_words(num):
     """Convert a number to words (e.g., for financial amounts)."""
@@ -141,6 +163,27 @@ def calculate_payments(total_fee_usd, tax_percentage, payment_installments):
     except Exception as e:
         logger.error(f"Error calculating payments: {str(e)}")
         return 0.0, 0.0
+def format_currency_line(line: str) -> str:
+    """
+    Formats currency values inside a line:
+    - Removes `.00`
+    - Adds comma separators
+    - Keeps decimals if not `.00`
+    """
+    def repl(match):
+        num_str = match.group(1).replace(",", "")
+        try:
+            num_val = float(num_str)
+            # If whole number (like 2500.00 → 2500)
+            if num_val.is_integer():
+                return f"${int(num_val):,}"
+            else:
+                # Keep 2 decimals (like 2550.50)
+                return f"${num_val:,.2f}"
+        except ValueError:
+            return match.group(0)  # fallback, return original
+    
+    return re.sub(r"\$([\d,]+(?:\.\d{1,2})?)", repl, line)
 
 def generate_docx(contract):
     """Generate a DOCX file for a contract and return it as BytesIO with filename."""
@@ -361,7 +404,7 @@ def generate_docx(contract):
                 'title': 'PROFESSIONAL FEE',
                 'content': [
                     f'The professional fee is the total amount of ',
-                    contract_data["total_gross"],
+                    format_usd(contract_data["total_gross"]),
                     f' (',
                     f'{contract_data["total_fee_words"]} ',
                     f') {"excluding" if tax_percentage == 0 else "including"} tax for the whole assignment period.'
@@ -369,9 +412,9 @@ def generate_docx(contract):
                 'financial_lines': [
                     f'{vat_organization_name}' if tax_percentage == 0 and vat_organization_name and deduct_tax_code else '',
                     f'VAT TIN: {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
-                    f'Total Service Fee: {contract_data["total_gross"]}',
-                    f'Withholding Tax {int(tax_percentage)}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
-                    f'Net amount: {contract_data["total_net"]}',
+                    f'Total Service Fee: {format_usd(contract_data["total_gross"])}',
+                    f'Withholding Tax {int(tax_percentage)}%: {format_usd(f"USD{total_gross_amount * (tax_percentage/100):.2f}")}' if tax_percentage > 0 else '',
+                    f'Net amount: {format_usd(contract_data["total_net"])}',
                 ],
                 'remaining_content': [
                     f'“Party B” is responsible to issue the Invoice (net amount) and receipt (when receiving the payment) '
@@ -381,13 +424,13 @@ def generate_docx(contract):
                     f'“Party B” is responsible for all related taxes payable to the government department.'
                 ],
                 'bold_parts': [
-                    contract_data["total_gross"],
+                    format_usd(contract_data["total_gross"]),
                     f'{contract_data["total_fee_words"]} ',
                     f'{vat_organization_name}' if tax_percentage == 0 and vat_organization_name and deduct_tax_code else '',
                     f'VAT TIN: {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
-                    f'Total Service Fee: {contract_data["total_gross"]}',
-                    f'Withholding Tax {int(tax_percentage)}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
-                    f'Net amount: {contract_data["total_net"]}',
+                    f'Total Service Fee: {format_usd(contract_data["total_gross"])}',
+                    f'Withholding Tax {int(tax_percentage)}%: {format_usd(f"USD{total_gross_amount * (tax_percentage/100):.2f}")}' if tax_percentage > 0 else '',
+                    f'Net amount: {format_usd(contract_data["total_net"])}',
                     '“Party A”',
                     '“Party B”'
                 ],
@@ -732,6 +775,9 @@ def generate_docx(contract):
                                 if line:
                                     # Update format: remove .0 from tax %
                                     line = re.sub(r'Tax (\d+)\.0%', r'Tax \1%', line)
+                                    # Format currency values
+                                    line = format_currency_line(line)
+
                                     p = cell.add_paragraph(line)
                                     p.paragraph_format.space_before = Pt(0)
                                     p.paragraph_format.space_after = Pt(0)
@@ -1719,7 +1765,7 @@ def export_all_docx():
                             'title': 'PROFESSIONAL FEE',
                             'content': [
                                 f'The professional fee is the total amount of ',
-                                contract_data["total_gross"],
+                                format_usd(contract_data["total_gross"]),
                                 f' (',
                                 f'{contract_data["total_fee_words"]} ',
                                 f') {"excluding" if tax_percentage == 0 else "including"} tax for the whole assignment period.'
@@ -1727,9 +1773,9 @@ def export_all_docx():
                             'financial_lines': [
                                 f'{vat_organization_name}' if tax_percentage == 0 and vat_organization_name and deduct_tax_code else '',
                                 f'VAT TIN: {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
-                                f'Total Service Fee: {contract_data["total_gross"]}',
-                                f'Withholding Tax {int(tax_percentage)}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
-                                f'Net amount: {contract_data["total_net"]}',
+                                f'Total Service Fee: {format_usd(contract_data["total_gross"])}',
+                                f'Withholding Tax {int(tax_percentage)}%: {format_usd(f"USD{total_gross_amount * (tax_percentage/100):.2f}")}' if tax_percentage > 0 else '',
+                                f'Net amount: {format_usd(contract_data["total_net"])}',
                             ],
                             'remaining_content': [
                                 f'“Party B” is responsible to issue the Invoice (net amount) and receipt (when receiving the payment) '
@@ -1739,13 +1785,13 @@ def export_all_docx():
                                 f'“Party B” is responsible for all related taxes payable to the government department.'
                             ],
                             'bold_parts': [
-                                contract_data["total_gross"],
+                                format_usd(contract_data["total_gross"]),
                                 f'{contract_data["total_fee_words"]} ',
                                 f'{vat_organization_name}' if tax_percentage == 0 and vat_organization_name and deduct_tax_code else '',
                                 f'VAT TIN: {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
-                                f'Total Service Fee: {contract_data["total_gross"]}',
-                                f'Withholding Tax {int(tax_percentage)}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
-                                f'Net amount: {contract_data["total_net"]}',
+                                f'Total Service Fee: {format_usd(contract_data["total_gross"])}',
+                                f'Withholding Tax {int(tax_percentage)}%: {format_usd(f"USD{total_gross_amount * (tax_percentage/100):.2f}")}' if tax_percentage > 0 else '',
+                                f'Net amount: {format_usd(contract_data["total_net"])}',
                                 '“Party A”',
                                 '“Party B”'
                             ],
@@ -2096,6 +2142,9 @@ def export_all_docx():
                                             if line:
                                                 # Update format: remove .0 from tax %
                                                 line = re.sub(r'Tax (\d+)\.0%', r'Tax \1%', line)
+                                                # Format currency values
+                                                line = format_currency_line(line)
+
                                                 p = cell.add_paragraph(line)
                                                 p.paragraph_format.space_before = Pt(0)
                                                 p.paragraph_format.space_after = Pt(0)
