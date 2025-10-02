@@ -697,10 +697,14 @@ def generate_docx(contract):
             if article['table']:
                 table = doc.add_table(rows=len(article['table']), cols=len(article['table'][0]))
                 table.alignment = WD_TABLE_ALIGNMENT.CENTER
-                table.allow_autofit = True
+                table.allow_autofit = False  # Disable autofit so we can set column widths
+
+                # Define column widths (in inches)
+                col_widths = [Inches(1.0), Inches(1.5), Inches(3.5), Inches(1.2)]  # Adjust Deliverable to be largest
 
                 for row in table.rows:
-                    for cell in row.cells:
+                    for idx, cell in enumerate(row.cells):
+                        cell.width = col_widths[idx]
                         tc = cell._element
                         tcPr = tc.get_or_add_tcPr()
                         for border_name in ['top', 'left', 'bottom', 'right']:
@@ -714,6 +718,8 @@ def generate_docx(contract):
                     row_cells = table.rows[i].cells
                     for j, key in enumerate(row_data.keys()):
                         cell = row_cells[j]
+                        # Clear existing content
+                        cell.text = ""
                         if key == 'Total Amount (USD)' and isinstance(row_data[key], list):
                             for line in row_data[key]:
                                 if line:
@@ -727,26 +733,23 @@ def generate_docx(contract):
                                     for run in p.runs:
                                         run.font.size = Pt(12)
                                         run.font.name = 'Calibri'
-                                        run.bold = (i == 0) or (i > 0 and key == 'Total Amount (USD)')
+                                        run.bold = True
                         else:
-                            cell.text = row_data[key]
-                            for paragraph in cell.paragraphs:
-                                paragraph.paragraph_format.space_before = Pt(0)
-                                paragraph.paragraph_format.space_after = Pt(0)
+                            if isinstance(row_data[key], str):
+                                p = cell.add_paragraph(row_data[key])
+                                p.paragraph_format.space_before = Pt(0)
+                                p.paragraph_format.space_after = Pt(0)
                                 if i == 0:
-                                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                elif key == 'Deliverable':
+                                    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
                                 else:
-                                    if key == 'Deliverable':
-                                        paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                                    else:
-                                        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                                for run in paragraph.runs:
+                                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                for run in p.runs:
                                     run.font.size = Pt(12)
                                     run.font.name = 'Calibri'
-                                    if i == 0:
-                                        run.bold = True
-                                    elif key == 'Total Amount (USD)':
-                                        run.bold = True
+                                    run.bold = (i == 0)
+
 
         # Signature Block
         p = doc.add_paragraph()
@@ -2048,10 +2051,14 @@ def export_all_docx():
                         if article['table']:
                             table = doc.add_table(rows=len(article['table']), cols=len(article['table'][0]))
                             table.alignment = WD_TABLE_ALIGNMENT.CENTER
-                            table.allow_autofit = True
+                            table.allow_autofit = False  # Disable autofit so we can set column widths
+
+                            # Define column widths (in inches)
+                            col_widths = [Inches(1.0), Inches(1.5), Inches(3.5), Inches(1.2)]  # Adjust Deliverable to be largest
 
                             for row in table.rows:
-                                for cell in row.cells:
+                                for idx, cell in enumerate(row.cells):
+                                    cell.width = col_widths[idx]
                                     tc = cell._element
                                     tcPr = tc.get_or_add_tcPr()
                                     for border_name in ['top', 'left', 'bottom', 'right']:
@@ -2065,38 +2072,37 @@ def export_all_docx():
                                 row_cells = table.rows[i].cells
                                 for j, key in enumerate(row_data.keys()):
                                     cell = row_cells[j]
-                                    # Handle 'Total Amount (USD)' as a list of lines
+                                    # Clear existing content
+                                    cell.text = ""
                                     if key == 'Total Amount (USD)' and isinstance(row_data[key], list):
                                         for line in row_data[key]:
-                                            if line:  # Only add non-empty lines
+                                            if line:
                                                 p = cell.add_paragraph(line)
+                                                p.paragraph_format.space_before = Pt(0)
                                                 p.paragraph_format.space_after = Pt(0)
                                                 if i == 0:
                                                     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
                                                 else:
-                                                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                                    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
                                                 for run in p.runs:
                                                     run.font.size = Pt(12)
                                                     run.font.name = 'Calibri'
-                                                    run.bold = (i == 0) or (i > 0 and key == 'Total Amount (USD)')
+                                                    run.bold = True
                                     else:
-                                        cell.text = row_data[key]
-                                        for paragraph in cell.paragraphs:
-                                            paragraph.paragraph_format.space_after = Pt(0)
+                                        if isinstance(row_data[key], str):
+                                            p = cell.add_paragraph(row_data[key])
+                                            p.paragraph_format.space_before = Pt(0)
+                                            p.paragraph_format.space_after = Pt(0)
                                             if i == 0:
-                                                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                            elif key == 'Deliverable':
+                                                p.alignment = WD_ALIGN_PARAGRAPH.LEFT
                                             else:
-                                                if key == 'Deliverable':
-                                                    paragraph.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                                                else:
-                                                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                                            for run in paragraph.runs:
+                                                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                            for run in p.runs:
                                                 run.font.size = Pt(12)
                                                 run.font.name = 'Calibri'
-                                                if i == 0:
-                                                    run.bold = True
-                                                elif key == 'Total Amount (USD)':
-                                                    run.bold = True
+                                                run.bold = (i == 0)
 
                         for custom in custom_articles:
                             if custom['article_number'] == str(article['number']):
