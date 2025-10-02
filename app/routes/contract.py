@@ -370,7 +370,7 @@ def generate_docx(contract):
                     f'{vat_organization_name}' if tax_percentage == 0 and vat_organization_name and deduct_tax_code else '',
                     f'VAT TIN: {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
                     f'Total Service Fee: {contract_data["total_gross"]}',
-                    f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
+                    f'Withholding Tax {int(tax_percentage)}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
                     f'Net amount: {contract_data["total_net"]}',
                 ],
                 'remaining_content': [
@@ -386,7 +386,7 @@ def generate_docx(contract):
                     f'{vat_organization_name}' if tax_percentage == 0 and vat_organization_name and deduct_tax_code else '',
                     f'VAT TIN: {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
                     f'Total Service Fee: {contract_data["total_gross"]}',
-                    f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
+                    f'Withholding Tax {int(tax_percentage)}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
                     f'Net amount: {contract_data["total_net"]}',
                     '“Party A”',
                     '“Party B”'
@@ -832,7 +832,6 @@ def generate_docx(contract):
         run = p.add_run(f"\t{contract_data.get('party_b_position', 'Freelance Consultant')}")
         run.bold = True
         run.font.size = Pt(11)
-
 
         # Save to BytesIO
         output = BytesIO()
@@ -1729,7 +1728,7 @@ def export_all_docx():
                                 f'{vat_organization_name}' if tax_percentage == 0 and vat_organization_name and deduct_tax_code else '',
                                 f'VAT TIN: {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
                                 f'Total Service Fee: {contract_data["total_gross"]}',
-                                f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
+                                f'Withholding Tax {int(tax_percentage)}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
                                 f'Net amount: {contract_data["total_net"]}',
                             ],
                             'remaining_content': [
@@ -1745,7 +1744,7 @@ def export_all_docx():
                                 f'{vat_organization_name}' if tax_percentage == 0 and vat_organization_name and deduct_tax_code else '',
                                 f'VAT TIN: {deduct_tax_code}' if tax_percentage == 0 and deduct_tax_code else '',
                                 f'Total Service Fee: {contract_data["total_gross"]}',
-                                f'Withholding Tax {tax_percentage}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
+                                f'Withholding Tax {int(tax_percentage)}%: USD{total_gross_amount * (tax_percentage/100):.2f}' if tax_percentage > 0 else '',
                                 f'Net amount: {contract_data["total_net"]}',
                                 '“Party A”',
                                 '“Party B”'
@@ -2062,64 +2061,72 @@ def export_all_docx():
                             add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
 
                         if article['table']:
+                            # Build table with same number of rows & cols as data
                             table = doc.add_table(rows=len(article['table']), cols=len(article['table'][0]))
                             table.alignment = WD_TABLE_ALIGNMENT.CENTER
-                            table.allow_autofit = False  # Disable autofit so we can set column widths
+                            table.allow_autofit = False  # Disable autofit
 
-                            # Define column widths (in inches)
-                            col_widths = [Inches(1.0), Inches(1.5), Inches(3.5), Inches(1.2)]  # Adjust Deliverable to be largest
+                            # Column widths
+                            col_widths = [Inches(1.0), Inches(1.6), Inches(3.5), Inches(1.1)]
 
+                            # Apply column widths & borders
                             for row in table.rows:
                                 for idx, cell in enumerate(row.cells):
                                     cell.width = col_widths[idx]
                                     tc = cell._element
                                     tcPr = tc.get_or_add_tcPr()
+                                    # Set borders
                                     for border_name in ['top', 'left', 'bottom', 'right']:
                                         border = OxmlElement(f'w:{border_name}')
                                         border.set(qn('w:val'), 'single')
-                                        border.set(qn('w:sz'), '4')
+                                        border.set(qn('w:sz'), '8')
                                         border.set(qn('w:color'), '000000')
                                         tcPr.append(border)
 
+                            # Fill table data
                             for i, row_data in enumerate(article['table']):
                                 row_cells = table.rows[i].cells
                                 for j, key in enumerate(row_data.keys()):
                                     cell = row_cells[j]
-                                    # Clear existing content
-                                    cell.text = ""
+                                    cell.text = ""  # Clear default text
+
+                                    # Handle "Total Amount (USD)" column (list of lines)
                                     if key == 'Total Amount (USD)' and isinstance(row_data[key], list):
                                         for line in row_data[key]:
                                             if line:
+                                                # Update format: remove .0 from tax %
+                                                line = re.sub(r'Tax (\d+)\.0%', r'Tax \1%', line)
                                                 p = cell.add_paragraph(line)
                                                 p.paragraph_format.space_before = Pt(0)
                                                 p.paragraph_format.space_after = Pt(0)
-                                                if i == 0:
-                                                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                                                else:
-                                                    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                                                p.alignment = WD_ALIGN_PARAGRAPH.CENTER if i == 0 else WD_ALIGN_PARAGRAPH.LEFT
                                                 for run in p.runs:
                                                     run.font.size = Pt(12)
                                                     run.font.name = 'Calibri'
-                                                    run.bold = True
-                                    else:
-                                        if isinstance(row_data[key], str):
-                                            p = cell.add_paragraph(row_data[key])
-                                            p.paragraph_format.space_before = Pt(0)
-                                            p.paragraph_format.space_after = Pt(0)
-                                            if i == 0:
-                                                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                                            elif key == 'Deliverable':
-                                                p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                                            else:
-                                                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                                            for run in p.runs:
-                                                run.font.size = Pt(12)
-                                                run.font.name = 'Calibri'
-                                                run.bold = (i == 0)
+                                                    run.bold = True  # Keep data rows bold
 
-                        for custom in custom_articles:
-                            if custom['article_number'] == str(article['number']):
-                                add_paragraph(custom['custom_sentence'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
+                                    else:
+                                        text_val = str(row_data[key]) if row_data[key] is not None else ""
+                                        p = cell.add_paragraph(text_val)
+                                        p.paragraph_format.space_before = Pt(0)
+                                        p.paragraph_format.space_after = Pt(0)
+
+                                        # Alignment rules
+                                        if i == 0:
+                                            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                        elif key == 'Deliverable':
+                                            p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                                        else:
+                                            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+                                        # Font styling
+                                        for run in p.runs:
+                                            run.font.size = Pt(12)
+                                            run.font.name = 'Calibri'
+                                            run.bold = (i == 0)
+
+                                    # Vertical alignment always center
+                                    cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
                     # ========================
                     # SIGNATURE BLOCK
                     # ========================
