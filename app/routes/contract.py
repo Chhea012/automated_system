@@ -23,6 +23,8 @@ from docx.oxml import OxmlElement
 from docx.shared import Inches, Pt, RGBColor
 import zipfile
 from docx.enum.text import WD_TAB_ALIGNMENT
+from docx.enum.table import WD_ALIGN_VERTICAL
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from flask_mail import Message
 from app import mail
 
@@ -695,61 +697,72 @@ def generate_docx(contract):
                     add_paragraph(custom['custom_sentence'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
 
             if article['table']:
+                # Build table with same number of rows & cols as data
                 table = doc.add_table(rows=len(article['table']), cols=len(article['table'][0]))
                 table.alignment = WD_TABLE_ALIGNMENT.CENTER
-                table.allow_autofit = False  # Disable autofit so we can set column widths
+                table.allow_autofit = False  # Disable autofit
 
-                # Define column widths (in inches)
-                col_widths = [Inches(1.0), Inches(1.6), Inches(3.6), Inches(1.0)]  # Adjust Deliverable to be largest
+                # Column widths
+                col_widths = [Inches(1.0), Inches(1.6), Inches(3.5), Inches(1.1)]
 
+                # Apply column widths & borders
                 for row in table.rows:
                     for idx, cell in enumerate(row.cells):
                         cell.width = col_widths[idx]
                         tc = cell._element
                         tcPr = tc.get_or_add_tcPr()
+                        # Set borders
                         for border_name in ['top', 'left', 'bottom', 'right']:
                             border = OxmlElement(f'w:{border_name}')
                             border.set(qn('w:val'), 'single')
-                            border.set(qn('w:sz'), '4')
+                            border.set(qn('w:sz'), '8')
                             border.set(qn('w:color'), '000000')
                             tcPr.append(border)
 
+                # Fill table data
                 for i, row_data in enumerate(article['table']):
                     row_cells = table.rows[i].cells
                     for j, key in enumerate(row_data.keys()):
                         cell = row_cells[j]
-                        # Clear existing content
-                        cell.text = ""
+                        cell.text = ""  # Clear default text
+
+                        # Handle "Total Amount (USD)" column (list of lines)
                         if key == 'Total Amount (USD)' and isinstance(row_data[key], list):
                             for line in row_data[key]:
                                 if line:
+                                    # Update format: remove .0 from tax %
+                                    line = re.sub(r'Tax (\d+)\.0%', r'Tax \1%', line)
                                     p = cell.add_paragraph(line)
                                     p.paragraph_format.space_before = Pt(0)
                                     p.paragraph_format.space_after = Pt(0)
-                                    if i == 0:
-                                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                                    else:
-                                        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER if i == 0 else WD_ALIGN_PARAGRAPH.LEFT
                                     for run in p.runs:
                                         run.font.size = Pt(12)
                                         run.font.name = 'Calibri'
-                                        run.bold = True
-                        else:
-                            if isinstance(row_data[key], str):
-                                p = cell.add_paragraph(row_data[key])
-                                p.paragraph_format.space_before = Pt(0)
-                                p.paragraph_format.space_after = Pt(0)
-                                if i == 0:
-                                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                                elif key == 'Deliverable':
-                                    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                                else:
-                                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                                for run in p.runs:
-                                    run.font.size = Pt(12)
-                                    run.font.name = 'Calibri'
-                                    run.bold = (i == 0)
+                                        run.bold = True  # Keep data rows bold
 
+                        else:
+                            text_val = str(row_data[key]) if row_data[key] is not None else ""
+                            p = cell.add_paragraph(text_val)
+                            p.paragraph_format.space_before = Pt(0)
+                            p.paragraph_format.space_after = Pt(0)
+
+                            # Alignment rules
+                            if i == 0:
+                                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                            elif key == 'Deliverable':
+                                p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                            else:
+                                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+                            # Font styling
+                            for run in p.runs:
+                                run.font.size = Pt(12)
+                                run.font.name = 'Calibri'
+                                run.bold = (i == 0)
+
+                        # Vertical alignment always center
+                        cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
 
         # Signature Block
         p = doc.add_paragraph()
