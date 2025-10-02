@@ -748,7 +748,7 @@ def generate_docx(contract):
                                     elif key == 'Total Amount (USD)':
                                         run.bold = True
 
-        # Signature Block
+                # Signature Block
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(24)
         p.paragraph_format.space_after = Pt(0)
@@ -757,55 +757,66 @@ def generate_docx(contract):
         run.font.size = Pt(11)
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        tab_position = Inches(5.0)
+        # Define tab stops (Party A shifted right more than before, Party B same)
+        tab_position_a = Inches(0.5)   # move Party A block to the right
+        tab_position_b = Inches(4.5)   # Party B unchanged
+
+        # "For Party A" and "For Party B"
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(36)
         p.paragraph_format.space_after = Pt(0)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
-        run = p.add_run('For “Party A”')
-        run.bold = True
-        run.font.size = Pt(11)
-        p.add_run('\t')
-        run = p.add_run('For “Party B”')
-        run.bold = True
-        run.font.size = Pt(11)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
 
+        p.add_run('\tFor “Party A”').bold = True
+        p.add_run('\tFor “Party B”').bold = True
+
+        # Signature lines
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(45)
         p.paragraph_format.space_after = Pt(0)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
-        p.add_run('__________________')
-        p.add_run('\t')
-        p.add_run('__________________')
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
 
+        p.add_run('\t__________________')
+        p.add_run('\t__________________')
+
+        # Signature names
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = Pt(0)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
-        run = p.add_run(contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun'))
-        run.bold = True
-        run.font.size = Pt(11)
-        p.add_run('\t')
-        run = p.add_run(contract_data.get('party_b_signature_name', 'Mr. Leader Din'))
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
+
+        run = p.add_run(f"\t{contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun')}")
         run.bold = True
         run.font.size = Pt(11)
 
+        run = p.add_run(f"\t{contract_data.get('party_b_signature_name', 'Mr. Leader Din')}")
+        run.bold = True
+        run.font.size = Pt(11)
+
+        # Titles / Positions
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = Pt(0)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position, WD_TAB_ALIGNMENT.LEFT)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
+
         signer_position = next(
             (person['position'] for person in party_a_info
-             if person['name'] == contract_data.get('party_a_signature_name')),
+            if person['name'] == contract_data.get('party_a_signature_name')),
             'Executive Director'
         )
-        run = p.add_run(signer_position)
+
+        run = p.add_run(f"\t{signer_position}")
         run.bold = True
         run.font.size = Pt(11)
-        p.add_run('\t')
-        run = p.add_run(contract_data.get('party_b_position', 'Freelance Consultant'))
+
+        run = p.add_run(f"\t{contract_data.get('party_b_position', 'Freelance Consultant')}")
         run.bold = True
         run.font.size = Pt(11)
+
 
         # Save to BytesIO
         output = BytesIO()
