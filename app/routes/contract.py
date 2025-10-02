@@ -700,7 +700,7 @@ def generate_docx(contract):
                 table.allow_autofit = False  # Disable autofit so we can set column widths
 
                 # Define column widths (in inches)
-                col_widths = [Inches(1.0), Inches(1.5), Inches(3.5), Inches(1.2)]  # Adjust Deliverable to be largest
+                col_widths = [Inches(1.0), Inches(1.6), Inches(3.6), Inches(1.0)]  # Adjust Deliverable to be largest
 
                 for row in table.rows:
                     for idx, cell in enumerate(row.cells):
