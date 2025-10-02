@@ -450,13 +450,15 @@ def generate_docx(contract):
                                 f'- Tax {tax_percentage}%: ${installment["tax_amount"]:.2f}' if tax_percentage > 0 else '',
                                 f'- Net pay: ${installment["net_amount"]:.2f}'
                             ],
-                            'Deliverable': '\n'.join('- ' + d.strip() for d in installment['deliverables'].split(';') if d.strip()),
+                            # ✅ Store clean text, split into lines
+                            'Deliverable': '\n'.join(d.strip() for d in installment['deliverables'].split(';') if d.strip()),
                             'Due date': installment['dueDate_display']
                         }
                         for installment in contract_data.get('payment_installments', [])
                     ]
                 ]
-            },
+            }
+            ,
             {
                 'number': 5,
                 'title': 'NO OTHER PERSONS',
@@ -787,6 +789,33 @@ def generate_docx(contract):
                                         run.font.name = 'Calibri'
                                         run.bold = True  # Keep data rows bold
 
+                        # Handle "Deliverable" column
+                        elif key == 'Deliverable' and row_data[key]:
+                            deliverables = row_data[key].split('\n')
+                            for item in deliverables:
+                                item = item.strip()
+                                if not item:
+                                    continue
+
+                                if i == 0:
+                                    # Header: no dash
+                                    p = cell.add_paragraph(item)
+                                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                    bold = True
+                                else:
+                                    # Row data: keep dash, not bold
+                                    p = cell.add_paragraph(f"- {item}")
+                                    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                                    bold = False
+
+                                p.paragraph_format.space_before = Pt(0)
+                                p.paragraph_format.space_after = Pt(0)
+                                for run in p.runs:
+                                    run.font.size = Pt(12)
+                                    run.font.name = 'Calibri'
+                                    run.bold = bold
+
+                        # Default handling for other columns
                         else:
                             text_val = str(row_data[key]) if row_data[key] is not None else ""
                             p = cell.add_paragraph(text_val)
@@ -809,6 +838,8 @@ def generate_docx(contract):
 
                         # Vertical alignment always center
                         cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+
+
 
         # Signature Block
         p = doc.add_paragraph()
@@ -2154,6 +2185,33 @@ def export_all_docx():
                                                     run.font.name = 'Calibri'
                                                     run.bold = True  # Keep data rows bold
 
+                                    # Handle "Deliverable" column
+                                    elif key == 'Deliverable' and row_data[key]:
+                                        deliverables = row_data[key].split('\n')
+                                        for item in deliverables:
+                                            item = item.strip()
+                                            if not item:
+                                                continue
+
+                                            if i == 0:
+                                                # Header: no dash
+                                                p = cell.add_paragraph(item)
+                                                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                                bold = True
+                                            else:
+                                                # Row data: keep dash, not bold
+                                                p = cell.add_paragraph(f"- {item}")
+                                                p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                                                bold = False
+
+                                            p.paragraph_format.space_before = Pt(0)
+                                            p.paragraph_format.space_after = Pt(0)
+                                            for run in p.runs:
+                                                run.font.size = Pt(12)
+                                                run.font.name = 'Calibri'
+                                                run.bold = bold
+
+                                    # Default handling for other columns
                                     else:
                                         text_val = str(row_data[key]) if row_data[key] is not None else ""
                                         p = cell.add_paragraph(text_val)
