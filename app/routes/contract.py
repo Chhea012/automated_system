@@ -852,7 +852,7 @@ def generate_docx(contract):
 
         # Signature Block
         p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(24)
+        p.paragraph_format.space_before = Pt(20)
         p.paragraph_format.space_after = Pt(0)
         run = p.add_run(f"Date: {contract_data.get('agreement_start_date_display', '17th September 2025')}")
         run.bold = True
@@ -865,7 +865,7 @@ def generate_docx(contract):
 
         # "For Party A" and "For Party B"
         p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(36)
+        p.paragraph_format.space_before = Pt(30)
         p.paragraph_format.space_after = Pt(0)
         p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
         p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
@@ -2089,7 +2089,6 @@ def export_all_docx():
                         add_heading(article['number'], article['title'], level=3, size=11)
 
                         if article['number'] == 3:
-                            # First part (justified)
                             add_paragraph_with_bold(
                                 article['content'],
                                 article['bold_parts'],
@@ -2097,29 +2096,34 @@ def export_all_docx():
                                 default_size=11,
                                 bold_size=12,
                             )
-                            # Financial lines (left-aligned with indentation, no space after, aligned with tab, labels at 12pt)
                             for line in article['financial_lines']:
-                                if line:  # Only add non-empty lines
+                                if line:
                                     p = doc.add_paragraph()
                                     p.alignment = WD_ALIGN_PARAGRAPH.LEFT
                                     p.paragraph_format.left_indent = Inches(0.33)
-                                    p.paragraph_format.space_after = Pt(0)  # Remove space after paragraph
+
+                                    # Default no space after
+                                    p.paragraph_format.space_after = Pt(0)
+
                                     if ':' in line:
                                         label, value = line.split(':', 1)
-                                        p.paragraph_format.tab_stops.add_tab_stop(Inches(2.5))  # Adjust tab stop for better alignment
+                                        p.paragraph_format.tab_stops.add_tab_stop(Inches(2.5))
                                         run_label = p.add_run(label + ':')
-                                        run_label.font.size = Pt(12)  # Set label font size to 12pt
+                                        run_label.font.size = Pt(12)
                                         run_label.bold = True
                                         run_tab = p.add_run('\t')
                                         run_value = p.add_run(value.strip())
-                                        run_value.font.size = Pt(12)  # Match value font size to 12pt
+                                        run_value.font.size = Pt(12)
                                         run_value.bold = True
                                     else:
-                                        # For VAT line or organization name
                                         run = p.add_run(line)
-                                        run.font.size = Pt(12)  # Match font size to 12pt
+                                        run.font.size = Pt(12)
                                         run.bold = True
-                            # Remaining content (justified)
+
+                                    # ✅ Add space only after "Net amount"
+                                    if line.startswith("Net amount"):
+                                        p.paragraph_format.space_after = Pt(12)
+
                             add_paragraph_with_bold(
                                 article['remaining_content'],
                                 article['bold_parts'],
@@ -2246,10 +2250,8 @@ def export_all_docx():
                     # ========================
                     # SIGNATURE BLOCK
                     # ========================
-
-                                # Signature Block
                     p = doc.add_paragraph()
-                    p.paragraph_format.space_before = Pt(24)
+                    p.paragraph_format.space_before = Pt(20)
                     p.paragraph_format.space_after = Pt(0)
                     run = p.add_run(f"Date: {contract_data.get('agreement_start_date_display', '17th September 2025')}")
                     run.bold = True
@@ -2262,7 +2264,7 @@ def export_all_docx():
 
                     # "For Party A" and "For Party B"
                     p = doc.add_paragraph()
-                    p.paragraph_format.space_before = Pt(36)
+                    p.paragraph_format.space_before = Pt(30)
                     p.paragraph_format.space_after = Pt(0)
                     p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
                     p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
