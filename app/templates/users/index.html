@@ -349,7 +349,7 @@
       height: 32px;
     }
   }
-  @media (min-width: 577px) and (max-width: 768px) {
+  @media (min-width: 577px) and (max-width: 1024px) {
     .user-container {
       margin-right: 20px;
       margin-left: 20px;
@@ -360,6 +360,12 @@
     .table-custom thead th,
     .table-custom td {
       padding: 10px;
+    }
+    .table-custom th:nth-child(7), /* Department column header */
+    .table-custom td:nth-child(7), /* Department column data */
+    .table-custom th:nth-child(8), /* Address column header */
+    .table-custom td:nth-child(8) { /* Address column data */
+      display: none;
     }
     .modal-dialog {
       max-width: 90%;
@@ -378,9 +384,15 @@
     }
     .row.g-4 {
       gap: 15px;
+      flex-wrap: wrap;
     }
     .card.card-1 {
       font-size: 15px;
+      margin-bottom: 15px;
+    }
+    .col-md-6 {
+      flex: 0 0 50%;
+      max-width: calc(50% - 15px); /* Adjust for gap */
     }
   }
 </style>
@@ -388,7 +400,7 @@
 <div class="user-container mt-4">
   <div class="row g-4 mb-4">
     <!-- Total Users Card -->
-    <div class="col-sm-6 col-xl-3">
+    <div class="col-md-6">
       <div class="card card-1 h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start">
@@ -407,7 +419,7 @@
     </div>
 
     <!-- Total HR/Admin Card -->
-    <div class="col-sm-6 col-xl-3">
+    <div class="col-md-6">
       <div class="card card-1 h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start">
@@ -426,7 +438,7 @@
     </div>
 
     <!-- Total Managers Card -->
-    <div class="col-sm-6 col-xl-3">
+    <div class="col-md-6">
       <div class="card card-1 h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start">
@@ -445,7 +457,7 @@
     </div>
 
     <!-- Total Employees Card -->
-    <div class="col-sm-6 col-xl-3">
+    <div class="col-md-6">
       <div class="card card-1 h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start">
