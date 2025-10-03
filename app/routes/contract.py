@@ -696,7 +696,10 @@ def generate_docx(contract):
                         p = doc.add_paragraph()
                         p.alignment = WD_ALIGN_PARAGRAPH.LEFT
                         p.paragraph_format.left_indent = Inches(0.33)
+
+                        # Default no space after
                         p.paragraph_format.space_after = Pt(0)
+
                         if ':' in line:
                             label, value = line.split(':', 1)
                             p.paragraph_format.tab_stops.add_tab_stop(Inches(2.5))
@@ -711,6 +714,11 @@ def generate_docx(contract):
                             run = p.add_run(line)
                             run.font.size = Pt(12)
                             run.bold = True
+
+                        # ✅ Add space only after "Net amount"
+                        if line.startswith("Net amount"):
+                            p.paragraph_format.space_after = Pt(12)
+
                 add_paragraph_with_bold(
                     article['remaining_content'],
                     article['bold_parts'],
@@ -718,6 +726,7 @@ def generate_docx(contract):
                     default_size=11,
                     bold_size=12
                 )
+
             elif article['number'] == 4:
                 add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
             elif article['number'] == 6:
