@@ -9,8 +9,9 @@
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    table-layout: auto;
   }
-
   .table-custom thead th {
     background-color: #0d6efd;
     color: #ffffff;
@@ -19,40 +20,32 @@
     text-align: left;
     border-bottom: 2px solid #dee2e6;
   }
-
   .table-custom tbody tr {
     background-color: #ffffff;
     transition: background-color 0.2s ease;
   }
-
   .table-custom tbody tr:nth-child(even) {
     background-color: #f8f9fa;
   }
-
   .table-custom tbody tr:hover {
     background-color: #e9ecef;
   }
-
   .table-custom td {
     padding: 12px;
     vertical-align: middle;
     border-bottom: 1px solid #dee2e6;
   }
-
   .table-custom .dropdown-menu {
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
-
   .table-custom .dropdown-item {
     padding: 8px 16px;
     font-size: 14px;
   }
-
   .table-custom .dropdown-item i {
     margin-right: 8px;
   }
-
   .user-container {
     display: flex;
     justify-content: center;
@@ -60,18 +53,15 @@
     margin-right: 35px;
     margin-left: 35px;
   }
-
   .profile-pic {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     object-fit: cover;
   }
-
   .modal-left {
     justify-content: flex-start;
   }
-
   .modal-left .modal-dialog {
     margin: 0;
     height: 100vh;
@@ -79,55 +69,45 @@
     transform: translateX(-100%);
     transition: transform 0.3s ease-in-out;
   }
-
   .modal-left .modal-dialog.show {
     transform: translateX(0);
   }
-
   .modal-left .modal-content {
     border-radius: 0 10px 10px 0;
     box-shadow: 4px 0 6px rgba(0, 0, 0, 0.1);
     height: 100%;
     overflow-y: auto;
   }
-
   .modal-left .modal-header {
     padding: 16px 20px;
     border-bottom: 1px solid #dee2e6;
   }
-
   .modal-left .modal-body {
     padding: 20px;
   }
-
   .modal-left .modal-footer {
     padding: 16px 20px;
     border-top: 1px solid #dee2e6;
   }
-
   .modal-left .form-label {
     font-weight: 500;
     color: #333;
   }
-
   .modal-left .form-control,
   .modal-left .form-select {
     border-radius: 6px;
     border: 1px solid #ced4da;
     transition: border-color 0.2s ease;
   }
-
   .modal-left .form-control:focus,
   .modal-left .form-select:focus {
     border-color: #0d6efd;
     box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
   }
-
   .modal-left .btn {
     border-radius: 6px;
     padding: 8px 16px;
   }
-
   .image-upload-container {
     display: flex;
     flex-direction: column;
@@ -138,12 +118,10 @@
     border-radius: 8px;
     transition: border-color 0.2s ease;
   }
-
   .image-upload-container.dragover {
     border-color: #0d6efd;
     background-color: rgba(13, 110, 253, 0.05);
   }
-
   .image-preview {
     width: 120px;
     height: 120px;
@@ -156,24 +134,20 @@
     justify-content: center;
     overflow: hidden;
   }
-
   .image-preview img {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
-
   .image-preview-placeholder::before {
     content: "\e030";
     font-family: 'boxicons';
     font-size: 48px;
     color: #6c757d;
   }
-
   .custom-file-input {
     display: none;
   }
-
   .custom-file-label {
     display: inline-flex;
     align-items: center;
@@ -184,15 +158,12 @@
     cursor: pointer;
     transition: background-color 0.2s ease;
   }
-
   .custom-file-label:hover {
     background-color: #0b5ed7;
   }
-
   .custom-file-label i {
     margin-right: 8px;
   }
-
   .remove-image-btn {
     background-color: #dc3545;
     color: #fff;
@@ -202,11 +173,9 @@
     cursor: pointer;
     transition: background-color 0.2s ease;
   }
-
   .remove-image-btn:hover {
     background-color: #bb2d3b;
   }
-
   .loading-overlay {
     display: none;
     position: absolute;
@@ -219,7 +188,6 @@
     justify-content: center;
     align-items: center;
   }
-
   .loading-spinner {
     border: 4px solid #f3f3f3;
     border-top: 4px solid #0d6efd;
@@ -228,38 +196,31 @@
     height: 40px;
     animation: spin 1s linear infinite;
   }
-
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
-
   .management-card .card-header {
     background-color: #f8f9fa;
     border-bottom: 1px solid #dee2e6;
     padding: 12px 20px;
   }
-
   .management-card .card-header h2 {
     margin: 0;
     font-size: 1.5rem;
   }
-
   .filter-container {
     display: flex;
     align-items: center;
     gap: 10px;
     margin-bottom: 15px;
   }
-
   .search-input {
     position: relative;
   }
-
   .search-input input {
     padding-left: 35px;
   }
-
   .search-input i {
     position: absolute;
     left: 10px;
@@ -267,48 +228,149 @@
     transform: translateY(-50%);
     color: #6c757d;
   }
-
   .filter-container select,
   .filter-container input {
     height: 38px;
   }
-
   .filter-container .btn-clear {
     background-color: #6c757d;
     color: #fff;
   }
-
   .filter-container .btn-clear:hover {
     background-color: #5c636a;
   }
-
+  /* Responsive Styles */
   @media (max-width: 576px) {
+    .user-container {
+      margin-right: 15px;
+      margin-left: 15px;
+    }
+    .table-custom {
+      font-size: 14px;
+    }
+    .table-custom thead th,
+    .table-custom td {
+      padding: 8px;
+    }
+    .table-custom th:nth-child(4), /* Email column header */
+    .table-custom td:nth-child(4), /* Email column data */
+    .table-custom th:nth-child(5), /* Phone column header */
+    .table-custom td:nth-child(5), /* Phone column data */
+    .table-custom th:nth-child(6), /* Role column header */
+    .table-custom td:nth-child(6), /* Role column data */
+    .table-custom th:nth-child(7), /* Department column header */
+    .table-custom td:nth-child(7), /* Department column data */
+    .table-custom th:nth-child(8), /* Address column header */
+    .table-custom td:nth-child(8) { /* Address column data */
+      display: none;
+    }
+    .table-custom .dropdown-menu {
+      min-width: 120px;
+    }
+    .table-custom .dropdown-item {
+      font-size: 12px;
+      padding: 6px 12px;
+    }
+    .modal-dialog {
+      margin: 10px;
+    }
+    .modal-content {
+      font-size: 14px;
+    }
+    .modal-body {
+      padding: 15px;
+    }
+    .modal-footer .btn {
+      padding: 6px 12px;
+      font-size: 14px;
+    }
     .modal-left .modal-dialog {
       max-width: 100%;
       border-radius: 0;
     }
-
     .modal-left .modal-content {
       border-radius: 0;
     }
-
     .image-preview {
       width: 100px;
       height: 100px;
     }
-
     .image-upload-container {
       padding: 8px;
     }
-
     .management-card .card-header {
       flex-direction: column;
       align-items: flex-start;
       gap: 10px;
     }
-
     .management-card .card-header .btn {
       width: 100%;
+    }
+    .filter-container {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .filter-container .search-input,
+    .filter-container .col-md-3,
+    .filter-container .col-md-2 {
+      width: 100%;
+    }
+    .filter-container select,
+    .filter-container input,
+    .filter-container .btn-clear {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    .row.g-4 {
+      gap: 10px;
+    }
+    .card.card-1 {
+      font-size: 14px;
+    }
+    .pagination {
+      flex-wrap: wrap;
+    }
+    .page-link {
+      font-size: 14px;
+      padding: 6px 12px;
+    }
+    .profile-pic {
+      width: 32px;
+      height: 32px;
+    }
+  }
+  @media (min-width: 577px) and (max-width: 768px) {
+    .user-container {
+      margin-right: 20px;
+      margin-left: 20px;
+    }
+    .table-custom {
+      font-size: 15px;
+    }
+    .table-custom thead th,
+    .table-custom td {
+      padding: 10px;
+    }
+    .modal-dialog {
+      max-width: 90%;
+    }
+    .modal-footer .btn {
+      font-size: 15px;
+    }
+    .filter-container {
+      flex-wrap: wrap;
+    }
+    .filter-container .search-input,
+    .filter-container .col-md-3,
+    .filter-container .col-md-2 {
+      flex: 1 1 45%;
+      margin-bottom: 10px;
+    }
+    .row.g-4 {
+      gap: 15px;
+    }
+    .card.card-1 {
+      font-size: 15px;
     }
   }
 </style>
@@ -515,13 +577,12 @@
               <input type="password" class="form-control" name="password" required>
             </div>
             <div class="mb-3">
-  <label class="form-label">Phone Number</label>
-  <input type="text" class="form-control" name="phone_number" id="phoneInputCreate">
-  <div class="invalid-feedback" id="phoneErrorCreate" style="display:none; color:red;">
-    Phone number already exists.
-  </div>
-</div>
-
+              <label class="form-label">Phone Number</label>
+              <input type="text" class="form-control" name="phone_number" id="phoneInputCreate">
+              <div class="invalid-feedback" id="phoneErrorCreate" style="display:none; color:red;">
+                Phone number already exists.
+              </div>
+            </div>
             <div class="mb-3">
               <label class="form-label">Role</label>
               <select class="form-select" name="role_id">
@@ -589,13 +650,12 @@
               <input type="password" class="form-control" name="password">
             </div>
             <div class="mb-3">
-             <label class="form-label">Phone Number</label>
-             <input type="text" class="form-control" name="phone_number" id="phoneInputEdit">
-             <div class="invalid-feedback" id="phoneErrorEdit" style="display:none; color:red;">
-              Phone number already exists.
+              <label class="form-label">Phone Number</label>
+              <input type="text" class="form-control" name="phone_number" id="phoneInputEdit">
+              <div class="invalid-feedback" id="phoneErrorEdit" style="display:none; color:red;">
+                Phone number already exists.
+              </div>
             </div>
-          </div>
-
             <div class="mb-3">
               <label class="form-label">Role</label>
               <select class="form-select" name="role_id">
@@ -667,185 +727,188 @@
 
 <script>
   function validatePhoneUnique(inputId, errorId, userId=null) {
-  const phoneInput = $(`#${inputId}`);
-  const errorDiv = $(`#${errorId}`);
-
-  phoneInput.on('blur keyup', function() {
-    const phoneNumber = phoneInput.val().trim();
-    if (!phoneNumber) {
-      errorDiv.hide();
-      phoneInput.removeClass('is-invalid');
-      return;
-    }
-
-    $.get('/users/check_phone', { phone_number: phoneNumber, user_id: userId }, function(data) {
-      if (data.exists) {
-        errorDiv.show();
-        phoneInput.addClass('is-invalid');
-      } else {
+    const phoneInput = $(`#${inputId}`);
+    const errorDiv = $(`#${errorId}`);
+    phoneInput.on('blur keyup', function() {
+      const phoneNumber = phoneInput.val().trim();
+      if (!phoneNumber) {
         errorDiv.hide();
         phoneInput.removeClass('is-invalid');
+        return;
       }
+      $.get('/users/check_phone', { phone_number: phoneNumber, user_id: userId }, function(data) {
+        if (data.exists) {
+          errorDiv.show();
+          phoneInput.addClass('is-invalid');
+        } else {
+          errorDiv.hide();
+          phoneInput.removeClass('is-invalid');
+        }
+      });
     });
+  }
+  // Apply validation to Create form
+  validatePhoneUnique('phoneInputCreate', 'phoneErrorCreate');
+  // Apply validation to Edit form after modal loads
+  $(document).on('shown.bs.modal', '#editUserModal', function() {
+    const userId = $('#editForm').attr('action').match(/update\/(\d+)/)[1];
+    validatePhoneUnique('phoneInputEdit', 'phoneErrorEdit', userId);
   });
-}
-
-// Apply validation to Create form
-validatePhoneUnique('phoneInputCreate', 'phoneErrorCreate');
-
-// Apply validation to Edit form after modal loads
-$(document).on('shown.bs.modal', '#editUserModal', function() {
-  const userId = $('#editForm').attr('action').match(/update\/(\d+)/)[1];
-  validatePhoneUnique('phoneInputEdit', 'phoneErrorEdit', userId);
-});
-
-// Prevent submission if invalid
-$('#createUserModal form, #editUserModal form').on('submit', function(e) {
-  if ($(this).find('.is-invalid').length > 0) {
-    e.preventDefault();
-    alert('Please fix errors before submitting.');
-  }
-});
-
-$(document).ready(function() {
-  let currentPage = {{ pagination.page|default(1) }};
-  let perPage = {{ pagination.per_page|default(7) }};
-  let debounceTimer;
-  const currentUserId = {{ current_user.id }};
-  const isAdmin = {{ 'true' if current_user.has_role('Admin') else 'false' }};
-
-  function debounce(func, delay) {
-    return function() {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(func, delay);
-    };
-  }
-
-  function updateTable(page) {
-    if (page) {
-      currentPage = page;
+  // Prevent submission if invalid
+  $('#createUserModal form, #editUserModal form').on('submit', function(e) {
+    if ($(this).find('.is-invalid').length > 0) {
+      e.preventDefault();
+      alert('Please fix errors before submitting.');
     }
-    const search = $('#searchInput').val().trim();
-    const sort = $('#sortFilter').val();
-    const per_page = $('#perPageFilter').val();
-
-    $('#loadingOverlay').show();
-
-    $.ajax({
-      url: '{{ url_for("mydepartments.index") }}',
-      type: 'GET',
-      headers: { 'X-Requested-With': 'XMLHttpRequest' },
-      data: { search: search, sort: sort, page: currentPage, per_page: per_page },
-      success: function(data) {
-        const tbody = $('#userTableBody');
-        tbody.empty();
-        if (data.users.length === 0) {
-          tbody.append('<tr><td colspan="9" class="text-center">No users found in your department</td></tr>');
-        } else {
-          data.users.forEach((user, index) => {
-            const isCurrentUser = user.id === currentUserId && !isAdmin;
-            const row = `
-              <tr>
-                <td>${index + 1 + (data.pagination.page - 1) * data.pagination.per_page}</td>
-                <td>
-                  ${user.image_url ? `<img src="${user.image_url}" alt="Profile Picture" class="profile-pic">` : 'N/A'}
-                </td>
-                <td>${user.username}</td>
-                <td>${user.email}</td>
-                <td>${user.phone_number}</td>
-                <td>${user.role_name}</td>
-                <td>${user.department_name}</td>
-                <td>${user.address}</td>
-                <td>
-                  <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                      <i class="bx bx-dots-horizontal-rounded"></i>
-                    </button>
-                    <ul class="dropdown-menu card-1">
-                      <li>
-                        <a class="dropdown-item" href="/users/profile/${user.id}?page=${data.pagination.page}">
-                          <i class="bx bx-user"></i> View
-                        </a>
-                      </li>
-                      <li>
-                        <a class="dropdown-item edit-link" href="#" data-user-id="${user.id}">
-                          <i class="bx bx-edit"></i> Edit
-                        </a>
-                      </li>
-                      ${!isCurrentUser ? `
-                      <li>
-                        <a class="dropdown-item text-danger delete-link" href="#" data-user-id="${user.id}" data-username="${user.username}">
-                          <i class="bx bx-trash"></i> Delete
-                        </a>
-                      </li>
-                      ` : ''}
-                    </ul>
-                  </div>
-                </td>
-              </tr>`;
-            tbody.append(row);
-          });
-        }
-
-        const pagination = $('#paginationControls');
-        pagination.empty();
-        let paginationHtml = `
-          <div class="d-flex justify-content-between align-items-center mt-3" id="paginationControls">
-            <div class="col-md-4">
-              <select class="form-select" id="perPageFilter">
-                <option value="7" ${data.pagination.per_page === 7 ? 'selected' : ''}>7 per page</option>
-                <option value="10" ${data.pagination.per_page === 10 ? 'selected' : ''}>10 per page</option>
-                <option value="25" ${data.pagination.per_page === 25 ? 'selected' : ''}>25 per page</option>
-                <option value="50" ${data.pagination.per_page === 50 ? 'selected' : ''}>50 per page</option>
-              </select>
-            </div>
-            <nav>
-              <ul class="pagination mb-0">
-        `;
-        
-        if (data.pagination.has_prev) {
-          paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${data.pagination.prev_num}">Previous</a></li>`;
-        } else {
-          paginationHtml += '<li class="page-item disabled"><span class="page-link">Previous</span></li>';
-        }
-
-        data.pagination.iter_pages.forEach(pageNum => {
-          if (pageNum) {
-            paginationHtml += `<li class="page-item ${pageNum === data.pagination.page ? 'active' : ''}">
-              <a class="page-link" href="#" data-page="${pageNum}">${pageNum}</a>
-            </li>`;
-          } else {
-            paginationHtml += '<li class="page-item disabled"><span class="page-link">...</span></li>';
-          }
-        });
-
-        if (data.pagination.has_next) {
-          paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${data.pagination.next_num}">Next</a></li>`;
-        } else {
-          paginationHtml += '<li class="page-item disabled"><span class="page-link">Next</span></li>';
-        }
-
-        paginationHtml += '</ul></nav></div>';
-        pagination.html(paginationHtml);
-
-        $('#loadingOverlay').hide();
-      },
-      error: function() {
-        $('#loadingOverlay').hide();
-        alert('Error loading users. Please try again.');
+  });
+  $(document).ready(function() {
+    let currentPage = {{ pagination.page|default(1) }};
+    let perPage = {{ pagination.per_page|default(7) }};
+    let debounceTimer;
+    const currentUserId = {{ current_user.id }};
+    const isAdmin = {{ 'true' if current_user.has_role('Admin') else 'false' }};
+    function debounce(func, delay) {
+      return function() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(func, delay);
+      };
+    }
+    function updateTable(page) {
+      if (page) {
+        currentPage = page;
       }
-    });
-  }
-
-  function handleImagePreview(inputId, previewId) {
-    const input = document.getElementById(inputId);
-    const preview = document.getElementById(previewId);
-
-    if (!input || !preview) return;
-
-    input.addEventListener('change', function () {
-      const file = this.files[0];
+      const search = $('#searchInput').val().trim();
+      const sort = $('#sortFilter').val();
+      const per_page = $('#perPageFilter').val();
+      $('#loadingOverlay').show();
+      $.ajax({
+        url: '{{ url_for("mydepartments.index") }}',
+        type: 'GET',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        data: { search: search, sort: sort, page: currentPage, per_page: per_page },
+        success: function(data) {
+          const tbody = $('#userTableBody');
+          tbody.empty();
+          if (data.users.length === 0) {
+            tbody.append('<tr><td colspan="9" class="text-center">No users found in your department</td></tr>');
+          } else {
+            data.users.forEach((user, index) => {
+              const isCurrentUser = user.id === currentUserId && !isAdmin;
+              const row = `
+                <tr>
+                  <td>${index + 1 + (data.pagination.page - 1) * data.pagination.per_page}</td>
+                  <td>
+                    ${user.image_url ? `<img src="${user.image_url}" alt="Profile Picture" class="profile-pic">` : 'N/A'}
+                  </td>
+                  <td>${user.username}</td>
+                  <td>${user.email}</td>
+                  <td>${user.phone_number}</td>
+                  <td>${user.role_name}</td>
+                  <td>${user.department_name}</td>
+                  <td>${user.address}</td>
+                  <td>
+                    <div class="dropdown">
+                      <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bx bx-dots-horizontal-rounded"></i>
+                      </button>
+                      <ul class="dropdown-menu card-1">
+                        <li>
+                          <a class="dropdown-item" href="/users/profile/${user.id}?page=${data.pagination.page}">
+                            <i class="bx bx-user"></i> View
+                          </a>
+                        </li>
+                        <li>
+                          <a class="dropdown-item edit-link" href="#" data-user-id="${user.id}">
+                            <i class="bx bx-edit"></i> Edit
+                          </a>
+                        </li>
+                        ${!isCurrentUser ? `
+                        <li>
+                          <a class="dropdown-item text-danger delete-link" href="#" data-user-id="${user.id}" data-username="${user.username}">
+                            <i class="bx bx-trash"></i> Delete
+                          </a>
+                        </li>
+                        ` : ''}
+                      </ul>
+                    </div>
+                  </td>
+                </tr>`;
+              tbody.append(row);
+            });
+          }
+          const pagination = $('#paginationControls');
+          pagination.empty();
+          let paginationHtml = `
+            <div class="d-flex justify-content-between align-items-center mt-3" id="paginationControls">
+              <div class="col-md-4">
+                <select class="form-select" id="perPageFilter">
+                  <option value="7" ${data.pagination.per_page === 7 ? 'selected' : ''}>7 per page</option>
+                  <option value="10" ${data.pagination.per_page === 10 ? 'selected' : ''}>10 per page</option>
+                  <option value="25" ${data.pagination.per_page === 25 ? 'selected' : ''}>25 per page</option>
+                  <option value="50" ${data.pagination.per_page === 50 ? 'selected' : ''}>50 per page</option>
+                </select>
+              </div>
+              <nav>
+                <ul class="pagination mb-0">
+          `;
+          if (data.pagination.has_prev) {
+            paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${data.pagination.prev_num}">Previous</a></li>`;
+          } else {
+            paginationHtml += '<li class="page-item disabled"><span class="page-link">Previous</span></li>';
+          }
+          data.pagination.iter_pages.forEach(pageNum => {
+            if (pageNum) {
+              paginationHtml += `<li class="page-item ${pageNum === data.pagination.page ? 'active' : ''}">
+                <a class="page-link" href="#" data-page="${pageNum}">${pageNum}</a>
+              </li>`;
+            } else {
+              paginationHtml += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+            }
+          });
+          if (data.pagination.has_next) {
+            paginationHtml += `<li class="page-item"><a class="page-link" href="#" data-page="${data.pagination.next_num}">Next</a></li>`;
+          } else {
+            paginationHtml += '<li class="page-item disabled"><span class="page-link">Next</span></li>';
+          }
+          paginationHtml += '</ul></nav></div>';
+          pagination.html(paginationHtml);
+          $('#loadingOverlay').hide();
+        },
+        error: function() {
+          $('#loadingOverlay').hide();
+          alert('Error loading users. Please try again.');
+        }
+      });
+    }
+    function handleImagePreview(inputId, previewId) {
+      const input = document.getElementById(inputId);
+      const preview = document.getElementById(previewId);
+      if (!input || !preview) return;
+      input.addEventListener('change', function () {
+        const file = this.files[0];
+        if (file && file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            preview.innerHTML = `<img src="${e.target.result}" alt="Profile Picture">`;
+            preview.classList.remove('image-preview-placeholder');
+            addRemoveButton(inputId, previewId);
+            if (inputId === 'imageInputEdit') {
+              $('#removeImageInput').val('0');
+            }
+          };
+          reader.onerror = function () {
+            console.error('Error reading file');
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+    function handleImageDrop(event, inputId, previewId) {
+      const input = document.getElementById(inputId);
+      const preview = document.getElementById(previewId);
+      const file = event.dataTransfer.files[0];
       if (file && file.type.startsWith('image/')) {
+        input.files = event.dataTransfer.files;
         const reader = new FileReader();
         reader.onload = function (e) {
           preview.innerHTML = `<img src="${e.target.result}" alt="Profile Picture">`;
@@ -856,143 +919,106 @@ $(document).ready(function() {
           }
         };
         reader.onerror = function () {
-          console.error('Error reading file');
+          console.error('Error reading dropped file');
         };
         reader.readAsDataURL(file);
       }
+    }
+    function addRemoveButton(inputId, previewId) {
+      const preview = document.getElementById(previewId);
+      const container = preview.parentElement;
+      let removeBtn = container.querySelector('.remove-image-btn');
+      if (!removeBtn) {
+        removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-image-btn';
+        removeBtn.textContent = 'Remove Image';
+        removeBtn.type = 'button';
+        removeBtn.onclick = () => removeImage(inputId, previewId);
+        container.appendChild(removeBtn);
+      }
+    }
+    function removeImage(inputId, previewId) {
+      const input = document.getElementById(inputId);
+      const preview = document.getElementById(previewId);
+      input.value = '';
+      preview.innerHTML = '';
+      preview.classList.add('image-preview-placeholder');
+      const removeBtn = preview.parentElement.querySelector('.remove-image-btn');
+      if (removeBtn) {
+        removeBtn.remove();
+      }
+      if (inputId === 'imageInputEdit') {
+        $('#removeImageInput').val('1');
+      }
+    }
+    // Initialize image preview for Create and Edit modals
+    handleImagePreview('imageInputCreate', 'imagePreviewCreate');
+    handleImagePreview('imageInputEdit', 'imagePreviewEdit');
+    $('#searchInput').on('input', debounce(function() {
+      currentPage = 1;
+      updateTable();
+    }, 300));
+    $('#sortFilter').on('change', function() {
+      currentPage = 1;
+      updateTable();
     });
-  }
-
-  function handleImageDrop(event, inputId, previewId) {
-    const input = document.getElementById(inputId);
-    const preview = document.getElementById(previewId);
-    const file = event.dataTransfer.files[0];
-
-    if (file && file.type.startsWith('image/')) {
-      input.files = event.dataTransfer.files;
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        preview.innerHTML = `<img src="${e.target.result}" alt="Profile Picture">`;
-        preview.classList.remove('image-preview-placeholder');
-        addRemoveButton(inputId, previewId);
-        if (inputId === 'imageInputEdit') {
+    $('#perPageFilter').on('change', function() {
+      perPage = $(this).val();
+      currentPage = 1;
+      updateTable();
+    });
+    $('#clearFilters').on('click', function() {
+      $('#searchInput').val('');
+      $('#sortFilter').val('username_asc');
+      $('#perPageFilter').val('7');
+      perPage = 7;
+      currentPage = 1;
+      updateTable();
+    });
+    $(document).on('click', '.pagination a.page-link', function(e) {
+      e.preventDefault();
+      const page = $(this).data('page');
+      window.history.pushState({}, '', `?page=${page}&search=${encodeURIComponent($('#searchInput').val())}&sort=${$('#sortFilter').val()}&per_page=${$('#perPageFilter').val()}`);
+      updateTable(page);
+    });
+    $(document).on('click', '.edit-link', function(e) {
+      e.preventDefault();
+      const userId = $(this).data('user-id');
+      $.get(`/mydepartments/${userId}/json`, function(data) {
+        $('#editForm input[name="username"]').val(data.username);
+        $('#editForm input[name="email"]').val(data.email);
+        $('#editForm input[name="phone_number"]').val(data.phone_number || '');
+        $('#editForm select[name="role_id"]').val(data.role_id || '');
+        $('#editForm select[name="department_id"]').val(data.department_id || '');
+        $('#editForm textarea[name="address"]').val(data.address || '');
+        $('#editForm input[name="password"]').val('');
+        const preview = document.getElementById('imagePreviewEdit');
+        preview.innerHTML = data.image_url ? `<img src="${data.image_url}" alt="Profile Picture">` : '';
+        if (data.image_url) {
+          preview.classList.remove('image-preview-placeholder');
+          addRemoveButton('imageInputEdit', 'imagePreviewEdit');
+          $('#removeImageInput').val('0');
+        } else {
+          preview.classList.add('image-preview-placeholder');
+          const removeBtn = preview.parentElement.querySelector('.remove-image-btn');
+          if (removeBtn) removeBtn.remove();
           $('#removeImageInput').val('0');
         }
-      };
-      reader.onerror = function () {
-        console.error('Error reading dropped file');
-      };
-      reader.readAsDataURL(file);
-    }
-  }
-
-  function addRemoveButton(inputId, previewId) {
-    const preview = document.getElementById(previewId);
-    const container = preview.parentElement;
-    let removeBtn = container.querySelector('.remove-image-btn');
-    if (!removeBtn) {
-      removeBtn = document.createElement('button');
-      removeBtn.className = 'remove-image-btn';
-      removeBtn.textContent = 'Remove Image';
-      removeBtn.type = 'button';
-      removeBtn.onclick = () => removeImage(inputId, previewId);
-      container.appendChild(removeBtn);
-    }
-  }
-
-  function removeImage(inputId, previewId) {
-    const input = document.getElementById(inputId);
-    const preview = document.getElementById(previewId);
-    input.value = '';
-    preview.innerHTML = '';
-    preview.classList.add('image-preview-placeholder');
-    const removeBtn = preview.parentElement.querySelector('.remove-image-btn');
-    if (removeBtn) {
-      removeBtn.remove();
-    }
-    if (inputId === 'imageInputEdit') {
-      $('#removeImageInput').val('1');
-    }
-  }
-
-  // Initialize image preview for Create and Edit modals
-  handleImagePreview('imageInputCreate', 'imagePreviewCreate');
-  handleImagePreview('imageInputEdit', 'imagePreviewEdit');
-
-  $('#searchInput').on('input', debounce(function() {
-    currentPage = 1;
-    updateTable();
-  }, 300));
-
-  $('#sortFilter').on('change', function() {
-    currentPage = 1;
-    updateTable();
-  });
-
-  $('#perPageFilter').on('change', function() {
-    perPage = $(this).val();
-    currentPage = 1;
-    updateTable();
-  });
-
-  $('#clearFilters').on('click', function() {
-    $('#searchInput').val('');
-    $('#sortFilter').val('username_asc');
-    $('#perPageFilter').val('7');
-    perPage = 7;
-    currentPage = 1;
-    updateTable();
-  });
-
-  $(document).on('click', '.pagination a.page-link', function(e) {
-    e.preventDefault();
-    const page = $(this).data('page');
-    window.history.pushState({}, '', `?page=${page}&search=${encodeURIComponent($('#searchInput').val())}&sort=${$('#sortFilter').val()}&per_page=${$('#perPageFilter').val()}`);
-    updateTable(page);
-  });
-
-  $(document).on('click', '.edit-link', function(e) {
-    e.preventDefault();
-    const userId = $(this).data('user-id');
-    $.get(`/mydepartments/${userId}/json`, function(data) {
-      $('#editForm input[name="username"]').val(data.username);
-      $('#editForm input[name="email"]').val(data.email);
-      $('#editForm input[name="phone_number"]').val(data.phone_number || '');
-      $('#editForm select[name="role_id"]').val(data.role_id || '');
-      $('#editForm select[name="department_id"]').val(data.department_id || '');
-      $('#editForm textarea[name="address"]').val(data.address || '');
-      $('#editForm input[name="password"]').val('');
-
-      const preview = document.getElementById('imagePreviewEdit');
-      preview.innerHTML = data.image_url ? `<img src="${data.image_url}" alt="Profile Picture">` : '';
-      if (data.image_url) {
-        preview.classList.remove('image-preview-placeholder');
-        addRemoveButton('imageInputEdit', 'imagePreviewEdit');
-        $('#removeImageInput').val('0');
-      } else {
-        preview.classList.add('image-preview-placeholder');
-        const removeBtn = preview.parentElement.querySelector('.remove-image-btn');
-        if (removeBtn) removeBtn.remove();
-        $('#removeImageInput').val('0');
-      }
-
-      $('#editForm').attr('action', `/mydepartments/update/${userId}?page=${currentPage}`);
-      $('#editUserModal').modal('show');
-    }).fail(function() {
-      alert('Error loading user data. Please try again.');
+        $('#editForm').attr('action', `/mydepartments/update/${userId}?page=${currentPage}`);
+        $('#editUserModal').modal('show');
+      }).fail(function() {
+        alert('Error loading user data. Please try again.');
+      });
     });
+    $(document).on('click', '.delete-link', function(e) {
+      e.preventDefault();
+      const userId = $(this).data('user-id');
+      const username = $(this).data('username');
+      $('#deleteUsername').text(username);
+      $('#deleteForm').attr('action', `/mydepartments/delete/${userId}?page=${currentPage}`);
+      $('#deleteUserModal').modal('show');
+    });
+    $('#sortFilter').val('{{ sort|default('username_asc') }}');
   });
-
-  $(document).on('click', '.delete-link', function(e) {
-    e.preventDefault();
-    const userId = $(this).data('user-id');
-    const username = $(this).data('username');
-    $('#deleteUsername').text(username);
-    $('#deleteForm').attr('action', `/mydepartments/delete/${userId}?page=${currentPage}`);
-    $('#deleteUserModal').modal('show');
-  });
-
-  $('#sortFilter').val('{{ sort|default('username_asc') }}');
-});
 </script>
 {% endblock %}
