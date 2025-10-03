@@ -28,7 +28,7 @@
         outline: 2px solid #0d6efd;
         outline-offset: 2px;
     }
-    .party-a-container, .focal-person-container {
+    .party-a-container, .focal-person-container, .installment-container {
         border: 1px solid #ced4da;
         padding: 15px;
         border-radius: 5px;
@@ -43,14 +43,22 @@
     #party_b_new_name_container, #deduct_tax_code_container, #vat_organization_name_container {
         display: none;
     }
+
+    /* ✅ Desktop: Keep fixed width for form card and header */
     .form-card {
         width: 1200px;
-        margin: auto;
+        margin: auto; /* centers horizontally */
         background: #fff;
         padding: 25px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         margin-bottom: 2%;
     }
+
+    .form-header h1 {
+        font-size: 1.8rem;
+        font-weight: 600;
+    }
+
     .form-header {
         font-size: 1.2rem;
         font-weight: 500;
@@ -58,15 +66,96 @@
         border-bottom: 2px solid #dee2e6;
         padding-bottom: 5px;
         width: 1200px;
-        margin: auto;
+        margin: auto; /* centers horizontally */
     }
-    .form-header h1 {
-        font-size: 1.8rem;
-        font-weight: 600;
+
+    /* ✅ Responsive overrides for tablet (sm/md) and mobile (xs) - full width, reduced padding */
+    @media (max-width: 1199px) {
+        .form-card {
+            width: 100%;
+            padding: 20px;
+            margin-bottom: 2%;
+        }
+        .form-header {
+            width: 100%;
+            margin: 20px auto 15px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .form-card {
+            padding: 15px;
+        }
+        .form-header h1 {
+            font-size: 1.5rem;
+        }
+        .form-header {
+            font-size: 1rem;
+            margin: 15px auto 10px;
+            padding-bottom: 3px;
+        }
+        .party-a-container, .focal-person-container, .installment-container {
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .form-card {
+            padding: 10px;
+        }
+        .form-header h1 {
+            font-size: 1.3rem;
+        }
+        .form-header {
+            margin: 10px auto 8px;
+        }
+        .party-a-container, .focal-person-container, .installment-container {
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        /* Full-width buttons on mobile for better touch */
+        .btn {
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        /* Prevent iOS zoom on inputs */
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="number"],
+        input[type="date"],
+        select,
+        textarea {
+            font-size: 16px;
+        }
+    }
+
+    /* Section headers styling */
+    .section-header {
+        font-size: 1.1rem;
+        font-weight: bold;
+        margin: 25px 0 15px 0;
+        padding: 10px 0;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    @media (max-width: 768px) {
+        .section-header {
+            font-size: 1rem;
+            margin: 20px 0 10px 0;
+            padding: 8px 0;
+        }
+    }
+
+    /* Ensure textareas resize nicely */
+    textarea {
+        resize: vertical;
+        min-height: 80px;
     }
 </style>
 
-<div class="container mt-4">
+<div class="container-fluid mt-4 px-3 px-md-4"> <!-- Fluid for mobile, standard padding on desktop -->
     <div class="form-header">
         <h1 class="text-center mb-0">Edit Contract</h1>
     </div>
@@ -78,22 +167,22 @@
             <!-- Project & Contract Details -->
             <div class="section-header">Project & Contract Details</div>
             <div class="row g-3">
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                     <label for="project_title" class="form-label">Project Title</label>
                     <input type="text" class="form-control" id="project_title" name="project_title" value="{{ form_data.project_title | default('') }}" placeholder="e.g., Consultant for Budget Analysis" required>
                     <div class="invalid-feedback">Please enter the project title.</div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                     <label for="output_description" class="form-label">Output Description</label>
                     <input type="text" class="form-control" id="output_description" name="output_description" value="{{ form_data.output_description | default('') }}" placeholder="e.g., Budget Analysis on MAFF's Budget Allocation" required>
                     <div class="invalid-feedback">Please enter the output description.</div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                     <label for="contract_number" class="form-label">Contract Number</label>
                     <input type="text" class="form-control" id="contract_number" name="contract_number" value="{{ form_data.contract_number | default('') }}" placeholder="e.g., NGOF/2025-005" pattern="NGOF/\d{4}-\d{3}" required>
                     <div class="invalid-feedback">Please enter a valid contract number (e.g., NGOF/2025-005).</div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                     <label for="tax_percentage" class="form-label">Tax Percentage (%)</label>
                     <div class="input-group">
                         <select class="form-select" id="tax_percentage" name="tax_percentage" required onchange="toggleTaxFields()">
@@ -123,7 +212,7 @@
             <!-- Party A Information -->
             <div class="section-header">Party A Information (At least one required)</div>
             <div class="row g-3">
-                <div class="col-md-12">
+                <div class="col-12">
                     <label for="organization_name" class="form-label">Organization Name</label>
                     <input type="text" class="form-control" id="organization_name" name="organization_name" value="{{ form_data.organization_name | default('The NGO Forum on Cambodia') }}" placeholder="e.g., The NGO Forum on Cambodia" required>
                     <div class="invalid-feedback">Please enter the organization name.</div>
@@ -136,7 +225,7 @@
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label">Select Party A</label>
-                            <select class="form-select party-a-select" name="party_a_select[]">
+                            <select class="form-select party-a-select" name="party_a_select[]" onchange="populatePartyA(this)">
                                 <option value="" {{ 'selected' if not person.name else '' }}>Select a Party A or enter manually</option>
                                 <option value="new" {{ 'selected' if person.name and person.name|lower not in party_a_data else '' }}>Enter new Party A</option>
                                 {% for key, person_data in party_a_data.items() %}
@@ -144,12 +233,12 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             <label for="party_a_name_{{ loop.index0 }}" class="form-label">Name</label>
                             <input type="text" class="form-control party-a-name" id="party_a_name_{{ loop.index0 }}" name="party_a_name[]" value="{{ person.name | default('') }}" placeholder="e.g., Mr. SOEUNG Saroeun" pattern="[a-zA-Z\s\.]+" required>
                             <div class="invalid-feedback">Please enter a valid name (letters, spaces, and periods only).</div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             <label for="party_a_position_{{ loop.index0 }}" class="form-label">Position</label>
                             <input type="text" class="form-control party-a-position" id="party_a_position_{{ loop.index0 }}" name="party_a_position[]" value="{{ person.position | default('') }}" placeholder="e.g., Executive Director" pattern="[a-zA-Z\s]+" required>
                             <div class="invalid-feedback">Please enter a valid position (letters and spaces only).</div>
@@ -173,7 +262,7 @@
             <!-- Party A Signer Selection -->
             <div class="section-header">Party A Signer</div>
             <div class="row g-3">
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                     <label for="party_a_signer" class="form-label">Select Party A Signer</label>
                     <select class="form-select" id="party_a_signer" name="party_a_signer" required>
                         <option value="" disabled {{ 'selected' if not form_data.party_a_signer else '' }}>Select a signer</option>
@@ -188,7 +277,7 @@
             <!-- Party B Information -->
             <div class="section-header">Party B Information</div>
             <div class="row g-3">
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                     <label for="party_b_select" class="form-label">Party B Signature Name</label>
                     <select class="form-select" id="party_b_select" name="party_b_select" onchange="handlePartyBSelect(this)" required>
                         <option value="" disabled {{ 'selected' if not form_data.party_b_select else '' }}>Select Party B or enter new name</option>
@@ -199,22 +288,22 @@
                     </select>
                     <div class="invalid-feedback">Please select or enter a Party B name.</div>
                 </div>
-                <div class="col-md-6" id="party_b_new_name_container">
+                <div class="col-12 col-md-6" id="party_b_new_name_container">
                     <label for="party_b_signature_name" class="form-label">New Party B Signature Name</label>
                     <input type="text" class="form-control" id="party_b_signature_name" name="party_b_signature_name" value="{{ form_data.party_b_signature_name if form_data.party_b_select == 'new' else '' }}" placeholder="e.g., Mr. SEAN Bunrith" pattern="[a-zA-Z\s\.]+" required>
                     <div class="invalid-feedback">Please enter a valid name (letters, spaces, and periods only).</div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                     <label for="party_b_position" class="form-label">Party B Position</label>
                     <input type="text" class="form-control" id="party_b_position" name="party_b_position" value="{{ form_data.party_b_position | default('Freelance Consultant') }}" placeholder="e.g., Freelance Consultant" pattern="[a-zA-Z\s]+">
                     <div class="invalid-feedback">Please enter a valid position (letters and spaces only).</div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                     <label for="party_b_phone" class="form-label">Party B Phone</label>
                     <input type="tel" class="form-control" id="party_b_phone" name="party_b_phone" value="{{ form_data.party_b_phone | default('') }}" placeholder="e.g., 012 845 091 or +855 12 845 091" pattern="\+?\d{1,4}([-.\s]?\d{1,4}){2,3}">
                     <div class="invalid-feedback">Please enter a valid phone number.</div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                     <label for="party_b_email" class="form-label">Party B Email</label>
                     <input type="email" class="form-control" id="party_b_email" name="party_b_email" value="{{ form_data.party_b_email | default('') }}" placeholder="e.g., Seanbunrith@gmail.com">
                     <div class="invalid-feedback">Please enter a valid email address.</div>
@@ -235,7 +324,7 @@
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label">Select Focal Person</label>
-                            <select class="form-select focal-person-select" name="focal_person_select[]">
+                            <select class="form-select focal-person-select" name="focal_person_select[]" onchange="populateFocalPerson(this)">
                                 <option value="" {{ 'selected' if not person.name else '' }}>Select a focal person or enter manually</option>
                                 <option value="new" {{ 'selected' if person.name and person.name|lower not in focal_person_data else '' }}>Enter new focal person</option>
                                 {% for key, person_data in focal_person_data.items() %}
@@ -243,22 +332,22 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             <label for="focal_person_name_{{ loop.index0 }}" class="form-label">Name</label>
                             <input type="text" class="form-control focal-person-name" id="focal_person_name_{{ loop.index0 }}" name="focal_person_name[]" value="{{ person.name | default('') }}" placeholder="e.g., Mr. Mar Sophal" pattern="[a-zA-Z\s\.]+" required>
                             <div class="invalid-feedback">Please enter a valid name (letters, spaces, and periods only).</div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             <label for="focal_person_position_{{ loop.index0 }}" class="form-label">Position</label>
                             <input type="text" class="form-control focal-person-position" id="focal_person_position_{{ loop.index0 }}" name="focal_person_position[]" value="{{ person.position | default('') }}" placeholder="e.g., PALI Program Manager" pattern="[a-zA-Z\s]+" required>
                             <div class="invalid-feedback">Please enter a valid position (letters and spaces only).</div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             <label for="focal_person_phone_{{ loop.index0 }}" class="form-label">Phone</label>
                             <input type="tel" class="form-control focal-person-phone" id="focal_person_phone_{{ loop.index0 }}" name="focal_person_phone[]" value="{{ person.phone | default('') }}" placeholder="e.g., 012 845 091 or +855 12 845 091" pattern="\+?\d{1,4}([-.\s]?\d{1,4}){2,3}" required>
                             <div class="invalid-feedback">Please enter a valid phone number.</div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             <label for="focal_person_email_{{ loop.index0 }}" class="form-label">Email</label>
                             <input type="email" class="form-control focal-person-email" id="focal_person_email_{{ loop.index0 }}" name="focal_person_email[]" value="{{ person.email | default('') }}" placeholder="e.g., sophal@ngoforum.org.kh" required>
                             <div class="invalid-feedback">Please enter a valid email address.</div>
@@ -277,7 +366,7 @@
             <!-- Agreement Details -->
             <div class="section-header">Agreement Details</div>
             <div class="row g-3">
-                <div class="col-md-4">
+                <div class="col-12 col-md-4">
                     <label for="agreement_start_date" class="form-label">Agreement Start Date</label>
                     <div class="input-group">
                         <input type="date" class="form-control" id="agreement_start_date" name="agreement_start_date" value="{{ form_data.agreement_start_date | default('') }}" required aria-describedby="agreement_start_date_icon">
@@ -287,7 +376,7 @@
                         <div class="invalid-feedback">Please select a start date.</div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-12 col-md-4">
                     <label for="agreement_end_date" class="form-label">Agreement End Date</label>
                     <div class="input-group">
                         <input type="date" class="form-control" id="agreement_end_date" name="agreement_end_date" value="{{ form_data.agreement_end_date | default('') }}" required aria-describedby="agreement_end_date_icon">
@@ -297,12 +386,12 @@
                         <div class="invalid-feedback">Please select an end date.</div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-12 col-md-4">
                     <label for="total_fee_usd" class="form-label">Total Fee USD (Gross)</label>
                     <input type="number" class="form-control" id="total_fee_usd" name="total_fee_usd" value="{{ form_data.total_fee_usd | default(0.0) }}" min="0" step="0.01" required>
                     <div class="invalid-feedback">Please enter a valid total fee.</div>
                 </div>
-                <div class="col-md-12">
+                <div class="col-12">
                     <label for="total_fee_words" class="form-label">Total Fee in Words</label>
                     <input type="text" class="form-control" id="total_fee_words" name="total_fee_words" value="{{ form_data.total_fee_words | default('') }}" readonly>
                     <div class="invalid-feedback">Total fee in words will be auto-generated.</div>
@@ -310,7 +399,7 @@
                 <div class="col-12" id="installmentContainer">
                     <label class="form-label">Payment Installments (At least one required)</label>
                     {% for installment in form_data.payment_installments | default([{'description': '', 'deliverables': '', 'dueDate': ''}]) %}
-                    <div class="installment-container mb-3">
+                    <div class="installment-container mb-3 border p-3 rounded">
                         <div class="row g-3">
                             <div class="col-12">
                                 <label class="form-label">Installment Description</label>
@@ -328,7 +417,7 @@
                             </div>
                             <div class="col-12">
                                 <label for="paymentInstallmentDeliverables{{ loop.index0 }}" class="form-label">Deliverables</label>
-                                <textarea class="form-control" id="paymentInstallmentDeliverables{{ loop.index0 }}" name="paymentInstallmentDeliverables[]" rows="6" required>{{ installment.deliverables | default('') }}</textarea>
+                                <textarea class="form-control" id="paymentInstallmentDeliverables{{ loop.index0 }}" name="paymentInstallmentDeliverables[]" rows="6" required spellcheck="false" aria-label="Deliverables for installment">{{ installment.deliverables | default('') }}</textarea>
                                 <div class="invalid-feedback">Please enter deliverables for this installment.</div>
                             </div>
                             <div class="col-12">
@@ -354,7 +443,7 @@
             <div class="section-header">Custom Article Sentences (Optional)</div>
             <div class="col-12" id="articleContainer">
                 <div class="row g-3 article-container mb-2 d-none">
-                    <div class="col-md-4">
+                    <div class="col-12 col-md-4">
                         <label class="form-label">Article Number</label>
                         <select class="form-select" name="articleNumber[]">
                             {% for i in range(1, 17) %}
@@ -362,7 +451,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-8">
+                    <div class="col-12 col-md-8">
                         <label class="form-label">Custom Sentence</label>
                         <div class="input-group">
                             <input type="text" class="form-control" name="customSentence[]" placeholder="e.g., Additional requirements for this article...">
@@ -372,7 +461,7 @@
                 </div>
                 {% for article in form_data.articles | default([]) %}
                 <div class="row g-3 article-container mb-2">
-                    <div class="col-md-4">
+                    <div class="col-12 col-md-4">
                         <label class="form-label">Article Number</label>
                         <select class="form-select" name="articleNumber[]">
                             {% for i in range(1, 17) %}
@@ -380,7 +469,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-8">
+                    <div class="col-12 col-md-8">
                         <label class="form-label">Custom Sentence</label>
                         <div class="input-group">
                             <input type="text" class="form-control" name="customSentence[]" value="{{ article.custom_sentence | default('') }}" placeholder="e.g., Additional requirements for this article...">
@@ -397,7 +486,7 @@
             <!-- Signatures -->
             <div class="section-header">Signatures</div>
             <div class="row g-3">
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                     <label for="party_b_signature_name_confirm" class="form-label">Party B Signature Name (Confirm)</label>
                     <input type="text" class="form-control" id="party_b_signature_name_confirm" name="party_b_signature_name_confirm" value="{{ form_data.party_b_signature_name_confirm | default(form_data.party_b_signature_name) }}" pattern="[a-zA-Z\s\.]+" required>
                     <div class="invalid-feedback">Please confirm Party B signature name.</div>
@@ -406,7 +495,7 @@
 
             <!-- Submit Button -->
             <div class="text-center mt-4">
-                <button type="submit" class="btn btn-primary">Update Contract</button>
+                <button type="submit" class="btn btn-primary btn-lg">Update Contract</button>
             </div>
         </form>
     </div>
@@ -619,11 +708,11 @@
         newPartyA.querySelector('.party-a-address').value = '';
 
         newPartyA.querySelector('.party-a-name').id = `party_a_name_${timestamp}`;
-        newPartyA.querySelector('label[for^="party_a_name"]').setAttribute('for', `party_a_name_${timestamp}`);
+        newPartyA.querySelectorAll('label[for^="party_a_name_"]')[0].setAttribute('for', `party_a_name_${timestamp}`);
         newPartyA.querySelector('.party-a-position').id = `party_a_position_${timestamp}`;
-        newPartyA.querySelector('label[for^="party_a_position"]').setAttribute('for', `party_a_position_${timestamp}`);
+        newPartyA.querySelectorAll('label[for^="party_a_position_"]')[0].setAttribute('for', `party_a_position_${timestamp}`);
         newPartyA.querySelector('.party-a-address').id = `party_a_address_${timestamp}`;
-        newPartyA.querySelector('label[for^="party_a_address"]').setAttribute('for', `party_a_address_${timestamp}`);
+        newPartyA.querySelectorAll('label[for^="party_a_address_"]')[0].setAttribute('for', `party_a_address_${timestamp}`);
 
         const removeButton = newPartyA.querySelector('.btn-remove-party-a');
         removeButton.classList.remove('d-none');
@@ -667,13 +756,13 @@
         newFocalPerson.querySelector('.focal-person-email').value = '';
 
         newFocalPerson.querySelector('.focal-person-name').id = `focal_person_name_${timestamp}`;
-        newFocalPerson.querySelector('label[for^="focal_person_name"]').setAttribute('for', `focal_person_name_${timestamp}`);
+        newFocalPerson.querySelectorAll('label[for^="focal_person_name_"]')[0].setAttribute('for', `focal_person_name_${timestamp}`);
         newFocalPerson.querySelector('.focal-person-position').id = `focal_person_position_${timestamp}`;
-        newFocalPerson.querySelector('label[for^="focal_person_position"]').setAttribute('for', `focal_person_position_${timestamp}`);
+        newFocalPerson.querySelectorAll('label[for^="focal_person_position_"]')[0].setAttribute('for', `focal_person_position_${timestamp}`);
         newFocalPerson.querySelector('.focal-person-phone').id = `focal_person_phone_${timestamp}`;
-        newFocalPerson.querySelector('label[for^="focal_person_phone"]').setAttribute('for', `focal_person_phone_${timestamp}`);
+        newFocalPerson.querySelectorAll('label[for^="focal_person_phone_"]')[0].setAttribute('for', `focal_person_phone_${timestamp}`);
         newFocalPerson.querySelector('.focal-person-email').id = `focal_person_email_${timestamp}`;
-        newFocalPerson.querySelector('label[for^="focal_person_email"]').setAttribute('for', `focal_person_email_${timestamp}`);
+        newFocalPerson.querySelectorAll('label[for^="focal_person_email_"]')[0].setAttribute('for', `focal_person_email_${timestamp}`);
 
         const removeButton = newFocalPerson.querySelector('.btn-remove-focal-person');
         removeButton.classList.remove('d-none');
@@ -777,6 +866,7 @@
 
         newInstallment.querySelector('textarea').id = `paymentInstallmentDeliverables${timestamp}`;
         newInstallment.querySelector('label[for^="paymentInstallmentDeliverables"]').setAttribute('for', `paymentInstallmentDeliverables${timestamp}`);
+        newInstallment.querySelector('label[for^="paymentInstallmentDeliverables"]').setAttribute('aria-label', `Deliverables for installment ${timestamp}`);
         newInstallment.querySelector('input[name="paymentInstallmentDueDate[]"]').setAttribute('aria-describedby', `paymentInstallmentDueDateIcon${timestamp}`);
         newInstallment.querySelector('.input-group-text').id = `paymentInstallmentDueDateIcon${timestamp}`;
 
@@ -823,6 +913,9 @@
         const template = container.querySelector('.article-container.d-none');
         const newArticle = template.cloneNode(true);
         newArticle.classList.remove('d-none');
+
+        newArticle.querySelector('input').value = '';
+        newArticle.querySelector('select').selectedIndex = 0;
 
         newArticle.querySelector('.btn-remove-article').addEventListener('click', function() {
             newArticle.remove();
@@ -905,12 +998,12 @@
 
         // Initialize date pickers
         document.querySelectorAll('input[type="date"]').forEach(input => {
-            const icon = input.nextElementSibling;
-            if (icon && icon.classList.contains('input-group-text')) {
-                input.addEventListener('click', function() {
-                    this.showPicker();
-                });
-                icon.addEventListener('click', function() {
+            input.addEventListener('click', function() {
+                this.showPicker();
+            });
+            const calendarIcon = input.parentElement.querySelector('.input-group-text');
+            if (calendarIcon) {
+                calendarIcon.addEventListener('click', function() {
                     input.focus();
                     input.showPicker();
                 });
@@ -928,6 +1021,18 @@
 
         // Initialize tax fields visibility
         toggleTaxFields();
+
+        // Listen for changes in Party A name fields to update signer options
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('party-a-name')) {
+                updatePartyASignerOptions();
+            }
+        });
+
+        updatePartyARemoveButtons();
+        updateFocalPersonRemoveButtons();
+        updateRemoveButtons();
+        updatePartyASignerOptions();
     });
 </script>
 {% endblock %}

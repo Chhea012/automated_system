@@ -86,6 +86,22 @@
             width: 100%;
             margin-top: 0.5rem;
         }
+        .department-container {
+            margin-right: 15px;
+            margin-left: 15px;
+        }
+    }
+    @media (max-width: 576px) {
+        .department-container {
+            margin-right: 10px;
+            margin-left: 10px;
+        }
+        .filter-card {
+            padding: 1rem;
+        }
+        .filter-card .form-label {
+            font-size: 0.875rem;
+        }
     }
     .chart-container {
         position: relative;
@@ -98,9 +114,40 @@
             height: 250px; /* Adjust height for smaller screens */
         }
     }
+    @media (max-width: 576px) {
+        .chart-container {
+            height: 200px;
+        }
+    }
     .dropdown-item.active {
         background-color: #0d6efd;
         color: #ffffff;
+    }
+    /* Hide specific columns on mobile */
+    @media (max-width: 767.98px) {
+        .mobile-hidden {
+            display: none !important;
+        }
+        .table-custom thead th.mobile-hidden,
+        .table-custom tbody td.mobile-hidden {
+            display: none !important;
+        }
+        .table-custom {
+            font-size: 0.875rem;
+        }
+        .table-custom td {
+            padding: 8px 4px;
+        }
+    }
+    /* Tablet adjustments */
+    @media (max-width: 991.98px) and (min-width: 768px) {
+        .table-custom td {
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+        .chart-container {
+            height: 280px;
+        }
     }
 </style>
 
@@ -134,7 +181,7 @@
 
     <!-- Charts Section -->
     <div class="row mb-4">
-        <div class="col-lg-8">
+        <div class="col-12 col-lg-8">
             <div class="card card-1">
                 <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">{{ chart_title }}</h6>
@@ -155,7 +202,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-lg-4 mt-3 mt-lg-0">
+        <div class="col-12 col-lg-4 mt-3 mt-lg-0">
             <div class="card card-1">
                 <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">{{ pie_title }}</h6>
@@ -187,9 +234,9 @@
     <!-- Filters -->
     <div class="card card-1 mb-4">
         <div class="card-body">
-            <form class="row g-3 align-items-center">
+            <form class="row g-3 align-items-end">
                 <!-- Department -->
-                <div class="col-md-4">
+                <div class="col-12 col-md-4">
                     <label for="departmentSelect" class="form-label fw-semibold">
                         <i class='bx bx-building me-1'></i> Department
                     </label>
@@ -204,7 +251,7 @@
                 </div>
 
                 <!-- Month/Year -->
-                <div class="col-md-3">
+                <div class="col-12 col-md-3">
                     <label for="monthYearSelect" class="form-label fw-semibold">
                         <i class='bx bx-calendar me-1'></i> Month / Year
                     </label>
@@ -216,7 +263,7 @@
                 </div>
 
                 <!-- Search -->
-                <div class="col-md-5">
+                <div class="col-12 col-md-5">
                     <label for="searchInput" class="form-label fw-semibold">
                         <i class='bx bx-search me-1'></i> Search
                     </label>
@@ -239,10 +286,10 @@
                     <thead>
                         <tr>
                             <th onclick="sortTable('contract_number')">No. <i class="bx bx-sort"></i></th>
-                            <th onclick="sortTable('project_title')">Project Title <i class="bx bx-sort"></i></th>
+                            <th class="mobile-hidden" onclick="sortTable('project_title')">Project Title <i class="bx bx-sort"></i></th>
                             <th>Department</th>
-                            <th>Manager</th>
-                            <th>Contract Date</th>
+                            <th class="mobile-hidden">Manager</th>
+                            <th class="mobile-hidden">Contract Date</th>
                             <th>Party B</th>
                         </tr>
                     </thead>
@@ -251,10 +298,10 @@
                             {% for contract in contracts %}
                             <tr>
                                 <td>{{ contract.contract_number or 'N/A' }}</td>
-                                <td>{{ contract.project_title or 'N/A' }}</td>
+                                <td class="mobile-hidden">{{ contract.project_title or 'N/A' }}</td>
                                 <td>{{ contract.department_name or 'N/A' }}</td>
-                                <td>{{ contract.username or 'N/A' }}</td>
-                                <td>{{ contract.formatted_created_at or 'N/A' }}</td>
+                                <td class="mobile-hidden">{{ contract.username or 'N/A' }}</td>
+                                <td class="mobile-hidden">{{ contract.formatted_created_at or 'N/A' }}</td>
                                 <td>{{ contract.party_b_signature_name or 'N/A' }}</td>
                             </tr>
                             {% endfor %}
