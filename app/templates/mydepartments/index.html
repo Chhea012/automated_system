@@ -339,7 +339,7 @@
       height: 32px;
     }
   }
-  @media (min-width: 577px) and (max-width: 1024px) {
+  @media (min-width: 577px) and (max-width: 768px) {
     .user-container {
       margin-right: 20px;
       margin-left: 20px;
@@ -372,22 +372,16 @@
     }
     .row.g-4 {
       gap: 15px;
-      flex-wrap: wrap;
     }
     .card.card-1 {
       font-size: 15px;
-      margin-bottom: 15px;
-    }
-    .col-md-6 {
-      flex: 0 0 50%;
-      max-width: calc(50% - 15px); /* Adjust for gap */
     }
   }
 </style>
 
 <div class="user-container mt-4">
   <div class="row g-4 mb-4">
-    <div class="col-md-6">
+    <div class="col-sm-6 col-xl-3">
       <div class="card card-1 h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start">
@@ -404,7 +398,7 @@
         </div>
       </div>
     </div>
-    <div class="col-md-6">
+    <div class="col-sm-6 col-xl-3">
       <div class="card card-1 h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start">
