@@ -1,0 +1,149 @@
+input[type="date"] {
+        position: relative;
+        width: 100%;
+    }
+    .input-group-text {
+        cursor: pointer;
+        background-color: #f8f9fa;
+        border-left: 0;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+        opacity: 0;
+        width: 20px;
+        height: 20px;
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1;
+    }
+    input[type="date"]:focus {
+        outline: 2px solid #0d6efd;
+        outline-offset: 2px;
+    }
+    .party-a-container, .focal-person-container, .installment-container {
+        border: 1px solid #ced4da;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+    }
+    .party-a-container .row, .focal-person-container .row {
+        margin-bottom: 10px;
+    }
+    .party-a-select, .focal-person-select {
+        margin-bottom: 10px;
+    }
+    #party_b_new_name_container, #deduct_tax_code_container, #vat_organization_name_container {
+        display: none;
+    }
+
+    /* ✅ Desktop: Keep fixed width for form card and header */
+    .form-card {
+        width: 1200px;
+        margin: auto; /* centers horizontally */
+        background: #fff;
+        padding: 25px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2%;
+    }
+
+    .form-header h1 {
+        font-size: 1.8rem;
+        font-weight: 600;
+    }
+
+    .form-header {
+        font-size: 1.2rem;
+        font-weight: 500;
+        margin: 25px 0 15px;
+        border-bottom: 2px solid #dee2e6;
+        padding-bottom: 5px;
+        width: 1200px;
+        margin: auto; /* centers horizontally */
+    }
+
+    /* ✅ Responsive overrides for tablet (sm/md) and mobile (xs) - full width, reduced padding */
+    @media (max-width: 1199px) {
+        .form-card {
+            width: 100%;
+            padding: 20px;
+            margin-bottom: 2%;
+        }
+        .form-header {
+            width: 100%;
+            margin: 20px auto 15px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .form-card {
+            padding: 15px;
+        }
+        .form-header h1 {
+            font-size: 1.5rem;
+        }
+        .form-header {
+            font-size: 1rem;
+            margin: 15px auto 10px;
+            padding-bottom: 3px;
+        }
+        .party-a-container, .focal-person-container, .installment-container {
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .form-card {
+            padding: 10px;
+        }
+        .form-header h1 {
+            font-size: 1.3rem;
+        }
+        .form-header {
+            margin: 10px auto 8px;
+        }
+        .party-a-container, .focal-person-container, .installment-container {
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        /* Full-width buttons on mobile for better touch */
+        .btn {
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        /* Prevent iOS zoom on inputs */
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="number"],
+        input[type="date"],
+        select,
+        textarea {
+            font-size: 16px;
+        }
+    }
+
+    /* Section headers styling */
+    .section-header {
+        font-size: 1.1rem;
+        font-weight: bold;
+        margin: 25px 0 15px 0;
+        padding: 10px 0;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    @media (max-width: 768px) {
+        .section-header {
+            font-size: 1rem;
+            margin: 20px 0 10px 0;
+            padding: 8px 0;
+        }
+    }
+
+    /* Ensure textareas resize nicely */
+    textarea {
+        resize: vertical;
+        min-height: 80px;
+    }

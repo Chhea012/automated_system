@@ -1,0 +1,56 @@
+/* === Stat Cards (Top) === */
+  .stat-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 0.75rem;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    overflow: hidden;
+    height: 110px;
+    transition: transform 0.2s ease-in-out;
+  }
+  .stat-info { flex: 1; padding: 20px; }
+  .stat-info h3 { font-weight: 700; margin: 0; font-size: 1.4rem; color: #222; }
+  .stat-info span { font-size: 0.9rem; color: #666; }
+  .stat-icon {
+    width: 90px; height:110px;
+    display: flex; align-items: center; justify-content: center;
+    background: #2f3e46;
+  }
+  .stat-icon i { font-size: 1.8rem; }
+  .icon-blue { color: #00e5ff; }
+  .icon-red { color: #ff4d4d; }
+  .icon-green { color: #22c55e; }
+  .icon-money { color: #00ff00; }
+
+  /* === Weekly Card === */
+  .weekly-card {
+    background: #3c5a68;
+    border-radius: 15px;
+    padding: 20px;
+    color: #fff;
+    position: relative;
+    width: 100%;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .weekly-card .card-top { display: flex; align-items: center; gap: 15px; }
+  .weekly-card .card-top i { font-size: 2rem; color: #fff; }
+  .weekly-card h3 { margin: 0; font-size: 1.8rem; font-weight: bold; }
+  .weekly-card .growth {
+    position: absolute; top: 20px; right: 20px;
+    text-align: right; font-size: 0.9rem; color: #d1f7c4;
+  }
+  .weekly-card canvas {
+    margin-top: 10px;
+    height: 100px !important; /* keep small */
+  }
+  #departmentPieChart {
+  width: 100% !important;
+  height: 270px !important; /* bigger pie chart */
+  max-height: 260px;
+  margin: 0 auto;
+}

@@ -1,0 +1,147 @@
+.table-custom {
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .table-custom thead th {
+        background-color: #0d6efd;
+        color: #ffffff;
+        font-weight: 600;
+        padding: 12px;
+        text-align: left;
+        border-bottom: 2px solid #dee2e6;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .table-custom tbody tr {
+        background-color: #ffffff;
+    }
+    .table-custom tbody tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+    .table-custom td {
+        padding: 12px;
+        vertical-align: middle;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .table-custom .dropdown-menu {
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .table-custom .dropdown-item {
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+    .table-custom .dropdown-item i {
+        margin-right: 8px;
+    }
+    .department-container {
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+        margin-right: 35px;
+        margin-left: 35px;
+    }
+    .filter-card {
+        padding: 1.5rem;
+        border-radius: 8px;
+        background: #ffffff;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    .filter-card .input-group {
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .filter-card .input-group-text {
+        background-color: #f1f3f5;
+        border: none;
+        font-size: 0.9rem;
+        color: #495057;
+    }
+    .filter-card .form-select,
+    .filter-card .form-control {
+        border: none;
+        font-size: 0.9rem;
+        padding: 0.75rem;
+    }
+    .filter-card .btn-search {
+        border-radius: 6px;
+        padding: 0.75rem 1.5rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    @media (max-width: 768px) {
+        .filter-card .input-group {
+            flex: 1 1 100%;
+        }
+        .filter-card .btn-search {
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+        .department-container {
+            margin-right: 15px;
+            margin-left: 15px;
+        }
+    }
+    @media (max-width: 576px) {
+        .department-container {
+            margin-right: 10px;
+            margin-left: 10px;
+        }
+        .filter-card {
+            padding: 1rem;
+        }
+        .filter-card .form-label {
+            font-size: 0.875rem;
+        }
+    }
+    .chart-container {
+        position: relative;
+        height: 300px; /* Fixed height for line chart */
+        width: 100%;
+        margin: 0 auto; /* Center the chart */
+    }
+    @media (max-width: 768px) {
+        .chart-container {
+            height: 250px; /* Adjust height for smaller screens */
+        }
+    }
+    @media (max-width: 576px) {
+        .chart-container {
+            height: 200px;
+        }
+    }
+    .dropdown-item.active {
+        background-color: #0d6efd;
+        color: #ffffff;
+    }
+    /* Hide specific columns on mobile */
+    @media (max-width: 767.98px) {
+        .mobile-hidden {
+            display: none !important;
+        }
+        .table-custom thead th.mobile-hidden,
+        .table-custom tbody td.mobile-hidden {
+            display: none !important;
+        }
+        .table-custom {
+            font-size: 0.875rem;
+        }
+        .table-custom td {
+            padding: 8px 4px;
+        }
+    }
+    /* Tablet adjustments */
+    @media (max-width: 991.98px) and (min-width: 768px) {
+        .table-custom td {
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+        .chart-container {
+            height: 280px;
+        }
+    }

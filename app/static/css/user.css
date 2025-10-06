@@ -1,0 +1,380 @@
+.table-custom {
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    table-layout: auto;
+  }
+  .table-custom thead th {
+    background-color: #0d6efd;
+    color: #ffffff;
+    font-weight: 600;
+    padding: 12px;
+    text-align: left;
+    border-bottom: 2px solid #dee2e6;
+  }
+  .table-custom tbody tr {
+    background-color: #ffffff;
+    transition: background-color 0.2s ease;
+  }
+  .table-custom tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+  }
+  .table-custom tbody tr:hover {
+    background-color: #e9ecef;
+  }
+  .table-custom td {
+    padding: 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid #dee2e6;
+  }
+  .table-custom .dropdown-menu {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  .table-custom .dropdown-item {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+  .table-custom .dropdown-item i {
+    margin-right: 8px;
+  }
+  .user-container {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    margin-right: 35px;
+    margin-left: 35px;
+  }
+  .profile-pic {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  .modal-left {
+    justify-content: flex-start;
+  }
+  .modal-left .modal-dialog {
+    margin: 0;
+    height: 100vh;
+    max-width: 400px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+  }
+  .modal-left .modal-dialog.show {
+    transform: translateX(0);
+  }
+  .modal-left .modal-content {
+    border-radius: 0 10px 10px 0;
+    box-shadow: 4px 0 6px rgba(0, 0, 0, 0.1);
+    height: 100%;
+    overflow-y: auto;
+  }
+  .modal-left .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #dee2e6;
+  }
+  .modal-left .modal-body {
+    padding: 20px;
+  }
+  .modal-left .modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #dee2e6;
+  }
+  .modal-left .form-label {
+    font-weight: 500;
+    color: #333;
+  }
+  .modal-left .form-control,
+  .modal-left .form-select {
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    transition: border-color 0.2s ease;
+  }
+  .modal-left .form-control:focus,
+  .modal-left .form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  }
+  .modal-left .btn {
+    border-radius: 6px;
+    padding: 8px 16px;
+  }
+  .image-upload-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border: 2px dashed #ced4da;
+    border-radius: 8px;
+    transition: border-color 0.2s ease;
+  }
+  .image-upload-container.dragover {
+    border-color: #0d6efd;
+    background-color: rgba(13, 110, 253, 0.05);
+  }
+  .image-preview {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #dee2e6;
+    background-color: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .image-preview-placeholder::before {
+    content: "\e030";
+    font-family: 'boxicons';
+    font-size: 48px;
+    color: #6c757d;
+  }
+  .custom-file-input {
+    display: none;
+  }
+  .custom-file-label {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    background-color: #0d6efd;
+    color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  .custom-file-label:hover {
+    background-color: #0b5ed7;
+  }
+  .custom-file-label i {
+    margin-right: 8px;
+  }
+  .remove-image-btn {
+    background-color: #dc3545;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  .remove-image-btn:hover {
+    background-color: #bb2d3b;
+  }
+  .loading-overlay {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.7);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+  }
+  .loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #0d6efd;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .management-card .card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding: 12px 20px;
+  }
+  .management-card .card-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+  .btn-sort {
+    transform: scale(1);
+    transition: transform 0.2s ease;
+  }
+  .btn-sort:hover {
+    transform: scale(1.05);
+  }
+  .btn-sort i {
+    font-size: 1.2rem;
+  }
+  .filter-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+  }
+  .search-input {
+    position: relative;
+  }
+  .search-input input {
+    padding-left: 35px;
+  }
+  .search-input i {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+  }
+  .filter-container select,
+  .filter-container input {
+    height: 38px;
+  }
+  .filter-container .btn-clear {
+    background-color: #6c757d;
+    color: #fff;
+  }
+  .filter-container .btn-clear:hover {
+    background-color: #5c636a;
+  }
+  /* Responsive Styles */
+  @media (max-width: 576px) {
+    .user-container {
+      margin-right: 15px;
+      margin-left: 15px;
+    }
+    .table-custom {
+      font-size: 14px;
+    }
+    .table-custom thead th,
+    .table-custom td {
+      padding: 8px;
+    }
+    .table-custom th:nth-child(4), /* Email column header */
+    .table-custom td:nth-child(4), /* Email column data */
+    .table-custom th:nth-child(5), /* Phone column header */
+    .table-custom td:nth-child(5), /* Phone column data */
+    .table-custom th:nth-child(6), /* Role column header */
+    .table-custom td:nth-child(6), /* Role column data */
+    .table-custom th:nth-child(7), /* Department column header */
+    .table-custom td:nth-child(7), /* Department column data */
+    .table-custom th:nth-child(8), /* Address column header */
+    .table-custom td:nth-child(8) { /* Address column data */
+      display: none;
+    }
+    .table-custom .dropdown-menu {
+      min-width: 120px;
+    }
+    .table-custom .dropdown-item {
+      font-size: 12px;
+      padding: 6px 12px;
+    }
+    .modal-dialog {
+      margin: 10px;
+    }
+    .modal-content {
+      font-size: 14px;
+    }
+    .modal-body {
+      padding: 15px;
+    }
+    .modal-footer .btn {
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+    .modal-left .modal-dialog {
+      max-width: 100%;
+      border-radius: 0;
+    }
+    .modal-left .modal-content {
+      border-radius: 0;
+    }
+    .image-preview {
+      width: 100px;
+      height: 100px;
+    }
+    .image-upload-container {
+      padding: 8px;
+    }
+    .management-card .card-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .management-card .card-header .btn {
+      width: 100%;
+    }
+    .filter-container {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .filter-container .search-input,
+    .filter-container .col-md-3,
+    .filter-container .col-md-2 {
+      width: 100%;
+    }
+    .filter-container select,
+    .filter-container input,
+    .filter-container .btn-clear {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    .row.g-4 {
+      gap: 10px;
+    }
+    .card.card-1 {
+      font-size: 14px;
+    }
+    .pagination {
+      flex-wrap: wrap;
+    }
+    .page-link {
+      font-size: 14px;
+      padding: 6px 12px;
+    }
+    .profile-pic {
+      width: 32px;
+      height: 32px;
+    }
+  }
+  @media (min-width: 577px) and (max-width: 768px) {
+    .user-container {
+      margin-right: 20px;
+      margin-left: 20px;
+    }
+    .table-custom {
+      font-size: 15px;
+    }
+    .table-custom thead th,
+    .table-custom td {
+      padding: 10px;
+    }
+    .modal-dialog {
+      max-width: 90%;
+    }
+    .modal-footer .btn {
+      font-size: 15px;
+    }
+    .filter-container {
+      flex-wrap: wrap;
+    }
+    .filter-container .search-input,
+    .filter-container .col-md-3,
+    .filter-container .col-md-2 {
+      flex: 1 1 45%;
+      margin-bottom: 10px;
+    }
+    .row.g-4 {
+      gap: 15px;
+    }
+    .card.card-1 {
+      font-size: 15px;
+    }
+  }
