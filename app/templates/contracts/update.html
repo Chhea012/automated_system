@@ -46,10 +46,10 @@
                         <div class="invalid-feedback">Please select a tax percentage.</div>
                     </div>
                     <div id="vat_organization_name_container" class="mt-2">
-                        <label for="vat_organization_name" class="form-label">VAT Organization Name</label>
+                        <label for="vat_organization_name" class="form-label">VAT Organization Name/VAT Company Name</label>
                         <input type="text" class="form-control" id="vat_organization_name" name="vat_organization_name" value="{{ form_data.vat_organization_name | default('') }}" placeholder="e.g., The NGO Forum on Cambodia" pattern="[a-zA-Z\s\.]+" maxlength="100">
-                        <small class="form-text text-muted">Enter the organization name for VAT (letters, spaces, and periods only, max 100 characters).</small>
-                        <div class="invalid-feedback">Please enter a valid VAT Organization Name.</div>
+                        <small class="form-text text-muted">Enter the organization name/company name for VAT (letters, spaces, and periods only, max 100 characters).</small>
+                        <div class="invalid-feedback">Please enter a valid VAT Organization Name/VAT Company Name.</div>
                     </div>
                     <div id="deduct_tax_code_container" class="mt-2">
                         <label for="deduct_tax_code" class="form-label">Deduct TAX Code</label>
@@ -297,8 +297,8 @@
                     <div class="col-12 col-md-4">
                         <label class="form-label">Article Number</label>
                         <select class="form-select" name="articleNumber[]">
-                            {% for i in range(1, 17) %}
-                            <option value="{{ i }}">ARTICLE {{ i }}</option>
+                            {% for i in range(1, article_titles|length + 1) %}
+                            <option value="{{ i }}">ARTICLE {{ i }}: {{ article_titles[i-1] }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -315,8 +315,8 @@
                     <div class="col-12 col-md-4">
                         <label class="form-label">Article Number</label>
                         <select class="form-select" name="articleNumber[]">
-                            {% for i in range(1, 17) %}
-                            <option value="{{ i }}" {{ 'selected' if article.article_number == i|string else '' }}>ARTICLE {{ i }}</option>
+                            {% for i in range(1, article_titles|length + 1) %}
+                            <option value="{{ i }}" {{ 'selected' if article.article_number == i|string else '' }}>ARTICLE {{ i }}: {{ article_titles[i-1] }}</option>
                             {% endfor %}
                         </select>
                     </div>

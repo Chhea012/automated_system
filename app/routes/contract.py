@@ -1185,6 +1185,26 @@ def create():
                         'email': person.get('email', '').strip()
                     }
 
+    # Define article titles
+    article_titles = [
+        "TERMS OF REFERENCE",
+        "TERM OF AGREEMENT",
+        "PROFESSIONAL FEE",
+        "TERM OF PAYMENT",
+        "NO OTHER PERSONS",
+        "MONITORING and COORDINATION",
+        "CONFIDENTIALITY",
+        "ANTI-CORRUPTION and CONFLICT OF INTEREST",
+        "OBLIGATION TO COMPLY WITH THE NGOF’S POLICIES AND CODE OF CONDUCT",
+        "ANTI-TERRORISM FINANCING AND FINANCIAL CRIME",
+        "INSURANCE",
+        "ASSIGNMENT",
+        "RESOLUTION OF CONFLICTS/DISPUTES",
+        "TERMINATION",
+        "MODIFICATION OR AMENDMENT",
+        "CONTROLLING OF LAW"
+    ]
+
     form_data = {}
     if request.method == 'POST':
         try:
@@ -1240,7 +1260,7 @@ def create():
                 form_data['focal_person_info'] = []
                 form_data['articles'] = []
                 form_data['party_a_info'] = [{'name': '', 'position': '', 'address': ''}]
-                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             form_data['party_a_info'] = party_a_info
 
@@ -1250,7 +1270,7 @@ def create():
                 form_data['payment_installments'] = []
                 form_data['focal_person_info'] = []
                 form_data['articles'] = []
-                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate Party B name
             if not party_b_name or not re.match(r'^[a-zA-Z\s\.]+$', party_b_name):
@@ -1258,7 +1278,7 @@ def create():
                 form_data['payment_installments'] = []
                 form_data['focal_person_info'] = []
                 form_data['articles'] = []
-                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate deduct_tax_code and vat_organization_name when tax_percentage is 0
             if form_data['tax_percentage'] == 0:
@@ -1267,31 +1287,31 @@ def create():
                     form_data['payment_installments'] = []
                     form_data['focal_person_info'] = []
                     form_data['articles'] = []
-                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if not re.match(r'^[A-Z0-9\-]+$', deduct_tax_code):
                     flash('VAT TIN must contain only uppercase letters, numbers, and hyphens.', 'danger')
                     form_data['payment_installments'] = []
                     form_data['focal_person_info'] = []
                     form_data['articles'] = []
-                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if len(deduct_tax_code) > 50:
                     flash('VAT TIN must not exceed 50 characters.', 'danger')
                     form_data['payment_installments'] = []
                     form_data['focal_person_info'] = []
                     form_data['articles'] = []
-                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if not vat_organization_name:
                     flash('Name of Organization is required when tax percentage is 0%.', 'danger')
                     form_data['payment_installments'] = []
                     form_data['focal_person_info'] = []
                     form_data['articles'] = []
-                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if len(vat_organization_name) > 255:
                     flash('Name of Organization must not exceed 255 characters.', 'danger')
                     form_data['payment_installments'] = []
                     form_data['focal_person_info'] = []
                     form_data['articles'] = []
-                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Process custom articles
             articles_raw = [
@@ -1320,7 +1340,7 @@ def create():
                 flash('At least one payment installment is required.', 'danger')
                 form_data['payment_installments'] = []
                 form_data['focal_person_info'] = []
-                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             form_data['payment_installments'] = payment_installments_raw
             deliverables = '; '.join([inst['deliverables'] for inst in payment_installments_raw])
@@ -1345,7 +1365,7 @@ def create():
             if not focal_person_raw:
                 flash('At least one focal person is required.', 'danger')
                 form_data['focal_person_info'] = []
-                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             form_data['focal_person_info'] = focal_person_raw
 
@@ -1372,22 +1392,22 @@ def create():
             for field, message in required_fields:
                 if not form_data[field]:
                     flash(message, 'danger')
-                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate Party B confirm match
             if form_data['party_b_signature_name'] != form_data['party_b_signature_name_confirm']:
                 flash('Party B signature name confirmation does not match.', 'danger')
-                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate contract number format
             if not re.match(r"NGOF/\d{4}-\d{3}", form_data['contract_number']):
                 flash('Contract number must follow the format NGOF/YYYY-NNN (e.g., NGOF/2025-005).', 'danger')
-                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Check for duplicate contract number
             if Contract.query.filter(Contract.contract_number == form_data['contract_number'], Contract.deleted_at == None).first():
                 flash('Contract number already exists.', 'danger')
-                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate dates
             start_date = form_data['agreement_start_date']
@@ -1396,20 +1416,20 @@ def create():
                 try:
                     if datetime.strptime(end_date, '%Y-%m-%d') < datetime.strptime(start_date, '%Y-%m-%d'):
                         flash('Agreement end date must be after start date.', 'danger')
-                        return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                        return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 except ValueError:
                     flash('Invalid date format for agreement start or end date.', 'danger')
-                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate total_fee_usd
             if total_fee_usd < 0:
                 flash('Total fee USD cannot be negative.', 'danger')
-                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate tax_percentage
             if tax_percentage not in [0, 5, 10, 15, 20]:
                 flash('Tax percentage must be one of 0, 5, 10, 15, or 20.', 'danger')
-                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate payment installment percentages
             total_percentage = 0.0
@@ -1417,49 +1437,49 @@ def create():
                 match = re.search(r'\((\d+\.?\d*)\%\)', installment['description'])
                 if not match:
                     flash(f"Invalid installment description format: {installment['description']}. Must include percentage like (50%).", 'danger')
-                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 try:
                     percentage = float(match.group(1))
                     total_percentage += percentage
                 except ValueError:
                     flash(f"Invalid percentage in installment description: {installment['description']}.", 'danger')
-                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 try:
                     datetime.strptime(installment['dueDate'], '%Y-%m-%d')
                 except ValueError:
                     flash(f"Invalid due date for installment: {installment['dueDate']}.", 'danger')
-                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             if abs(total_percentage - 100.0) > 0.01:
                 flash('Total percentage of payment installments must equal 100%.', 'danger')
-                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate focal person info
             for person in form_data['focal_person_info']:
                 if not re.match(r'^[a-zA-Z\s\.]+$', person['name']):
                     flash(f"Invalid focal person name: {person['name']}. Only letters, spaces, and periods are allowed.", 'danger')
-                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if not re.match(r'^[a-zA-Z\s]+$', person['position']):
                     flash(f"Invalid focal person position: {person['position']}. Only letters and spaces are allowed.", 'danger')
-                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if not re.match(r'^\+?\d{1,4}([-.\s]?\d{1,4}){2,3}$', person['phone']):
                     flash(f"Invalid focal person phone: {person['phone']}. Use format like 012 845 091, +855 12 845 091, or +85512845091.", 'danger')
-                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', person['email']):
                     flash(f"Invalid focal person email: {person['email']}.", 'danger')
-                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate Party A info
             for person in form_data['party_a_info']:
                 if not re.match(r'^[a-zA-Z\s\.]+$', person['name']):
                     flash(f"Invalid Party A name: {person['name']}. Only letters, spaces, and periods are allowed.", 'danger')
-                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if not re.match(r'^[a-zA-Z\s]+$', person['position']):
                     flash(f"Invalid Party A position: {person['position']}. Only letters and spaces are allowed.", 'danger')
-                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if not person['address']:
                     flash(f"Party A address is required.", 'danger')
-                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Create new contract
             contract = Contract(
@@ -1519,7 +1539,7 @@ def create():
         except Exception as e:
             logger.error(f"Error creating contract: {str(e)}")
             flash("An error occurred while creating the contract.", 'danger')
-            return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+            return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
     # Initialize form_data for GET request
     form_data = {
@@ -1532,7 +1552,7 @@ def create():
         'deduct_tax_code': '',
         'vat_organization_name': ''  # New in init
     }
-    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
 @contracts_bp.route('/mark-read', methods=['POST'])
 @login_required
@@ -2402,6 +2422,26 @@ def update(contract_id):
                         'email': person.get('email', '').strip()
                     }
 
+    # Define article titles
+    article_titles = [
+        "TERMS OF REFERENCE",
+        "TERM OF AGREEMENT",
+        "PROFESSIONAL FEE",
+        "TERM OF PAYMENT",
+        "NO OTHER PERSONS",
+        "MONITORING and COORDINATION",
+        "CONFIDENTIALITY",
+        "ANTI-CORRUPTION and CONFLICT OF INTEREST",
+        "OBLIGATION TO COMPLY WITH THE NGOF’S POLICIES AND CODE OF CONDUCT",
+        "ANTI-TERRORISM FINANCING AND FINANCIAL CRIME",
+        "INSURANCE",
+        "ASSIGNMENT",
+        "RESOLUTION OF CONFLICTS/DISPUTES",
+        "TERMINATION",
+        "MODIFICATION OR AMENDMENT",
+        "CONTROLLING OF LAW"
+    ]
+
     form_data = {}
     if request.method == 'POST':
         try:
@@ -2457,7 +2497,7 @@ def update(contract_id):
                 form_data['focal_person_info'] = []
                 form_data['articles'] = []
                 form_data['party_a_info'] = [{'name': '', 'position': '', 'address': ''}]
-                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             form_data['party_a_info'] = party_a_info
 
@@ -2467,7 +2507,7 @@ def update(contract_id):
                 form_data['payment_installments'] = []
                 form_data['focal_person_info'] = []
                 form_data['articles'] = []
-                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate Party B name
             if not party_b_name or not re.match(r'^[a-zA-Z\s\.]+$', party_b_name):
@@ -2475,7 +2515,7 @@ def update(contract_id):
                 form_data['payment_installments'] = []
                 form_data['focal_person_info'] = []
                 form_data['articles'] = []
-                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate vat_organization_name and deduct_tax_code when tax_percentage is 0
             if form_data['tax_percentage'] == 0:
@@ -2484,37 +2524,37 @@ def update(contract_id):
                     form_data['payment_installments'] = []
                     form_data['focal_person_info'] = []
                     form_data['articles'] = []
-                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if not re.match(r'^[a-zA-Z\s\.]+$', vat_organization_name):
                     flash('VAT Organization Name must contain only letters, spaces, and periods.', 'danger')
                     form_data['payment_installments'] = []
                     form_data['focal_person_info'] = []
                     form_data['articles'] = []
-                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if len(vat_organization_name) > 100:
                     flash('VAT Organization Name must not exceed 100 characters.', 'danger')
                     form_data['payment_installments'] = []
                     form_data['focal_person_info'] = []
                     form_data['articles'] = []
-                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if not deduct_tax_code:
                     flash('Deduct TAX Code is required when tax percentage is 0%.', 'danger')
                     form_data['payment_installments'] = []
                     form_data['focal_person_info'] = []
                     form_data['articles'] = []
-                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if not re.match(r'^[A-Z0-9\-]+$', deduct_tax_code):
                     flash('Deduct TAX Code must contain only uppercase letters, numbers, and hyphens.', 'danger')
                     form_data['payment_installments'] = []
                     form_data['focal_person_info'] = []
                     form_data['articles'] = []
-                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if len(deduct_tax_code) > 50:
                     flash('Deduct TAX Code must not exceed 50 characters.', 'danger')
                     form_data['payment_installments'] = []
                     form_data['focal_person_info'] = []
                     form_data['articles'] = []
-                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Process custom articles
             articles_raw = [
@@ -2543,7 +2583,7 @@ def update(contract_id):
                 flash('At least one payment installment is required.', 'danger')
                 form_data['payment_installments'] = []
                 form_data['focal_person_info'] = []
-                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             form_data['payment_installments'] = payment_installments_raw
             deliverables = '; '.join([inst['deliverables'] for inst in payment_installments_raw])
@@ -2568,7 +2608,7 @@ def update(contract_id):
             if not focal_person_raw:
                 flash('At least one focal person is required.', 'danger')
                 form_data['focal_person_info'] = []
-                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             form_data['focal_person_info'] = focal_person_raw
 
@@ -2595,17 +2635,17 @@ def update(contract_id):
             for field, message in required_fields:
                 if not form_data[field]:
                     flash(message, 'danger')
-                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate Party B confirm match
             if form_data['party_b_signature_name'] != form_data['party_b_signature_name_confirm']:
                 flash('Party B signature name confirmation does not match.', 'danger')
-                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate contract number format
             if not re.match(r"NGOF/\d{4}-\d{3}", form_data['contract_number']):
                 flash('Contract number must follow the format NGOF/YYYY-NNN (e.g., NGOF/2025-005).', 'danger')
-                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Check for duplicate contract number (excluding self)
             existing_contract = Contract.query.filter(
@@ -2615,7 +2655,7 @@ def update(contract_id):
             ).first()
             if existing_contract:
                 flash('Contract number already exists.', 'danger')
-                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate dates
             start_date = form_data['agreement_start_date']
@@ -2624,20 +2664,20 @@ def update(contract_id):
                 try:
                     if datetime.strptime(end_date, '%Y-%m-%d') < datetime.strptime(start_date, '%Y-%m-%d'):
                         flash('Agreement end date must be after start date.', 'danger')
-                        return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                        return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 except ValueError:
                     flash('Invalid date format for agreement start or end date.', 'danger')
-                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate total_fee_usd
             if total_fee_usd < 0:
                 flash('Total fee USD cannot be negative.', 'danger')
-                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate tax_percentage
             if tax_percentage not in [0, 5, 10, 15, 20]:
                 flash('Tax percentage must be one of 0, 5, 10, 15, or 20.', 'danger')
-                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate payment installment percentages
             total_percentage = 0.0
@@ -2645,49 +2685,49 @@ def update(contract_id):
                 match = re.search(r'\((\d+\.?\d*)\%\)', installment['description'])
                 if not match:
                     flash(f"Invalid installment description format: {installment['description']}. Must include percentage like (50%).", 'danger')
-                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 try:
                     percentage = float(match.group(1))
                     total_percentage += percentage
                 except ValueError:
                     flash(f"Invalid percentage in installment description: {installment['description']}.", 'danger')
-                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 try:
                     datetime.strptime(installment['dueDate'], '%Y-%m-%d')
                 except ValueError:
                     flash(f"Invalid due date for installment: {installment['dueDate']}.", 'danger')
-                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             if abs(total_percentage - 100.0) > 0.01:
                 flash('Total percentage of payment installments must equal 100%.', 'danger')
-                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate focal person info
             for person in form_data['focal_person_info']:
                 if not re.match(r'^[a-zA-Z\s\.]+$', person['name']):
                     flash(f"Invalid focal person name: {person['name']}. Only letters, spaces, and periods are allowed.", 'danger')
-                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if not re.match(r'^[a-zA-Z\s]+$', person['position']):
                     flash(f"Invalid focal person position: {person['position']}. Only letters and spaces are allowed.", 'danger')
-                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if not re.match(r'^\+?\d{1,4}([-.\s]?\d{1,4}){2,3}$', person['phone']):
                     flash(f"Invalid focal person phone: {person['phone']}. Use format like 012 845 091, +855 12 845 091, or +85512845091.", 'danger')
-                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', person['email']):
                     flash(f"Invalid focal person email: {person['email']}.", 'danger')
-                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Validate Party A info
             for person in form_data['party_a_info']:
                 if not re.match(r'^[a-zA-Z\s\.]+$', person['name']):
                     flash(f"Invalid Party A name: {person['name']}. Only letters, spaces, and periods are allowed.", 'danger')
-                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if not re.match(r'^[a-zA-Z\s]+$', person['position']):
                     flash(f"Invalid Party A position: {person['position']}. Only letters and spaces are allowed.", 'danger')
-                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if not person['address']:
                     flash(f"Party A address is required.", 'danger')
-                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+                    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             # Update contract
             contract.project_title = form_data['project_title']
@@ -2727,7 +2767,7 @@ def update(contract_id):
         except Exception as e:
             logger.error(f"Error updating contract: {str(e)}")
             flash("An error occurred while updating the contract.", 'danger')
-            return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+            return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
     # Initialize form_data for GET request from existing contract
     form_data = contract.to_dict()
@@ -2742,7 +2782,7 @@ def update(contract_id):
     party_b_lower = form_data.get('party_b_signature_name', '').lower().strip()
     form_data['party_b_select'] = next((key for key in party_b_data if key == party_b_lower), 'new')
 
-    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data)
+    return render_template('contracts/update.html', form_data=form_data, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
 
 # Delete contract

@@ -45,9 +45,9 @@
                         <div class="invalid-feedback">Please select a tax percentage.</div>
                     </div>
                     <div id="deduct_tax_code_container" class="mt-2" style="display: none;">
-                        <label for="vat_organization_name" class="form-label">Name of Organization</label>
+                        <label for="vat_organization_name" class="form-label">Name of Organization/Name of Company</label>
                         <input type="text" class="form-control" id="vat_organization_name" name="vat_organization_name" value="{{ form_data.vat_organization_name | default('The NGO Forum on Cambodia') }}" placeholder="e.g., The NGO Forum on Cambodia" maxlength="255">
-                        <div class="invalid-feedback">Please enter the name of the organization.</div>
+                        <div class="invalid-feedback">Please enter the name of the organization/name of company.</div>
                         <label for="deduct_tax_code" class="form-label">VAT TIN</label>
                         <input type="text" class="form-control" id="deduct_tax_code" name="deduct_tax_code" value="{{ form_data.deduct_tax_code | default('') }}" placeholder="e.g., K002-100054102" pattern="[A-Z0-9\-]+" maxlength="50">
                         <small class="form-text text-muted">Enter the VAT TIN (uppercase letters, numbers, and hyphens only, max 50 characters).</small>
@@ -137,7 +137,7 @@
                 </div>
                 <div class="col-md-6" id="party_b_new_name_container">
                     <label for="party_b_signature_name" class="form-label">New Party B Signature Name</label>
-                    <input type="text" class="form-control" id="party_b_signature_name" name="party_b_signature_name" value="{{ form_data.party_b_signature_name if form_data.party_b_select == 'new' else '' }}" placeholder="e.g., Mr. SEAN Bunrith" pattern="[a-zA-Z\s\.]+">
+                    <input type="text" class="form-control" id="party_b_signature_name" name="party_b_signature_name" value="{{ form_data.party_b_signature_name if form_data.party_b_select == 'new' else '' }}" placeholder="e.g., Mr. SEAN Bunrith" pattern="[a-zA-Z\s\.]+" >
                     <div class="invalid-feedback">Please enter a valid name (letters, spaces, and periods only).</div>
                 </div>
                 <div class="col-md-6">
@@ -291,8 +291,8 @@
                     <div class="col-md-4">
                         <label class="form-label">Article Number</label>
                         <select class="form-select" name="articleNumber[]">
-                            {% for i in range(1, 17) %}
-                            <option value="{{ i }}">ARTICLE {{ i }}</option>
+                            {% for i in range(1, article_titles|length + 1) %}
+                            <option value="{{ i }}">ARTICLE {{ i }}: {{ article_titles[i-1] }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -309,8 +309,8 @@
                     <div class="col-md-4">
                         <label class="form-label">Article Number</label>
                         <select class="form-select" name="articleNumber[]">
-                            {% for i in range(1, 17) %}
-                            <option value="{{ i }}" {{ 'selected' if article.article_number == i | string }}>ARTICLE {{ i }}</option>
+                            {% for i in range(1, article_titles|length + 1) %}
+                            <option value="{{ i }}" {{ 'selected' if article.article_number == i | string }}>ARTICLE {{ i }}: {{ article_titles[i-1] }}</option>
                             {% endfor %}
                         </select>
                     </div>
