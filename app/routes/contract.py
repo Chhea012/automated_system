@@ -929,11 +929,42 @@ def generate_docx(contract):
     except Exception as e:
         logger.error(f"Error generating DOCX for contract {contract.id}: {str(e)}")
         raise
+#send email to three person
+def send_contract_email(contract, output, filename):
+    """Helper function to send contract via email to fixed recipients."""
+    try:
+        msg = Message(
+            subject=f"Consultant Contract Document - NGOF ({contract.contract_number or 'N/A'})",
+            sender=mail.sender,
+            recipients=['chhea.chhouy@student.passerellesnumeriques.org', 'chheadeveloper@gmail.com', 'chhea@ngoforum.org.kh'],
+            cc=[],
+            bcc=[]
+        )
+        msg.body = f"""
+Dear Recipient,
+
+Attached is the consultant contract document for "{contract.project_title or 'N/A'}" (Contract No.: {contract.contract_number or 'N/A'}).
+
+This document outlines the terms, deliverables, and payment details. Please review it carefully. If you have any questions, feel free to contact us.
+
+Best regards,
+{current_user.username} ({current_user.email})
+The NGO Forum on Cambodia
+Address: #9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia
+Email: info@ngoforum.org.kh
+"""
+        output.seek(0)
+        msg.attach(filename, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", output.read())
+        mail.send(msg)
+        logger.info(f"Contract {contract.id} sent successfully to fixed recipients.")
+    except Exception as e:
+        logger.error(f"Error sending email for contract {contract.id}: {str(e)}")
+        raise
 
 @contracts_bp.route('/export_docx/<contract_id>')
 @login_required
 def export_docx(contract_id):
-    """Export a contract as a DOCX file."""
+    """Export a contract as a DOCX file and auto-send to fixed emails."""
     try:
         contract = Contract.query.get_or_404(contract_id)
         if not current_user.has_role('admin') and contract.user_id != current_user.id:
@@ -944,6 +975,11 @@ def export_docx(contract_id):
             return redirect(url_for('contracts.index'))
 
         output, filename = generate_docx(contract)
+        
+        # Auto-send email to fixed recipients
+        temp_output = BytesIO(output.getvalue())  # Copy for email
+        send_contract_email(contract, temp_output, filename)
+        flash('Contract downloaded and sent successfully to designated recipients!', 'success')
 
         return send_file(
             output,
@@ -952,14 +988,14 @@ def export_docx(contract_id):
             download_name=filename
         )
     except Exception as e:
-        logger.error(f"Error exporting contract {contract_id} to DOCX: {str(e)}")
-        flash("An error occurred while exporting the contract.", 'danger')
+        logger.error(f"Error exporting/sending contract {contract_id} to DOCX: {str(e)}")
+        flash("An error occurred while exporting/sending the contract.", 'danger')
         return redirect(url_for('contracts.index'))
 
 @contracts_bp.route('/send_docx', methods=['POST'])
 @login_required
 def send_docx():
-    """Send a contract DOCX file to multiple email recipients with CC and BCC support."""
+    """Send a contract DOCX file to multiple email recipients with CC and BCC support (manual send)."""
     try:
         contract_id = request.form.get('contract_id')
         to_input = request.form.get('to_emails')

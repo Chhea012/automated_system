@@ -3,7 +3,6 @@
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/contract.css') }}" />
 
-
 <div class="container mt-4">
     <!-- Total Contracts Cards -->
     <div class="row mb-4 cards-row">
@@ -142,8 +141,8 @@
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="{{ url_for('contracts.view', contract_id=contract.id) }}"><i class="bx bx-show"></i> View</a></li>
                                     <li><a class="dropdown-item" href="{{ url_for('contracts.update', contract_id=contract.id) }}"><i class="bx bx-edit"></i> Edit</a></li>
-                                    <li><a class="dropdown-item" href="{{ url_for('contracts.export_docx', contract_id=contract.id) }}"><i class="bx bx-download"></i> Download Docx</a></li>
-                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#sendEmailModal" data-contract-id="{{ contract.id }}"><i class="bx bx-envelope"></i> Send via Email</a></li>
+                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#downloadConfirmModal{{ contract.id }}"><i class="bx bx-download"></i> Download Docx</a></li>
+                                   <!--<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#sendEmailModal" data-contract-id="{{ contract.id }}"><i class="bx bx-envelope"></i> Send via Email</a></li>--> 
                                     <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal{{ contract.id }}"><i class="bx bx-trash"></i> Delete</a></li>
                                 </ul>
                             </div>
@@ -166,6 +165,26 @@
                                     <form action="{{ url_for('contracts.delete', contract_id=contract.id) }}" method="POST">
                                         <button type="submit" class="btn btn-danger">Delete</button>
                                     </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Download Confirm Modal -->
+                    <div class="modal fade" id="downloadConfirmModal{{ contract.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Confirm Download</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    This is the latest contract file. Do you need to update or change anything? Do you want to download it? <br>
+                                    Note: Downloading will also automatically send the contract via email to the designated recipients.
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <a href="{{ url_for('contracts.export_docx', contract_id=contract.id) }}" class="btn btn-primary">Download</a>
                                 </div>
                             </div>
                         </div>
