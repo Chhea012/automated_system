@@ -571,6 +571,9 @@
                 select.appendChild(option);
             });
             select.value = orgsSet.has(currentValue) ? currentValue : '';
+            if (select.value === '' && orgsSet.size === 1) {
+                select.value = Array.from(orgsSet)[0];
+            }
         });
     }
 

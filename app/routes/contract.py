@@ -197,6 +197,17 @@ def format_table_currency(value):
 def generate_docx(contract):
     """Generate a DOCX file for a contract and return it as BytesIO with filename."""
     try:
+        from docx import Document
+        from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_UNDERLINE
+        from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL
+        from docx.shared import Inches, Pt, RGBColor
+        from docx.oxml.ns import qn
+        from docx.oxml import OxmlElement
+        import re
+        from io import BytesIO
+        import logging
+        logger = logging.getLogger(__name__)
+
         contract_data = contract.to_dict()
         if 'custom_article_sentences' not in contract_data or contract_data['custom_article_sentences'] is None:
             contract_data['custom_article_sentences'] = {}
@@ -226,8 +237,13 @@ def generate_docx(contract):
         contract_data['total_gross'] = f"USD{total_gross_amount:.2f}"
         contract_data['total_net'] = f"USD{total_net_amount:.2f}"
 
+        # Determine if multiple organizations are used in installments
+        installments = contract_data.get('payment_installments', [])
+        unique_orgs = {inst.get('organization', '').strip() for inst in installments if inst.get('organization')}
+        append_org = len(unique_orgs) > 1
+
         # Process payment installments
-        for installment in contract_data.get('payment_installments', []):
+        for installment in installments:
             installment['dueDate_display'] = format_date(installment.get('dueDate', ''))
             match = re.search(r'\((\d+\.?\d*)\%\)', installment['description'])
             percentage = float(match.group(1)) if match else 0.0
@@ -235,8 +251,10 @@ def generate_docx(contract):
             installment['gross_amount'] = gross
             installment['tax_amount'] = tax
             installment['net_amount'] = net
-            org = installment.get('organization', '')
-            installment['description'] = f"{installment['description']} by {org}" if org else installment['description']
+            org = installment.get('organization', '').strip()
+            if append_org and org:
+                installment['description'] = f"{installment['description']} by {org}"
+            # else: keep original description without 'by org'
 
         # Create DOCX document
         doc = Document()
@@ -457,7 +475,7 @@ def generate_docx(contract):
                             'Installment': installment['description'],
                             'Total Amount (USD)': [
                                 f'- Gross: {format_table_currency(installment["gross_amount"])}',
-                                f'- Tax {tax_percentage}%: {format_table_currency(installment["tax_amount"])}' if tax_percentage > 0 else '',
+                                f'- Tax {int(tax_percentage)}%: {format_table_currency(installment["tax_amount"])}' if tax_percentage > 0 else '',
                                 f'- Net pay: {format_table_currency(installment["net_amount"])}'
                             ],
                             'Deliverable': '\n'.join(d.strip() for d in installment['deliverables'].split(';') if d.strip()),
@@ -767,7 +785,6 @@ def generate_docx(contract):
                             if key == 'Total Amount (USD)' and isinstance(row_data[key], list):
                                 for line in row_data[key]:
                                     if line:
-                                        line = re.sub(r'Tax (\d+)\.0%', r'Tax \1%', line)
                                         p = cell.add_paragraph(line)
                                         p.paragraph_format.space_before = Pt(0)
                                         p.paragraph_format.space_after = Pt(0)
@@ -1131,7 +1148,8 @@ def index():
             total_contracts_global=0,
             last_contract_number=None,
             is_admin=current_user.has_role('admin')
-        )        
+        )    
+#create contract list         
 @contracts_bp.route('/create', methods=['GET', 'POST'])
 @login_required
 def create():
