@@ -185,6 +185,15 @@ def format_currency_line(line: str) -> str:
     
     return re.sub(r"\$([\d,]+(?:\.\d{1,2})?)", repl, line)
 
+def format_table_currency(value):
+    """Format currency for table: use $ and remove .00 for whole numbers."""
+    if isinstance(value, (int, float)):
+        formatted = f"{value:.2f}"
+        if formatted.endswith(".00"):
+            formatted = formatted[:-3]
+        return f"${formatted}"
+    return str(value)
+
 def generate_docx(contract):
     """Generate a DOCX file for a contract and return it as BytesIO with filename."""
     try:
@@ -226,7 +235,6 @@ def generate_docx(contract):
             installment['gross_amount'] = gross
             installment['tax_amount'] = tax
             installment['net_amount'] = net
-            # Append organization to description for table
             org = installment.get('organization', '')
             installment['description'] = f"{installment['description']} by {org}" if org else installment['description']
 
@@ -247,7 +255,6 @@ def generate_docx(contract):
                 section.right_margin = Inches(1)
                 section.bottom_margin = Inches(1)
 
-            # Add footer with "Page X of Y"
             footer = section.footer
             footer_para = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
             footer_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
@@ -449,11 +456,10 @@ def generate_docx(contract):
                         {
                             'Installment': installment['description'],
                             'Total Amount (USD)': [
-                                f'- Gross: USD {installment["gross_amount"]:.2f}',
-                                f'- Tax {tax_percentage}%: USD {installment["tax_amount"]:.2f}' if tax_percentage > 0 else '',
-                                f'- Net pay: USD {installment["net_amount"]:.2f}'
+                                f'- Gross: {format_table_currency(installment["gross_amount"])}',
+                                f'- Tax {tax_percentage}%: {format_table_currency(installment["tax_amount"])}' if tax_percentage > 0 else '',
+                                f'- Net pay: {format_table_currency(installment["net_amount"])}'
                             ],
-                            # Store clean text, split into lines
                             'Deliverable': '\n'.join(d.strip() for d in installment['deliverables'].split(';') if d.strip()),
                             'Due date': installment['dueDate_display']
                         }
@@ -632,7 +638,7 @@ def generate_docx(contract):
         add_paragraph(f"No.: {contract_data.get('contract_number', 'N/A')}", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
         add_paragraph('BETWEEN', WD_ALIGN_PARAGRAPH.CENTER, size=12)
 
-        # Party A (Multiple, each as separate block)
+        # Party A
         party_a_info = contract_data.get('party_a_info', [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia'}])
         for person in party_a_info:
             organization = person.get('organization', 'The NGO Forum on Cambodia')
@@ -704,8 +710,6 @@ def generate_docx(contract):
                         p = doc.add_paragraph()
                         p.alignment = WD_ALIGN_PARAGRAPH.LEFT
                         p.paragraph_format.left_indent = Inches(0.33)
-
-                        # Default no space after
                         p.paragraph_format.space_after = Pt(0)
 
                         if ':' in line:
@@ -723,7 +727,6 @@ def generate_docx(contract):
                             run.font.size = Pt(12)
                             run.bold = True
 
-                        # Add space only after "Net amount"
                         if line.startswith("Net amount"):
                             p.paragraph_format.space_after = Pt(12)
 
@@ -737,6 +740,77 @@ def generate_docx(contract):
 
             elif article['number'] == 4:
                 add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
+                if article['table']:
+                    table = doc.add_table(rows=len(article['table']), cols=len(article['table'][0]))
+                    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+                    table.allow_autofit = False
+
+                    col_widths = [Inches(1.0), Inches(1.6), Inches(3.5), Inches(1.1)]
+                    for row in table.rows:
+                        for idx, cell in enumerate(row.cells):
+                            cell.width = col_widths[idx]
+                            tc = cell._element
+                            tcPr = tc.get_or_add_tcPr()
+                            for border_name in ['top', 'left', 'bottom', 'right']:
+                                border = OxmlElement(f'w:{border_name}')
+                                border.set(qn('w:val'), 'single')
+                                border.set(qn('w:sz'), '8')
+                                border.set(qn('w:color'), '000000')
+                                tcPr.append(border)
+
+                    for i, row_data in enumerate(article['table']):
+                        row_cells = table.rows[i].cells
+                        for j, key in enumerate(row_data.keys()):
+                            cell = row_cells[j]
+                            cell.text = ""
+
+                            if key == 'Total Amount (USD)' and isinstance(row_data[key], list):
+                                for line in row_data[key]:
+                                    if line:
+                                        line = re.sub(r'Tax (\d+)\.0%', r'Tax \1%', line)
+                                        p = cell.add_paragraph(line)
+                                        p.paragraph_format.space_before = Pt(0)
+                                        p.paragraph_format.space_after = Pt(0)
+                                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER if i == 0 else WD_ALIGN_PARAGRAPH.LEFT
+                                        for run in p.runs:
+                                            run.font.size = Pt(12)
+                                            run.font.name = 'Calibri'
+                                            run.bold = True
+
+                            elif key == 'Deliverable' and row_data[key]:
+                                deliverables = row_data[key].split('\n')
+                                for item in deliverables:
+                                    item = item.strip()
+                                    if not item:
+                                        continue
+                                    if i == 0:
+                                        p = cell.add_paragraph(item)
+                                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                        bold = True
+                                    else:
+                                        p = cell.add_paragraph(f"- {item}")
+                                        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                                        bold = False
+                                    p.paragraph_format.space_before = Pt(0)
+                                    p.paragraph_format.space_after = Pt(0)
+                                    for run in p.runs:
+                                        run.font.size = Pt(12)
+                                        run.font.name = 'Calibri'
+                                        run.bold = bold
+
+                            else:
+                                text_val = str(row_data[key]) if row_data[key] is not None else ""
+                                p = cell.add_paragraph(text_val)
+                                p.paragraph_format.space_before = Pt(0)
+                                p.paragraph_format.space_after = Pt(0)
+                                p.alignment = WD_ALIGN_PARAGRAPH.CENTER if i == 0 or key != 'Deliverable' else WD_ALIGN_PARAGRAPH.LEFT
+                                for run in p.runs:
+                                    run.font.size = Pt(12)
+                                    run.font.name = 'Calibri'
+                                    run.bold = (i == 0)
+
+                            cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+
             elif article['number'] == 6:
                 email_addresses = [person['email'] for person in contract_data.get("focal_person_info", [])] + [contract_data.get("party_b_email", "N/A")]
                 bold_segments = (
@@ -758,104 +832,6 @@ def generate_docx(contract):
                 if custom['article_number'] == str(article['number']):
                     add_paragraph(custom['custom_sentence'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
 
-            if article['table']:
-                # Build table with same number of rows & cols as data
-                table = doc.add_table(rows=len(article['table']), cols=len(article['table'][0]))
-                table.alignment = WD_TABLE_ALIGNMENT.CENTER
-                table.allow_autofit = False  # Disable autofit
-
-                # Column widths
-                col_widths = [Inches(1.0), Inches(1.6), Inches(3.5), Inches(1.1)]
-
-                # Apply column widths & borders
-                for row in table.rows:
-                    for idx, cell in enumerate(row.cells):
-                        cell.width = col_widths[idx]
-                        tc = cell._element
-                        tcPr = tc.get_or_add_tcPr()
-                        # Set borders
-                        for border_name in ['top', 'left', 'bottom', 'right']:
-                            border = OxmlElement(f'w:{border_name}')
-                            border.set(qn('w:val'), 'single')
-                            border.set(qn('w:sz'), '8')
-                            border.set(qn('w:color'), '000000')
-                            tcPr.append(border)
-
-                # Fill table data
-                for i, row_data in enumerate(article['table']):
-                    row_cells = table.rows[i].cells
-                    for j, key in enumerate(row_data.keys()):
-                        cell = row_cells[j]
-                        cell.text = ""  # Clear default text
-
-                        # Handle "Total Amount (USD)" column (list of lines)
-                        if key == 'Total Amount (USD)' and isinstance(row_data[key], list):
-                            for line in row_data[key]:
-                                if line:
-                                    # Update format: remove .0 from tax %
-                                    line = re.sub(r'Tax (\d+)\.0%', r'Tax \1%', line)
-                                    # Format currency values
-                                    line = format_currency_line(line)
-
-                                    p = cell.add_paragraph(line)
-                                    p.paragraph_format.space_before = Pt(0)
-                                    p.paragraph_format.space_after = Pt(0)
-                                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER if i == 0 else WD_ALIGN_PARAGRAPH.LEFT
-                                    for run in p.runs:
-                                        run.font.size = Pt(12)
-                                        run.font.name = 'Calibri'
-                                        run.bold = True  # Keep data rows bold
-
-                        # Handle "Deliverable" column
-                        elif key == 'Deliverable' and row_data[key]:
-                            deliverables = row_data[key].split('\n')
-                            for item in deliverables:
-                                item = item.strip()
-                                if not item:
-                                    continue
-
-                                if i == 0:
-                                    # Header: no dash
-                                    p = cell.add_paragraph(item)
-                                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                                    bold = True
-                                else:
-                                    # Row data: keep dash, not bold
-                                    p = cell.add_paragraph(f"- {item}")
-                                    p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                                    bold = False
-
-                                p.paragraph_format.space_before = Pt(0)
-                                p.paragraph_format.space_after = Pt(0)
-                                for run in p.runs:
-                                    run.font.size = Pt(12)
-                                    run.font.name = 'Calibri'
-                                    run.bold = bold
-
-                        # Default handling for other columns
-                        else:
-                            text_val = str(row_data[key]) if row_data[key] is not None else ""
-                            p = cell.add_paragraph(text_val)
-                            p.paragraph_format.space_before = Pt(0)
-                            p.paragraph_format.space_after = Pt(0)
-
-                            # Alignment rules
-                            if i == 0:
-                                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                            elif key == 'Deliverable':
-                                p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                            else:
-                                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-
-                            # Font styling
-                            for run in p.runs:
-                                run.font.size = Pt(12)
-                                run.font.name = 'Calibri'
-                                run.bold = (i == 0)
-
-                        # Vertical alignment always center
-                        cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-
         # Signature Block
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(20)
@@ -865,62 +841,50 @@ def generate_docx(contract):
         run.font.size = Pt(11)
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        # Define tab stops (Party A shifted right more than before, Party B same)
-        tab_position_a = Inches(0.5)   # move Party A block to the right
-        tab_position_b = Inches(4.5)   # Party B unchanged
+        tab_position_a = Inches(0.5)
+        tab_position_b = Inches(4.5)
 
-        # "For Party A" and "For Party B"
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(30)
         p.paragraph_format.space_after = Pt(0)
         p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
         p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
-
         p.add_run('\tFor “Party A”').bold = True
         p.add_run('\tFor “Party B”').bold = True
 
-        # Signature lines
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(45)
         p.paragraph_format.space_after = Pt(0)
         p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
         p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
-
         p.add_run('\t__________________')
         p.add_run('\t__________________')
 
-        # Signature names
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = Pt(0)
         p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
         p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
-
         run = p.add_run(f"\t{contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun')}")
         run.bold = True
         run.font.size = Pt(11)
-
         run = p.add_run(f"\t{contract_data.get('party_b_signature_name', 'Mr. Leader Din')}")
         run.bold = True
         run.font.size = Pt(11)
 
-        # Titles / Positions
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = Pt(0)
         p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
         p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
-
         signer_position = next(
             (person['position'] for person in party_a_info
-            if person['name'] == contract_data.get('party_a_signature_name')),
+             if person['name'] == contract_data.get('party_a_signature_name')),
             'Executive Director'
         )
-
         run = p.add_run(f"\t{signer_position}")
         run.bold = True
         run.font.size = Pt(11)
-
         run = p.add_run(f"\t{contract_data.get('party_b_position', 'Freelance Consultant')}")
         run.bold = True
         run.font.size = Pt(11)
@@ -936,7 +900,6 @@ def generate_docx(contract):
         logger.error(f"Error generating DOCX for contract {contract.id}: {str(e)}")
         raise
 
-#send email to three person
 def send_contract_email(contract, output, filename):
     """Helper function to send contract via email to fixed recipients."""
     try:
@@ -983,8 +946,7 @@ def export_docx(contract_id):
 
         output, filename = generate_docx(contract)
         
-        # Auto-send email to fixed recipients
-        temp_output = BytesIO(output.getvalue())  # Copy for email
+        temp_output = BytesIO(output.getvalue())
         send_contract_email(contract, temp_output, filename)
         flash('Contract downloaded and sent successfully to designated recipients!', 'success')
 
@@ -1017,7 +979,6 @@ def send_docx():
             flash('Please provide at least one "To" email address.', 'danger')
             return redirect(url_for('contracts.index'))
 
-        # Function to process and validate emails from input string
         def process_emails(email_str):
             emails = [e.strip() for e in email_str.split(',') if e.strip()]
             valid = []
@@ -1030,12 +991,10 @@ def send_docx():
                     invalid.append(email)
             return valid, invalid
 
-        # Process each field
         valid_to, invalid_to = process_emails(to_input)
         valid_cc, invalid_cc = process_emails(cc_input)
         valid_bcc, invalid_bcc = process_emails(bcc_input)
 
-        # Collect all invalid emails for flashing
         all_invalid = invalid_to + invalid_cc + invalid_bcc
         if all_invalid:
             flash(f'Invalid email addresses skipped: {", ".join(all_invalid)}.', 'warning')
@@ -1044,7 +1003,6 @@ def send_docx():
             flash('No valid "To" email addresses provided.', 'danger')
             return redirect(url_for('contracts.index'))
 
-        # Retrieve and validate contract
         contract = Contract.query.get_or_404(contract_id)
         if not current_user.has_role('admin') and contract.user_id != current_user.id:
             flash("You are not authorized to send this contract.", 'danger')
@@ -1053,10 +1011,8 @@ def send_docx():
             flash("This contract has been deleted and cannot be sent.", 'danger')
             return redirect(url_for('contracts.index'))
 
-        # Generate DOCX file
         output, filename = generate_docx(contract)
 
-        # Send email
         msg = Message(
             subject=f"Consultant Contract Document - NGOF ({contract.contract_number or 'N/A'})",
             sender=mail.sender,
