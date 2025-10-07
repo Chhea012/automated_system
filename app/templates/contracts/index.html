@@ -141,8 +141,8 @@
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="{{ url_for('contracts.view', contract_id=contract.id) }}"><i class="bx bx-show"></i> View</a></li>
                                     <li><a class="dropdown-item" href="{{ url_for('contracts.update', contract_id=contract.id) }}"><i class="bx bx-edit"></i> Edit</a></li>
-                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#downloadConfirmModal{{ contract.id }}"><i class="bx bx-download"></i> Download Docx</a></li>
-                                    <!--<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#sendEmailModal" data-contract-id="{{ contract.id }}"><i class="bx bx-envelope"></i> Send via Email</a></li> -->
+                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#downloadConfirmModal{{ contract.id }}" data-contract-number="{{ contract.contract_number or 'N/A' }}"><i class="bx bx-download"></i> Download Docx</a></li>
+                                    <!--<li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#sendEmailModal" data-contract-id="{{ contract.id }}"><i class="bx bx-envelope"></i> Send via Email</a></li>-->
                                     <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal{{ contract.id }}"><i class="bx bx-trash"></i> Delete</a></li>
                                 </ul>
                             </div>
@@ -158,7 +158,7 @@
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
-                                    Are you sure you want to delete the contract "{{ contract.contract_number }}"? This action will mark the contract as deleted.
+                                    Are you sure you want to delete the contract "{{ contract.contract_number or 'N/A' }}"? This action will mark the contract as deleted.
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -175,12 +175,12 @@
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title">Confirm Download</h5>
+                                    <h5 class="modal-title">Download Contract: <span id="contractNumber{{ contract.id }}">{{ contract.contract_number or 'N/A' }}</span></h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body">
-                                    This is the latest contract file. Do you need to update or change anything? Do you want to download it? <br>
-                                    Note: Downloading will also automatically send the contract via email to the designated recipients.
+                                    <p>This is the latest version of consultant contract number <strong id="contractNumberBody{{ contract.id }}">{{ contract.contract_number or 'N/A' }}</strong>. Please confirm you want to download it.</p>
+                                    <p class="text-muted">Note: Downloading will also send the contract via email to the designated recipients. Ensure all details are up-to-date before proceeding.</p>
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -194,7 +194,7 @@
             </table>
         </div>
 
-        <!-- Send Email Modal (Updated UI) -->
+        <!-- Send Email Modal -->
         <div class="modal fade" id="sendEmailModal" tabindex="-1" aria-labelledby="sendEmailModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -206,14 +206,14 @@
                         <form id="sendEmailForm" action="{{ url_for('contracts.send_docx') }}" method="POST">
                             <div class="mb-3">
                                 <label for="toEmail" class="form-label">To (required, comma-separated for multiple)</label>
-                                <input type="text" class="form-control" id="toEmail" name="to_emails" placeholder="chhea.ngoforum01@gmail.com, chhea.ngoforum02@gmail.com" required>
+                                <input type="text" class="form-control" id="toEmail" name="to_emails" placeholder="example1@gmail.com, example2@gmail.com" required>
                                 <small class="form-text text-muted">Enter primary recipient emails, separated by commas.</small>
                             </div>
                             <div class="mb-3">
                                 <a href="#" id="toggleCc" class="text-primary text-decoration-none"><i class="bx bx-plus-circle"></i> Add CC</a>
                                 <div id="ccInputGroup" class="mt-2 d-none fade">
                                     <label for="ccEmail" class="form-label">CC (optional, comma-separated)</label>
-                                    <input type="text" class="form-control" id="ccEmail" name="cc_emails" placeholder="chhea.ngoforum01@gmail.com, chhea.ngoforum02@gmail.com">
+                                    <input type="text" class="form-control" id="ccEmail" name="cc_emails" placeholder="example1@gmail.com, example2@gmail.com">
                                     <small class="form-text text-muted">Enter carbon copy emails, separated by commas.</small>
                                 </div>
                             </div>
@@ -221,7 +221,7 @@
                                 <a href="#" id="toggleBcc" class="text-primary text-decoration-none"><i class="bx bx-plus-circle"></i> Add BCC</a>
                                 <div id="bccInputGroup" class="mt-2 d-none fade">
                                     <label for="bccEmail" class="form-label">BCC (optional, comma-separated)</label>
-                                    <input type="text" class="form-control" id="bccEmail" name="bcc_emails" placeholder="chhea.ngoforum01@gmail.com, chhea.ngoforum02@gmail.com">
+                                    <input type="text" class="form-control" id="bccEmail" name="bcc_emails" placeholder="example1@gmail.com, example2@gmail.com">
                                     <small class="form-text text-muted">Enter blind carbon copy emails, separated by commas.</small>
                                 </div>
                             </div>
@@ -270,16 +270,18 @@
     </div>
 </div>
 
-<!-- Search & Clear JS -->
+<!-- JavaScript for Search, Modals, and Email Form -->
 <script>
+    // Debounce function to limit search input events
     function debounce(func, wait) {
         let timeout;
         return function (...args) {
             clearTimeout(timeout);
             timeout = setTimeout(() => func(...args), wait);
-        }
+        };
     }
 
+    // Search functionality
     const searchForm = document.getElementById('filterForm');
     const searchInput = document.getElementById('searchInput');
     const clearSearch = document.getElementById('clearSearch');
@@ -287,11 +289,13 @@
 
     searchInput.addEventListener('input', debounce(() => {
         searchSpinner.style.display = 'block';
+        clearSearch.classList.toggle('d-none', !searchInput.value);
         searchForm.submit();
     }, 500));
 
     clearSearch.addEventListener('click', () => {
         searchInput.value = '';
+        clearSearch.classList.add('d-none');
         searchForm.submit();
     });
 
@@ -299,7 +303,7 @@
         searchSpinner.style.display = 'none';
     });
 
-    // Set contract_id when modal opens
+    // Send Email Modal - Set contract_id and reset inputs
     const sendEmailModal = document.getElementById('sendEmailModal');
     sendEmailModal.addEventListener('show.bs.modal', event => {
         const button = event.relatedTarget;
@@ -307,7 +311,7 @@
         const modalContractId = sendEmailModal.querySelector('#contractId');
         modalContractId.value = contractId;
 
-        // Reset CC and BCC inputs when modal opens
+        // Reset CC and BCC inputs
         const ccInputGroup = document.getElementById('ccInputGroup');
         const bccInputGroup = document.getElementById('bccInputGroup');
         const ccEmail = document.getElementById('ccEmail');
@@ -342,14 +346,37 @@
         }
     });
 
-    // Basic client-side validation for email form
+    // Email form validation
     const sendEmailForm = document.getElementById('sendEmailForm');
     sendEmailForm.addEventListener('submit', event => {
         const toEmail = document.getElementById('toEmail').value.trim();
         if (!toEmail) {
             event.preventDefault();
             alert('Please provide at least one "To" email address.');
+            return;
         }
+        // Basic email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const toEmails = toEmail.split(',').map(email => email.trim());
+        for (const email of toEmails) {
+            if (!emailRegex.test(email)) {
+                event.preventDefault();
+                alert(`Invalid email address: ${email}`);
+                return;
+            }
+        }
+    });
+
+    // Download Modal - Set contract number dynamically
+    document.querySelectorAll('[data-bs-target^="#downloadConfirmModal"]').forEach(button => {
+        button.addEventListener('click', event => {
+            const contractNumber = event.currentTarget.getAttribute('data-contract-number');
+            const modal = document.querySelector(event.currentTarget.getAttribute('data-bs-target'));
+            const titleSpan = modal.querySelector('.modal-title span');
+            const bodySpan = modal.querySelector('.modal-body strong');
+            if (titleSpan) titleSpan.textContent = contractNumber;
+            if (bodySpan) bodySpan.textContent = contractNumber;
+        });
     });
 </script>
 {% endblock %}
