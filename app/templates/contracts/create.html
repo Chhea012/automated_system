@@ -2,8 +2,7 @@
 {% block title %}Create Contract{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/create.css') }}" />
-
+<link rel="stylesheet" href="{{ url_for('static', filename='css/create.css') }}">
 
 <div class="container mt-4">
     <div class="form-header">
@@ -45,9 +44,9 @@
                         <div class="invalid-feedback">Please select a tax percentage.</div>
                     </div>
                     <div id="deduct_tax_code_container" class="mt-2" style="display: none;">
-                        <label for="vat_organization_name" class="form-label">Name of Organization/Name of Company</label>
+                        <label for="vat_organization_name" class="form-label">Name of Organization/Company</label>
                         <input type="text" class="form-control" id="vat_organization_name" name="vat_organization_name" value="{{ form_data.vat_organization_name | default('The NGO Forum on Cambodia') }}" placeholder="e.g., The NGO Forum on Cambodia" maxlength="255">
-                        <div class="invalid-feedback">Please enter the name of the organization/name of company.</div>
+                        <div class="invalid-feedback">Please enter the name of the organization/company.</div>
                         <label for="deduct_tax_code" class="form-label">VAT TIN</label>
                         <input type="text" class="form-control" id="deduct_tax_code" name="deduct_tax_code" value="{{ form_data.deduct_tax_code | default('') }}" placeholder="e.g., K002-100054102" pattern="[A-Z0-9\-]+" maxlength="50">
                         <small class="form-text text-muted">Enter the VAT TIN (uppercase letters, numbers, and hyphens only, max 50 characters).</small>
@@ -58,16 +57,9 @@
 
             <!-- Party A Information -->
             <div class="section-header">Party A Information (At least one required)</div>
-            <div class="row g-3">
-                <div class="col-md-12">
-                    <label for="organization_name" class="form-label">Organization Name</label>
-                    <input type="text" class="form-control" id="organization_name" name="organization_name" value="{{ form_data.organization_name | default('The NGO Forum on Cambodia') }}" placeholder="e.g., The NGO Forum on Cambodia" required>
-                    <div class="invalid-feedback">Please enter the organization name.</div>
-                </div>
-            </div>
             <div class="col-12" id="partyAContainer">
                 <label class="form-label">Party A Representatives</label>
-                {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia'}]) %}
+                {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia'}]) %}
                 <div class="party-a-container mb-3">
                     <div class="row g-3">
                         <div class="col-12">
@@ -79,6 +71,11 @@
                                 <option value="{{ person_data.name }}" {{ 'selected' if person.name == person_data.name }}>{{ person_data.name }}</option>
                                 {% endfor %}
                             </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="party_a_organization_{{ loop.index0 }}" class="form-label">Organization</label>
+                            <input type="text" class="form-control party-a-organization" id="party_a_organization_{{ loop.index0 }}" name="party_a_organization[]" value="{{ person.organization | default('The NGO Forum on Cambodia') }}" placeholder="e.g., The NGO Forum on Cambodia" pattern="[a-zA-Z\s\.,-]+" required>
+                            <div class="invalid-feedback">Please enter a valid organization (letters, spaces, commas, periods, hyphens only).</div>
                         </div>
                         <div class="col-md-6">
                             <label for="party_a_name_{{ loop.index0 }}" class="form-label">Name</label>
@@ -113,8 +110,8 @@
                     <label for="party_a_signer" class="form-label">Select Party A Signer</label>
                     <select class="form-select" id="party_a_signer" name="party_a_signer" required>
                         <option value="" disabled {{ 'selected' if not form_data.party_a_signer }}>Select a signer</option>
-                        {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia'}]) %}
-                        <option value="{{ person.name }}" {{ 'selected' if form_data.party_a_signer == person.name }}>{{ person.name }}</option>
+                        {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia'}]) %}
+                        <option value="{{ person.name }}" {{ 'selected' if form_data.party_a_signer == person.name }}>{{ person.name }} ({{ person.organization }})</option>
                         {% endfor %}
                     </select>
                     <div class="invalid-feedback">Please select a Party A signer.</div>
@@ -243,7 +240,7 @@
                 </div>
                 <div class="col-12" id="installmentContainer">
                     <label class="form-label">Payment Installments</label>
-                    {% for installment in form_data.payment_installments | default([{'description': '', 'deliverables': '', 'dueDate': ''}]) %}
+                    {% for installment in form_data.payment_installments | default([{'description': '', 'deliverables': '', 'dueDate': '', 'organization': ''}]) %}
                     <div class="installment-container mb-3 border p-3 rounded">
                         <div class="row g-3">
                             <div class="col-12">
@@ -259,6 +256,16 @@
                                     <button type="button" class="btn btn-danger btn-remove-installment {{ 'd-none' if loop.first and (form_data.payment_installments | default([])) | length == 1 else '' }}">Remove</button>
                                     <div class="invalid-feedback">Please select a percentage.</div>
                                 </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Paying Organization</label>
+                                <select class="form-select installment-org" name="paymentInstallmentOrg[]" required>
+                                    <option value="" disabled {{ 'selected' if not installment.organization }}>Select organization</option>
+                                    {% for org in form_data.party_a_info | map(attribute='organization') | unique | list %}
+                                    <option value="{{ org }}" {{ 'selected' if installment.organization == org }}>{{ org }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">Please select a paying organization.</div>
                             </div>
                             <div class="col-12">
                                 <label for="paymentInstallmentDeliverables{{ loop.index0 }}" class="form-label">Deliverables (one per line)</label>
@@ -458,12 +465,14 @@
 
     function populatePartyA(select) {
         const container = select.closest('.party-a-container');
+        const organizationInput = container.querySelector('.party-a-organization');
         const nameInput = container.querySelector('.party-a-name');
         const positionInput = container.querySelector('.party-a-position');
         const addressInput = container.querySelector('.party-a-address');
 
         const selectedValue = select.value;
         if (selectedValue === 'new' || !selectedValue) {
+            organizationInput.value = 'The NGO Forum on Cambodia';
             nameInput.value = '';
             positionInput.value = '';
             addressInput.value = '';
@@ -472,11 +481,13 @@
             const normalizedName = selectedValue.toLowerCase();
             const person = partyAData[normalizedName];
             if (person) {
+                organizationInput.value = person.organization;
                 nameInput.value = person.name;
                 positionInput.value = person.position;
                 addressInput.value = person.address;
                 nameInput.required = true;
             } else {
+                organizationInput.value = 'The NGO Forum on Cambodia';
                 nameInput.value = '';
                 positionInput.value = '';
                 addressInput.value = '';
@@ -484,6 +495,7 @@
             }
         }
         updatePartyASignerOptions();
+        updateOrgOptions();
     }
 
     function populateFocalPerson(select) {
@@ -520,28 +532,46 @@
     }
 
     function updatePartyASignerOptions() {
-        const partyANames = Array.from(document.querySelectorAll('.party-a-name')).map(input => input.value).filter(v => v);
+        const partyAEntries = Array.from(document.querySelectorAll('.party-a-container')).map(container => {
+            const name = container.querySelector('.party-a-name').value.trim();
+            const org = container.querySelector('.party-a-organization').value.trim();
+            return { name, org };
+        }).filter(entry => entry.name && entry.org);
+
         const signerSelect = document.getElementById('party_a_signer');
         const currentValue = signerSelect.value;
 
-        // Clear existing options
         signerSelect.innerHTML = '<option value="" disabled>Select a signer</option>';
 
-        // Add new options
-        partyANames.forEach(name => {
+        partyAEntries.forEach(entry => {
             const option = document.createElement('option');
-            option.value = name;
-            option.text = name;
-            if (name === currentValue) option.selected = true;
+            option.value = entry.name;
+            option.text = `${entry.name} (${entry.org})`;
+            if (entry.name === currentValue) option.selected = true;
             signerSelect.appendChild(option);
         });
 
-        // If current value is no longer valid, reset to first or empty
-        if (!partyANames.includes(currentValue) && partyANames.length > 0) {
-            signerSelect.value = partyANames[0];
-        } else if (!partyANames.length) {
+        if (!partyAEntries.some(e => e.name === currentValue) && partyAEntries.length > 0) {
+            signerSelect.value = partyAEntries[0].name;
+        } else if (!partyAEntries.length) {
             signerSelect.value = '';
         }
+    }
+
+    function updateOrgOptions() {
+        const orgsSet = new Set(Array.from(document.querySelectorAll('.party-a-organization')).map(input => input.value.trim()).filter(v => v));
+        const selects = document.querySelectorAll('.installment-org');
+        selects.forEach(select => {
+            const currentValue = select.value;
+            select.innerHTML = '<option value="" disabled selected>Select organization</option>';
+            orgsSet.forEach(org => {
+                const option = document.createElement('option');
+                option.value = org;
+                option.text = org;
+                select.appendChild(option);
+            });
+            select.value = orgsSet.has(currentValue) ? currentValue : '';
+        });
     }
 
     document.getElementById('total_fee_usd').addEventListener('input', function () {
@@ -554,10 +584,16 @@
         handlePartyBSelect(this);
     });
 
-    // Listen for changes in Party A name fields to update signer options
     document.addEventListener('change', function(e) {
-        if (e.target.classList.contains('party-a-name')) {
+        if (e.target.classList.contains('party-a-name') || e.target.classList.contains('party-a-organization')) {
             updatePartyASignerOptions();
+            updateOrgOptions();
+        }
+    });
+
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('party-a-organization')) {
+            updateOrgOptions();
         }
     });
 
@@ -569,10 +605,13 @@
         const timestamp = Date.now();
 
         newPartyA.querySelector('.party-a-select').value = '';
+        newPartyA.querySelector('.party-a-organization').value = 'The NGO Forum on Cambodia';
         newPartyA.querySelector('.party-a-name').value = '';
         newPartyA.querySelector('.party-a-position').value = '';
         newPartyA.querySelector('.party-a-address').value = '';
 
+        newPartyA.querySelector('.party-a-organization').id = `party_a_organization_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_organization"]').setAttribute('for', `party_a_organization_${timestamp}`);
         newPartyA.querySelector('.party-a-name').id = `party_a_name_${timestamp}`;
         newPartyA.querySelector('label[for^="party_a_name"]').setAttribute('for', `party_a_name_${timestamp}`);
         newPartyA.querySelector('.party-a-position').id = `party_a_position_${timestamp}`;
@@ -590,11 +629,13 @@
             newPartyA.remove();
             updatePartyARemoveButtons();
             updatePartyASignerOptions();
+            updateOrgOptions();
         });
 
         container.appendChild(newPartyA);
         updatePartyARemoveButtons();
         updatePartyASignerOptions();
+        updateOrgOptions();
     }
 
     function updatePartyARemoveButtons() {
@@ -668,7 +709,7 @@
             }
             const percentages = Array.from(document.querySelectorAll('.installment-percentage')).map(select => parseFloat(select.value) || 0);
             const totalPercentage = percentages.reduce((sum, val) => sum + val, 0);
-            if (totalPercentage !== 100) {
+            if (Math.abs(totalPercentage - 100) > 0.01) {
                 event.preventDefault();
                 event.stopPropagation();
                 alert('Total percentage of payment installments must equal 100%.');
@@ -740,16 +781,16 @@
             const select = container.querySelector('.installment-percentage');
             return parseFloat(select.value) || 0;
         });
-        const currentTotal = currentPercentages.reduce((sum, val) => sum + val, 0);
+        let currentTotal = currentPercentages.reduce((sum, val) => sum + val, 0);
 
-        if (currentTotal === 100 && currentPercentages.every(p => availablePercentages.includes(p))) {
+        if (Math.abs(currentTotal - 100) < 0.01 && currentPercentages.every(p => availablePercentages.includes(p))) {
             percentages = currentPercentages;
         } else {
             const base = Math.floor(100 / count);
             percentages = Array(count).fill(base);
-            const remainder = 100 - base * count;
+            let remainder = 100 - base * count;
             for (let i = 0; i < remainder; i++) {
-                percentages[i]++;
+                percentages[i] += 1;
             }
             percentages = percentages.map(p => {
                 return availablePercentages.reduce((prev, curr) =>
@@ -757,7 +798,7 @@
                 );
             });
             let total = percentages.reduce((sum, val) => sum + val, 0);
-            if (total !== 100) {
+            if (Math.abs(total - 100) > 0.01) {
                 const diff = 100 - total;
                 const lastIndex = percentages.length - 1;
                 const newLast = percentages[lastIndex] + diff;
@@ -765,7 +806,7 @@
                     Math.abs(curr - newLast) < Math.abs(prev - newLast) ? curr : prev
                 );
                 total = percentages.reduce((sum, val) => sum + val, 0);
-                if (total !== 100) {
+                if (Math.abs(total - 100) > 0.01) {
                     percentages[0] += 100 - total;
                     percentages[0] = availablePercentages.reduce((prev, curr) =>
                         Math.abs(curr - percentages[0]) < Math.abs(prev - percentages[0]) ? curr : prev
@@ -793,6 +834,7 @@
         newInstallment.querySelector('textarea[name="paymentInstallmentDeliverables[]"]').value = '';
         newInstallment.querySelector('input[name="paymentInstallmentDueDate[]"]').value = '';
         newInstallment.querySelector('select[name="paymentInstallmentPercentage[]"]').value = '';
+        newInstallment.querySelector('select[name="paymentInstallmentOrg[]"]').value = '';
 
         newInstallment.querySelector('textarea').id = `paymentInstallmentDeliverables${timestamp}`;
         newInstallment.querySelector('label[for^="paymentInstallmentDeliverables"]').setAttribute('for', `paymentInstallmentDeliverables${timestamp}`);
@@ -824,6 +866,7 @@
         container.appendChild(newInstallment);
         updateRemoveButtons();
         assignPercentages();
+        updateOrgOptions();
     }
 
     function updateRemoveButtons() {
@@ -873,6 +916,7 @@
         updateFocalPersonRemoveButtons();
         updatePartyARemoveButtons();
         updatePartyASignerOptions();
+        updateOrgOptions();
         toggleDeductTaxCode(); // Initialize deduct_tax_code visibility
 
         document.querySelectorAll('.btn-remove-article').forEach(button => {
@@ -898,6 +942,7 @@
                 button.closest('.party-a-container').remove();
                 updatePartyARemoveButtons();
                 updatePartyASignerOptions();
+                updateOrgOptions();
             });
         });
 

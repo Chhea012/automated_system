@@ -10,8 +10,7 @@ class Contract(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     project_title = db.Column(db.String(255), nullable=False, default='')
     contract_number = db.Column(db.String(50), nullable=False, default='')
-    organization_name = db.Column(db.String(100), default='')
-    party_a_info = db.Column(db.JSON, default=lambda: [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia'}])
+    party_a_info = db.Column(db.JSON, default=lambda: [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia'}])
     party_b_full_name_with_title = db.Column(db.String(255), default='')
     party_b_address = db.Column(db.Text, default='')
     party_b_phone = db.Column(db.String(20), default='')
@@ -70,8 +69,7 @@ class Contract(db.Model):
             'department_name': self.user.department.name if self.user and self.user.department else 'N/A',
             'project_title': self.project_title or '',
             'contract_number': self.contract_number or '',
-            'organization_name': self.organization_name or '',
-            'party_a_info': party_a_info,
+            'party_a_info': party_a_info,  # Includes 'organization' now
             'party_b_full_name_with_title': self.party_b_full_name_with_title or '',
             'party_b_address': self.party_b_address or '',
             'party_b_phone': self.party_b_phone or '',
@@ -84,8 +82,8 @@ class Contract(db.Model):
             'gross_amount_usd': float(self.gross_amount_usd) if self.gross_amount_usd is not None else 0.0,
             'tax_percentage': float(self.tax_percentage) if self.tax_percentage is not None else 15.0,
             'deduct_tax_code': self.deduct_tax_code or '',
-            'vat_organization_name': self.vat_organization_name or '',  # Added new field
-            'payment_installments': payment_installments,
+            'vat_organization_name': self.vat_organization_name or '',
+            'payment_installments': payment_installments,  # Includes 'organization' now
             'payment_gross': self.payment_gross or '',
             'payment_net': self.payment_net or '',
             'workshop_description': self.workshop_description or '',

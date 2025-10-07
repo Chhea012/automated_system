@@ -226,6 +226,9 @@ def generate_docx(contract):
             installment['gross_amount'] = gross
             installment['tax_amount'] = tax
             installment['net_amount'] = net
+            # Append organization to description for table
+            org = installment.get('organization', '')
+            installment['description'] = f"{installment['description']} by {org}" if org else installment['description']
 
         # Create DOCX document
         doc = Document()
@@ -446,19 +449,18 @@ def generate_docx(contract):
                         {
                             'Installment': installment['description'],
                             'Total Amount (USD)': [
-                                f'- Gross: ${installment["gross_amount"]:.2f}',
-                                f'- Tax {tax_percentage}%: ${installment["tax_amount"]:.2f}' if tax_percentage > 0 else '',
-                                f'- Net pay: ${installment["net_amount"]:.2f}'
+                                f'- Gross: USD {installment["gross_amount"]:.2f}',
+                                f'- Tax {tax_percentage}%: USD {installment["tax_amount"]:.2f}' if tax_percentage > 0 else '',
+                                f'- Net pay: USD {installment["net_amount"]:.2f}'
                             ],
-                            # ✅ Store clean text, split into lines
+                            # Store clean text, split into lines
                             'Deliverable': '\n'.join(d.strip() for d in installment['deliverables'].split(';') if d.strip()),
                             'Due date': installment['dueDate_display']
                         }
                         for installment in contract_data.get('payment_installments', [])
                     ]
                 ]
-            }
-            ,
+            },
             {
                 'number': 5,
                 'title': 'NO OTHER PERSONS',
@@ -630,20 +632,26 @@ def generate_docx(contract):
         add_paragraph(f"No.: {contract_data.get('contract_number', 'N/A')}", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=14)
         add_paragraph('BETWEEN', WD_ALIGN_PARAGRAPH.CENTER, size=12)
 
-        # Party A
-        party_a_info = contract_data.get('party_a_info', [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia'}])
-        representatives = [f"{person['name']}, {person['position']}" for person in party_a_info]
-        representative_text = ", represented by " + "; ".join(representatives) + "."
-        party_a_text_parts = [
-            "The NGO Forum on Cambodia",
-            representative_text,
-            "\nAddress: ",
-            party_a_info[0]['address'] if party_a_info else '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia',
-            ".\nhereinafter called the ",
-            "“Party A”"
-        ]
-        party_a_bold_parts = ["The NGO Forum on Cambodia", "“Party A”"] + [person['name'] for person in party_a_info]
-        add_paragraph_with_bold(party_a_text_parts, party_a_bold_parts, WD_ALIGN_PARAGRAPH.CENTER, default_size=12, bold_size=12)
+        # Party A (Multiple, each as separate block)
+        party_a_info = contract_data.get('party_a_info', [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia'}])
+        for person in party_a_info:
+            organization = person.get('organization', 'The NGO Forum on Cambodia')
+            name = person.get('name', 'N/A')
+            position = person.get('position', 'N/A')
+            address = person.get('address', '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia')
+            party_a_text_parts = [
+                organization,
+                ", represented by ",
+                name,
+                ", ",
+                position,
+                ".\nAddress: ",
+                address,
+                ".\nhereinafter called the ",
+                "“Party A”"
+            ]
+            party_a_bold_parts = [organization, name, "“Party A”"]
+            add_paragraph_with_bold(party_a_text_parts, party_a_bold_parts, WD_ALIGN_PARAGRAPH.CENTER, default_size=12, bold_size=12)
 
         add_paragraph('AND', WD_ALIGN_PARAGRAPH.CENTER, size=12)
 
@@ -715,7 +723,7 @@ def generate_docx(contract):
                             run.font.size = Pt(12)
                             run.bold = True
 
-                        # ✅ Add space only after "Net amount"
+                        # Add space only after "Net amount"
                         if line.startswith("Net amount"):
                             p.paragraph_format.space_after = Pt(12)
 
@@ -848,8 +856,6 @@ def generate_docx(contract):
                         # Vertical alignment always center
                         cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
 
-
-
         # Signature Block
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(20)
@@ -929,6 +935,7 @@ def generate_docx(contract):
     except Exception as e:
         logger.error(f"Error generating DOCX for contract {contract.id}: {str(e)}")
         raise
+
 #send email to three person
 def send_contract_email(contract, output, filename):
     """Helper function to send contract via email to fixed recipients."""
@@ -1177,7 +1184,7 @@ def create():
     last_contract_number = last_contract.contract_number if last_contract else None
     default_contract_number = generate_next_contract_number(last_contract_number, current_year)
 
-    # Fetch unique Party A data from previous contracts
+    # Fetch unique Party A data from previous contracts (now with organization)
     previous_contracts = Contract.query.filter(Contract.deleted_at == None).all()
     party_a_data = {}
     for contract in previous_contracts:
@@ -1189,10 +1196,11 @@ def create():
                     party_a_data[normalized_name] = {
                         'name': name,
                         'position': person.get('position', '').strip(),
-                        'address': person.get('address', '').strip()
+                        'address': person.get('address', '').strip(),
+                        'organization': person.get('organization', 'The NGO Forum on Cambodia').strip()
                     }
 
-    # Fetch unique Party B data
+    # Fetch unique Party B data (unchanged)
     party_b_data = {}
     for contract in previous_contracts:
         name = contract.party_b_signature_name.strip()
@@ -1205,7 +1213,7 @@ def create():
                 'address': contract.party_b_address or ''
             }
 
-    # Fetch unique focal person data
+    # Fetch unique focal person data (unchanged)
     focal_person_data = {}
     for contract in previous_contracts:
         focal_persons = contract.focal_person_info or [] 
@@ -1221,7 +1229,7 @@ def create():
                         'email': person.get('email', '').strip()
                     }
 
-    # Define article titles
+    # Define article titles (unchanged)
     article_titles = [
         "TERMS OF REFERENCE",
         "TERM OF AGREEMENT",
@@ -1257,8 +1265,7 @@ def create():
                 'output_description': request.form.get('output_description', '').strip(),
                 'tax_percentage': float(request.form.get('tax_percentage', '15.0').strip() or 15.0),
                 'deduct_tax_code': deduct_tax_code,
-                'vat_organization_name': vat_organization_name,  # New in form_data
-                'organization_name': request.form.get('organization_name', '').strip(),
+                'vat_organization_name': vat_organization_name,
                 'party_b_signature_name': party_b_name,
                 'party_b_position': request.form.get('party_b_position', '').strip(),
                 'party_b_phone': request.form.get('party_b_phone', '').strip(),
@@ -1276,26 +1283,28 @@ def create():
                 'party_a_signer': party_a_signer
             }
 
-            # Process Party A info (multiple entries)
+            # Process Party A info (now with organization)
             party_a_info = [
                 {
+                    'organization': org.strip(),
                     'name': name.strip(),
                     'position': pos.strip(),
                     'address': addr.strip()
                 }
-                for name, pos, addr in zip(
+                for org, name, pos, addr in zip(
+                    request.form.getlist('party_a_organization[]'),
                     request.form.getlist('party_a_name[]'),
                     request.form.getlist('party_a_position[]'),
                     request.form.getlist('party_a_address[]')
                 )
-                if name.strip() and pos.strip() and addr.strip()
+                if org.strip() and name.strip() and pos.strip() and addr.strip()
             ]
             if not party_a_info:
                 flash('At least one Party A representative is required.', 'danger')
                 form_data['payment_installments'] = []
                 form_data['focal_person_info'] = []
                 form_data['articles'] = []
-                form_data['party_a_info'] = [{'name': '', 'position': '', 'address': ''}]
+                form_data['party_a_info'] = [{'organization': '', 'name': '', 'position': '', 'address': ''}]
                 return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             form_data['party_a_info'] = party_a_info
@@ -1358,19 +1367,21 @@ def create():
             form_data['articles'] = articles_raw
             form_data['custom_article_sentences'] = {str(article['article_number']): article['custom_sentence'] for article in articles_raw}
 
-            # Process payment installments
+            # Process payment installments (now with organization)
             payment_installments_raw = [
                 {
                     'description': desc.strip(),
                     'deliverables': deliv.strip(),
-                    'dueDate': due.strip()
+                    'dueDate': due.strip(),
+                    'organization': org.strip()
                 }
-                for desc, deliv, due in zip(
+                for desc, deliv, due, org in zip(
                     request.form.getlist('paymentInstallmentDesc[]'),
                     request.form.getlist('paymentInstallmentDeliverables[]'),
-                    request.form.getlist('paymentInstallmentDueDate[]')
+                    request.form.getlist('paymentInstallmentDueDate[]'),
+                    request.form.getlist('paymentInstallmentOrg[]')
                 )
-                if desc.strip() and deliv.strip() and due.strip()
+                if desc.strip() and deliv.strip() and due.strip() and org.strip()
             ]
             if not payment_installments_raw:
                 flash('At least one payment installment is required.', 'danger')
@@ -1382,7 +1393,7 @@ def create():
             deliverables = '; '.join([inst['deliverables'] for inst in payment_installments_raw])
             form_data['deliverables'] = deliverables
 
-            # Process focal persons
+            # Process focal persons (unchanged)
             focal_person_raw = [
                 {
                     'name': name.strip(),
@@ -1419,7 +1430,6 @@ def create():
                 ('project_title', 'Project title is required.'),
                 ('contract_number', 'Contract number is required.'),
                 ('output_description', 'Output description is required.'),
-                ('organization_name', 'Organization name is required.'),
                 ('party_b_signature_name', 'Party B signature name is required.'),
                 ('agreement_start_date', 'Agreement start date is required.'),
                 ('agreement_end_date', 'Agreement end date is required.'),
@@ -1467,8 +1477,9 @@ def create():
                 flash('Tax percentage must be one of 0, 5, 10, 15, or 20.', 'danger')
                 return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
-            # Validate payment installment percentages
+            # Validate payment installment percentages and organizations
             total_percentage = 0.0
+            unique_orgs = {p['organization'] for p in party_a_info}
             for installment in form_data['payment_installments']:
                 match = re.search(r'\((\d+\.?\d*)\%\)', installment['description'])
                 if not match:
@@ -1485,12 +1496,15 @@ def create():
                 except ValueError:
                     flash(f"Invalid due date for installment: {installment['dueDate']}.", 'danger')
                     return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
+                if installment['organization'] not in unique_orgs:
+                    flash(f"Invalid organization for installment: {installment['organization']}. Must be from Party A organizations.", 'danger')
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             if abs(total_percentage - 100.0) > 0.01:
                 flash('Total percentage of payment installments must equal 100%.', 'danger')
                 return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
-            # Validate focal person info
+            # Validate focal person info (unchanged)
             for person in form_data['focal_person_info']:
                 if not re.match(r'^[a-zA-Z\s\.]+$', person['name']):
                     flash(f"Invalid focal person name: {person['name']}. Only letters, spaces, and periods are allowed.", 'danger')
@@ -1505,8 +1519,11 @@ def create():
                     flash(f"Invalid focal person email: {person['email']}.", 'danger')
                     return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
-            # Validate Party A info
+            # Validate Party A info (now with organization)
             for person in form_data['party_a_info']:
+                if not re.match(r'^[a-zA-Z\s\.,-]+$', person['organization']):
+                    flash(f"Invalid Party A organization: {person['organization']}. Only letters, spaces, commas, periods, hyphens allowed.", 'danger')
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if not re.match(r'^[a-zA-Z\s\.]+$', person['name']):
                     flash(f"Invalid Party A name: {person['name']}. Only letters, spaces, and periods are allowed.", 'danger')
                     return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
@@ -1523,7 +1540,6 @@ def create():
                 user_id=current_user.id,
                 project_title=form_data['project_title'],
                 contract_number=form_data['contract_number'],
-                organization_name=form_data['organization_name'],
                 party_a_info=form_data['party_a_info'],
                 party_b_full_name_with_title=form_data['party_b_full_name_with_title'],
                 party_b_address=form_data['party_b_address'],
@@ -1537,7 +1553,7 @@ def create():
                 gross_amount_usd=form_data['gross_amount_usd'],
                 tax_percentage=form_data['tax_percentage'],
                 deduct_tax_code=form_data['deduct_tax_code'] if form_data['tax_percentage'] == 0 else None,
-                vat_organization_name=form_data['vat_organization_name'] if form_data['tax_percentage'] == 0 else None,  # New field
+                vat_organization_name=form_data['vat_organization_name'] if form_data['tax_percentage'] == 0 else None,
                 payment_gross=form_data['payment_gross'],
                 payment_net=form_data['payment_net'],
                 workshop_description=form_data['workshop_description'],
@@ -1579,14 +1595,14 @@ def create():
 
     # Initialize form_data for GET request
     form_data = {
-        'party_a_info': [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia'}],
+        'party_a_info': [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia'}],
         'focal_person_info': [{'name': '', 'position': '', 'phone': '', 'email': ''}],
-        'payment_installments': [{'description': '', 'deliverables': '', 'dueDate': ''}],
+        'payment_installments': [{'description': '', 'deliverables': '', 'dueDate': '', 'organization': ''}],
         'articles': [],
         'custom_article_sentences': {},
         'party_a_signer': 'Mr. SOEUNG Saroeun',
         'deduct_tax_code': '',
-        'vat_organization_name': ''  # New in init
+        'vat_organization_name': ''
     }
     return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
