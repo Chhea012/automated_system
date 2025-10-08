@@ -59,7 +59,7 @@
             <div class="section-header">Party A Information (At least one required)</div>
             <div class="col-12" id="partyAContainer">
                 <label class="form-label">Party A Representatives</label>
-                {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia'}]) %}
+                {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia', 'short_name': 'NGOF'}]) %}
                 <div class="party-a-container mb-3">
                     <div class="row g-3">
                         <div class="col-12">
@@ -76,6 +76,11 @@
                             <label for="party_a_organization_{{ loop.index0 }}" class="form-label">Organization</label>
                             <input type="text" class="form-control party-a-organization" id="party_a_organization_{{ loop.index0 }}" name="party_a_organization[]" value="{{ person.organization | default('The NGO Forum on Cambodia') }}" placeholder="e.g., The NGO Forum on Cambodia" pattern="[a-zA-Z\s\.,-]+" required>
                             <div class="invalid-feedback">Please enter a valid organization (letters, spaces, commas, periods, hyphens only).</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="party_a_short_name_{{ loop.index0 }}" class="form-label">Organization Short Name (Optional)</label>
+                            <input type="text" class="form-control party-a-short-name" id="party_a_short_name_{{ loop.index0 }}" name="party_a_short_name[]" value="{{ person.short_name | default('NGOF') }}" placeholder="e.g., NGOF" pattern="[a-zA-Z0-9\s\-]+">
+                            <div class="invalid-feedback">Please enter a valid short name (letters, numbers, spaces, hyphens only).</div>
                         </div>
                         <div class="col-md-6">
                             <label for="party_a_name_{{ loop.index0 }}" class="form-label">Name</label>
@@ -110,8 +115,8 @@
                     <label for="party_a_signer" class="form-label">Select Party A Signer</label>
                     <select class="form-select" id="party_a_signer" name="party_a_signer" required>
                         <option value="" disabled {{ 'selected' if not form_data.party_a_signer }}>Select a signer</option>
-                        {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia'}]) %}
-                        <option value="{{ person.name }}" {{ 'selected' if form_data.party_a_signer == person.name }}>{{ person.name }} ({{ person.organization }})</option>
+                        {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia', 'short_name': 'NGOF'}]) %}
+                        <option value="{{ person.name }}" {{ 'selected' if form_data.party_a_signer == person.name }}>{{ person.name }} ({{ person.short_name | default(person.organization) }})</option>
                         {% endfor %}
                     </select>
                     <div class="invalid-feedback">Please select a Party A signer.</div>
@@ -466,6 +471,7 @@
     function populatePartyA(select) {
         const container = select.closest('.party-a-container');
         const organizationInput = container.querySelector('.party-a-organization');
+        const shortNameInput = container.querySelector('.party-a-short-name');
         const nameInput = container.querySelector('.party-a-name');
         const positionInput = container.querySelector('.party-a-position');
         const addressInput = container.querySelector('.party-a-address');
@@ -473,6 +479,7 @@
         const selectedValue = select.value;
         if (selectedValue === 'new' || !selectedValue) {
             organizationInput.value = 'The NGO Forum on Cambodia';
+            shortNameInput.value = 'NGOF';
             nameInput.value = '';
             positionInput.value = '';
             addressInput.value = '';
@@ -482,12 +489,14 @@
             const person = partyAData[normalizedName];
             if (person) {
                 organizationInput.value = person.organization;
+                shortNameInput.value = person.short_name || '';
                 nameInput.value = person.name;
                 positionInput.value = person.position;
                 addressInput.value = person.address;
                 nameInput.required = true;
             } else {
                 organizationInput.value = 'The NGO Forum on Cambodia';
+                shortNameInput.value = 'NGOF';
                 nameInput.value = '';
                 positionInput.value = '';
                 addressInput.value = '';
@@ -535,7 +544,8 @@
         const partyAEntries = Array.from(document.querySelectorAll('.party-a-container')).map(container => {
             const name = container.querySelector('.party-a-name').value.trim();
             const org = container.querySelector('.party-a-organization').value.trim();
-            return { name, org };
+            const shortName = container.querySelector('.party-a-short-name').value.trim();
+            return { name, org, shortName };
         }).filter(entry => entry.name && entry.org);
 
         const signerSelect = document.getElementById('party_a_signer');
@@ -546,7 +556,7 @@
         partyAEntries.forEach(entry => {
             const option = document.createElement('option');
             option.value = entry.name;
-            option.text = `${entry.name} (${entry.org})`;
+            option.text = `${entry.name} (${entry.shortName || entry.org})`;
             if (entry.name === currentValue) option.selected = true;
             signerSelect.appendChild(option);
         });
@@ -559,20 +569,28 @@
     }
 
     function updateOrgOptions() {
-        const orgsSet = new Set(Array.from(document.querySelectorAll('.party-a-organization')).map(input => input.value.trim()).filter(v => v));
+        const orgsSet = new Map();
+        Array.from(document.querySelectorAll('.party-a-container')).forEach(container => {
+            const org = container.querySelector('.party-a-organization').value.trim();
+            const shortName = container.querySelector('.party-a-short-name').value.trim();
+            if (org) {
+                orgsSet.set(org, shortName || org);
+            }
+        });
+
         const selects = document.querySelectorAll('.installment-org');
         selects.forEach(select => {
             const currentValue = select.value;
             select.innerHTML = '<option value="" disabled selected>Select organization</option>';
-            orgsSet.forEach(org => {
+            orgsSet.forEach((shortName, org) => {
                 const option = document.createElement('option');
                 option.value = org;
-                option.text = org;
+                option.text = shortName;
                 select.appendChild(option);
             });
             select.value = orgsSet.has(currentValue) ? currentValue : '';
             if (select.value === '' && orgsSet.size === 1) {
-                select.value = Array.from(orgsSet)[0];
+                select.value = Array.from(orgsSet.keys())[0];
             }
         });
     }
@@ -588,14 +606,14 @@
     });
 
     document.addEventListener('change', function(e) {
-        if (e.target.classList.contains('party-a-name') || e.target.classList.contains('party-a-organization')) {
+        if (e.target.classList.contains('party-a-name') || e.target.classList.contains('party-a-organization') || e.target.classList.contains('party-a-short-name')) {
             updatePartyASignerOptions();
             updateOrgOptions();
         }
     });
 
     document.addEventListener('input', function(e) {
-        if (e.target.classList.contains('party-a-organization')) {
+        if (e.target.classList.contains('party-a-organization') || e.target.classList.contains('party-a-short-name')) {
             updateOrgOptions();
         }
     });
@@ -609,12 +627,15 @@
 
         newPartyA.querySelector('.party-a-select').value = '';
         newPartyA.querySelector('.party-a-organization').value = 'The NGO Forum on Cambodia';
+        newPartyA.querySelector('.party-a-short-name').value = 'NGOF';
         newPartyA.querySelector('.party-a-name').value = '';
         newPartyA.querySelector('.party-a-position').value = '';
         newPartyA.querySelector('.party-a-address').value = '';
 
         newPartyA.querySelector('.party-a-organization').id = `party_a_organization_${timestamp}`;
         newPartyA.querySelector('label[for^="party_a_organization"]').setAttribute('for', `party_a_organization_${timestamp}`);
+        newPartyA.querySelector('.party-a-short-name').id = `party_a_short_name_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_short_name"]').setAttribute('for', `party_a_short_name_${timestamp}`);
         newPartyA.querySelector('.party-a-name').id = `party_a_name_${timestamp}`;
         newPartyA.querySelector('label[for^="party_a_name"]').setAttribute('for', `party_a_name_${timestamp}`);
         newPartyA.querySelector('.party-a-position').id = `party_a_position_${timestamp}`;

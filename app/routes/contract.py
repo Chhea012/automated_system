@@ -1149,7 +1149,6 @@ def index():
             last_contract_number=None,
             is_admin=current_user.has_role('admin')
         )    
-#create contract list         
 @contracts_bp.route('/create', methods=['GET', 'POST'])
 @login_required
 def create():
@@ -1158,7 +1157,7 @@ def create():
     last_contract_number = last_contract.contract_number if last_contract else None
     default_contract_number = generate_next_contract_number(last_contract_number, current_year)
 
-    # Fetch unique Party A data from previous contracts (now with organization)
+    # Fetch unique Party A data from previous contracts (now with organization and short_name)
     previous_contracts = Contract.query.filter(Contract.deleted_at == None).all()
     party_a_data = {}
     for contract in previous_contracts:
@@ -1171,7 +1170,8 @@ def create():
                         'name': name,
                         'position': person.get('position', '').strip(),
                         'address': person.get('address', '').strip(),
-                        'organization': person.get('organization', 'The NGO Forum on Cambodia').strip()
+                        'organization': person.get('organization', 'The NGO Forum on Cambodia').strip(),
+                        'short_name': person.get('short_name', '').strip()
                     }
 
     # Fetch unique Party B data (unchanged)
@@ -1257,16 +1257,18 @@ def create():
                 'party_a_signer': party_a_signer
             }
 
-            # Process Party A info (now with organization)
+            # Process Party A info (now with organization and short_name)
             party_a_info = [
                 {
                     'organization': org.strip(),
+                    'short_name': short.strip(),
                     'name': name.strip(),
                     'position': pos.strip(),
                     'address': addr.strip()
                 }
-                for org, name, pos, addr in zip(
+                for org, short, name, pos, addr in zip(
                     request.form.getlist('party_a_organization[]'),
+                    request.form.getlist('party_a_short_name[]'),
                     request.form.getlist('party_a_name[]'),
                     request.form.getlist('party_a_position[]'),
                     request.form.getlist('party_a_address[]')
@@ -1278,7 +1280,7 @@ def create():
                 form_data['payment_installments'] = []
                 form_data['focal_person_info'] = []
                 form_data['articles'] = []
-                form_data['party_a_info'] = [{'organization': '', 'name': '', 'position': '', 'address': ''}]
+                form_data['party_a_info'] = [{'organization': '', 'short_name': '', 'name': '', 'position': '', 'address': ''}]
                 return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
             form_data['party_a_info'] = party_a_info
@@ -1493,10 +1495,13 @@ def create():
                     flash(f"Invalid focal person email: {person['email']}.", 'danger')
                     return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
 
-            # Validate Party A info (now with organization)
+            # Validate Party A info (now with organization and short_name)
             for person in form_data['party_a_info']:
                 if not re.match(r'^[a-zA-Z\s\.,-]+$', person['organization']):
                     flash(f"Invalid Party A organization: {person['organization']}. Only letters, spaces, commas, periods, hyphens allowed.", 'danger')
+                    return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
+                if person['short_name'] and not re.match(r'^[a-zA-Z0-9\s\-]+$', person['short_name']):
+                    flash(f"Invalid Party A short name: {person['short_name']}. Only letters, numbers, spaces, hyphens allowed.", 'danger')
                     return render_template('contracts/create.html', form_data=form_data, default_contract_number=default_contract_number, party_a_data=party_a_data, party_b_data=party_b_data, focal_person_data=focal_person_data, article_titles=article_titles)
                 if not re.match(r'^[a-zA-Z\s\.]+$', person['name']):
                     flash(f"Invalid Party A name: {person['name']}. Only letters, spaces, and periods are allowed.", 'danger')
@@ -1569,7 +1574,7 @@ def create():
 
     # Initialize form_data for GET request
     form_data = {
-        'party_a_info': [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia'}],
+        'party_a_info': [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia', 'short_name': 'NGOF'}],
         'focal_person_info': [{'name': '', 'position': '', 'phone': '', 'email': ''}],
         'payment_installments': [{'description': '', 'deliverables': '', 'dueDate': '', 'organization': ''}],
         'articles': [],
