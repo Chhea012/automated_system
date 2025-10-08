@@ -242,6 +242,15 @@ def generate_docx(contract):
         unique_orgs = {inst.get('organization', '').strip() for inst in installments if inst.get('organization')}
         append_org = len(unique_orgs) > 1
 
+        # Create mapping from full organization to short_name
+        party_a_info = contract_data.get('party_a_info', [])
+        org_to_short = {}
+        for person in party_a_info:
+            org = person.get('organization', '').strip()
+            short = person.get('short_name', '').strip()
+            if org and short and org not in org_to_short:
+                org_to_short[org] = short
+
         # Process payment installments
         for installment in installments:
             installment['dueDate_display'] = format_date(installment.get('dueDate', ''))
@@ -253,7 +262,8 @@ def generate_docx(contract):
             installment['net_amount'] = net
             org = installment.get('organization', '').strip()
             if append_org and org:
-                installment['description'] = f"{installment['description']} by {org}"
+                short_org = org_to_short.get(org, org)  # Use short_name if available, else full org
+                installment['description'] = f"{installment['description']} by {short_org}"
             # else: keep original description without 'by org'
 
         # Create DOCX document
