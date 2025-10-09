@@ -59,7 +59,7 @@
             <div class="section-header">Party A Information (At least one required)</div>
             <div class="col-12" id="partyAContainer">
                 <label class="form-label">Party A Representatives</label>
-                {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia', 'short_name': 'NGOF'}]) %}
+                {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia', 'short_name': 'NGOF', 'registration_number': '#304 សជណ', 'registration_date': '07 March 2012'}]) %}
                 <div class="party-a-container mb-3">
                     <div class="row g-3">
                         <div class="col-12">
@@ -97,6 +97,16 @@
                             <textarea class="form-control party-a-address" id="party_a_address_{{ loop.index0 }}" name="party_a_address[]" rows="3" placeholder="e.g., #9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia" required>{{ person.address | default('') }}</textarea>
                             <div class="invalid-feedback">Please enter a valid address.</div>
                         </div>
+                        <div class="col-md-6">
+                            <label for="party_a_registration_number_{{ loop.index0 }}" class="form-label">Registration Number</label>
+                            <input type="text" class="form-control party-a-registration-number" id="party_a_registration_number_{{ loop.index0 }}" name="party_a_registration_number[]" value="{{ person.registration_number | default('#304 សជណ') }}" placeholder="e.g., #304 សជណ" required>
+                            <div class="invalid-feedback">Please enter registration number.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="party_a_registration_date_{{ loop.index0 }}" class="form-label">Registration Date</label>
+                            <input type="text" class="form-control party-a-registration-date" id="party_a_registration_date_{{ loop.index0 }}" name="party_a_registration_date[]" value="{{ person.registration_date | default('07 March 2012') }}" placeholder="e.g., 07 March 2012" required>
+                            <div class="invalid-feedback">Please enter registration date.</div>
+                        </div>
                         <div class="col-12">
                             <button type="button" class="btn btn-danger btn-remove-party-a {{ 'd-none' if loop.first and (form_data.party_a_info | default([])) | length == 1 else '' }}">Remove</button>
                         </div>
@@ -115,7 +125,7 @@
                     <label for="party_a_signer" class="form-label">Select Party A Signer</label>
                     <select class="form-select" id="party_a_signer" name="party_a_signer" required>
                         <option value="" disabled {{ 'selected' if not form_data.party_a_signer }}>Select a signer</option>
-                        {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia', 'short_name': 'NGOF'}]) %}
+                        {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia', 'short_name': 'NGOF', 'registration_number': '#304 សជណ', 'registration_date': '07 March 2012'}]) %}
                         <option value="{{ person.name }}" {{ 'selected' if form_data.party_a_signer == person.name }}>{{ person.name }} ({{ person.short_name | default(person.organization) }})</option>
                         {% endfor %}
                     </select>
@@ -475,6 +485,8 @@
         const nameInput = container.querySelector('.party-a-name');
         const positionInput = container.querySelector('.party-a-position');
         const addressInput = container.querySelector('.party-a-address');
+        const registrationNumberInput = container.querySelector('.party-a-registration-number');
+        const registrationDateInput = container.querySelector('.party-a-registration-date');
 
         const selectedValue = select.value;
         if (selectedValue === 'new' || !selectedValue) {
@@ -483,6 +495,8 @@
             nameInput.value = '';
             positionInput.value = '';
             addressInput.value = '';
+            registrationNumberInput.value = '#304 សជណ';
+            registrationDateInput.value = '07 March 2012';
             nameInput.required = selectedValue === 'new';
         } else {
             const normalizedName = selectedValue.toLowerCase();
@@ -493,6 +507,8 @@
                 nameInput.value = person.name;
                 positionInput.value = person.position;
                 addressInput.value = person.address;
+                registrationNumberInput.value = person.registration_number || '#304 សជណ';
+                registrationDateInput.value = person.registration_date || '07 March 2012';
                 nameInput.required = true;
             } else {
                 organizationInput.value = 'The NGO Forum on Cambodia';
@@ -500,6 +516,8 @@
                 nameInput.value = '';
                 positionInput.value = '';
                 addressInput.value = '';
+                registrationNumberInput.value = '#304 សជណ';
+                registrationDateInput.value = '07 March 2012';
                 nameInput.required = false;
             }
         }
@@ -631,6 +649,8 @@
         newPartyA.querySelector('.party-a-name').value = '';
         newPartyA.querySelector('.party-a-position').value = '';
         newPartyA.querySelector('.party-a-address').value = '';
+        newPartyA.querySelector('.party-a-registration-number').value = '#304 សជណ';
+        newPartyA.querySelector('.party-a-registration-date').value = '07 March 2012';
 
         newPartyA.querySelector('.party-a-organization').id = `party_a_organization_${timestamp}`;
         newPartyA.querySelector('label[for^="party_a_organization"]').setAttribute('for', `party_a_organization_${timestamp}`);
@@ -642,6 +662,10 @@
         newPartyA.querySelector('label[for^="party_a_position"]').setAttribute('for', `party_a_position_${timestamp}`);
         newPartyA.querySelector('.party-a-address').id = `party_a_address_${timestamp}`;
         newPartyA.querySelector('label[for^="party_a_address"]').setAttribute('for', `party_a_address_${timestamp}`);
+        newPartyA.querySelector('.party-a-registration-number').id = `party_a_registration_number_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_registration_number"]').setAttribute('for', `party_a_registration_number_${timestamp}`);
+        newPartyA.querySelector('.party-a-registration-date').id = `party_a_registration_date_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_registration_date"]').setAttribute('for', `party_a_registration_date_${timestamp}`);
 
         const removeButton = newPartyA.querySelector('.btn-remove-party-a');
         removeButton.classList.remove('d-none');

@@ -1,3 +1,4 @@
+# models/contract.py
 from app import db
 from datetime import datetime
 import uuid
@@ -10,13 +11,11 @@ class Contract(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     project_title = db.Column(db.String(255), nullable=False, default='')
     contract_number = db.Column(db.String(50), nullable=False, default='')
-    party_a_info = db.Column(db.JSON, default=lambda: [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia'}])
+    party_a_info = db.Column(db.JSON, default=lambda: [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia', 'short_name': 'NGOF', 'registration_number': '#304 សជណ', 'registration_date': '07 March 2012'}])
     party_b_full_name_with_title = db.Column(db.String(255), default='')
     party_b_address = db.Column(db.Text, default='')
     party_b_phone = db.Column(db.String(20), default='')
     party_b_email = db.Column(db.String(100), default='')
-    registration_number = db.Column(db.String(50), default='#304 សជណ')
-    registration_date = db.Column(db.String(50), default='07 March 2012')
     agreement_start_date = db.Column(db.String(50), default='')
     agreement_end_date = db.Column(db.String(50), default='')
     total_fee_usd = db.Column(db.Numeric(10, 2), default=0.0)
@@ -74,8 +73,6 @@ class Contract(db.Model):
             'party_b_address': self.party_b_address or '',
             'party_b_phone': self.party_b_phone or '',
             'party_b_email': self.party_b_email or '',
-            'registration_number': self.registration_number or '#304 សជណ',
-            'registration_date': self.registration_date or '07 March 2012',
             'agreement_start_date': self.agreement_start_date or '',
             'agreement_end_date': self.agreement_end_date or '',
             'total_fee_usd': float(self.total_fee_usd) if self.total_fee_usd is not None else 0.0,
