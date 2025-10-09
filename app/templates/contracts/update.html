@@ -28,33 +28,33 @@
                 </div>
                 <div class="col-md-6">
                     <label for="contract_number" class="form-label">Contract Number</label>
-                    <input type="text" class="form-control" id="contract_number" name="contract_number" value="{{ form_data.contract_number | default('') }}" placeholder="e.g., NGOF/2025-005" required>
-                    <div class="invalid-feedback">Please enter the contract number.</div>
+                    <input type="text" class="form-control" id="contract_number" name="contract_number" value="{{ form_data.contract_number | default(default_contract_number) }}" placeholder="e.g., NGOF/2025-005" required pattern="NGOF/\d{4}-\d{3}">
+                    <div class="invalid-feedback">Please enter a valid contract number (e.g., NGOF/2025-005).</div>
                 </div>
                 <div class="col-md-6">
                     <label for="tax_percentage_select" class="form-label">Tax Percentage (%)</label>
                     <div class="input-group">
                         <select class="form-select" id="tax_percentage_select" name="tax_percentage_select" required onchange="toggleTaxPercentageInput()">
-                            <option value="0" {{ 'selected' if form_data.tax_percentage | default('15') == '0' }}>0</option>
-                            <option value="5" {{ 'selected' if form_data.tax_percentage | default('15') == '5' }}>5</option>
-                            <option value="10" {{ 'selected' if form_data.tax_percentage | default('15') == '10' }}>10</option>
-                            <option value="15" {{ 'selected' if form_data.tax_percentage | default('15') == '15' }}>15</option>
-                            <option value="20" {{ 'selected' if form_data.tax_percentage | default('15') == '20' }}>20</option>
-                            <option value="other" {{ 'selected' if form_data.tax_percentage | default('15') not in ['0', '5', '10', '15', '20'] }}>Other</option>
+                            <option value="0" {{ 'selected' if form_data.tax_percentage | default(15) == 0 }}>0</option>
+                            <option value="5" {{ 'selected' if form_data.tax_percentage | default(15) == 5 }}>5</option>
+                            <option value="10" {{ 'selected' if form_data.tax_percentage | default(15) == 10 }}>10</option>
+                            <option value="15" {{ 'selected' if form_data.tax_percentage | default(15) == 15 }}>15</option>
+                            <option value="20" {{ 'selected' if form_data.tax_percentage | default(15) == 20 }}>20</option>
+                            <option value="other" {{ 'selected' if form_data.tax_percentage | default(15) not in [0, 5, 10, 15, 20] }}>Other</option>
                         </select>
                         <div class="invalid-feedback">Please select a tax percentage.</div>
                     </div>
-                    <div id="tax_percentage_custom_container" class="mt-2" style="display: {{ 'block' if form_data.tax_percentage | default('15') not in ['0', '5', '10', '15', '20'] else 'none' }};">
+                    <div id="tax_percentage_custom_container" class="mt-2" style="display: {{ 'block' if form_data.tax_percentage | default(15) not in [0, 5, 10, 15, 20] else 'none' }};">
                         <label for="tax_percentage" class="form-label">Custom Tax Percentage (%)</label>
-                        <input type="number" class="form-control" id="tax_percentage" name="tax_percentage" value="{{ form_data.tax_percentage | default('15') if form_data.tax_percentage not in ['0', '5', '10', '15', '20'] else '' }}" min="0" max="100" step="0.01" placeholder="e.g., 7">
-                        <div class="invalid-feedback">Please enter a valid tax percentage (0-100).</div>
+                        <input type="number" class="form-control" id="tax_percentage" name="tax_percentage" value="{{ form_data.tax_percentage | default('') if form_data.tax_percentage not in [0, 5, 10, 15, 20] else '' }}" min="0" max="20" step="0.01" placeholder="e.g., 7" {{ 'required' if form_data.tax_percentage | default(15) not in [0, 5, 10, 15, 20] }}>
+                        <div class="invalid-feedback">Please enter a valid tax percentage (0-20).</div>
                     </div>
-                    <div id="deduct_tax_code_container" class="mt-2" style="display: {{ 'block' if form_data.tax_percentage | default('15') == '0' else 'none' }};">
+                    <div id="deduct_tax_code_container" class="mt-2" style="display: {{ 'block' if form_data.tax_percentage | default(15) == 0 else 'none' }};">
                         <label for="vat_organization_name" class="form-label">Name of Organization</label>
-                        <input type="text" class="form-control" id="vat_organization_name" name="vat_organization_name" value="{{ form_data.vat_organization_name | default('The NGO Forum on Cambodia') }}" placeholder="e.g., The NGO Forum on Cambodia" maxlength="255" {{ 'required' if form_data.tax_percentage | default('15') == '0' }}>
+                        <input type="text" class="form-control" id="vat_organization_name" name="vat_organization_name" value="{{ form_data.vat_organization_name | default('') }}" placeholder="e.g., The NGO Forum on Cambodia" maxlength="255" {{ 'required' if form_data.tax_percentage | default(15) == 0 }}>
                         <div class="invalid-feedback">Please enter the name of the organization/company.</div>
                         <label for="deduct_tax_code" class="form-label">VAT TIN</label>
-                        <input type="text" class="form-control" id="deduct_tax_code" name="deduct_tax_code" value="{{ form_data.deduct_tax_code | default('') }}" placeholder="e.g., K002-100054102" pattern="[A-Z0-9\-]+" maxlength="50" {{ 'required' if form_data.tax_percentage | default('15') == '0' }}>
+                        <input type="text" class="form-control" id="deduct_tax_code" name="deduct_tax_code" value="{{ form_data.deduct_tax_code | default('') }}" placeholder="e.g., K002-100054102" pattern="[A-Z0-9\-]+" maxlength="50" {{ 'required' if form_data.tax_percentage | default(15) == 0 }}>
                         <small class="form-text text-muted">Enter the VAT TIN (uppercase letters, numbers, and hyphens only, max 50 characters).</small>
                         <div class="invalid-feedback">Please enter a valid VAT TIN (uppercase letters, numbers, and hyphens only).</div>
                     </div>
@@ -65,7 +65,7 @@
             <div class="section-header">Party A Information (At least one required)</div>
             <div class="col-12" id="partyAContainer">
                 <label class="form-label">Party A Representatives</label>
-                {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia'}]) %}
+                {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia', 'short_name': 'NGOF', 'registration_number': '#304 សជណ', 'registration_date': '07 March 2012'}]) %}
                 <div class="party-a-container mb-3 border p-3 rounded">
                     <div class="row g-3">
                         <div class="col-12">
@@ -84,6 +84,11 @@
                             <div class="invalid-feedback">Please enter a valid organization (letters, spaces, commas, periods, hyphens only).</div>
                         </div>
                         <div class="col-md-6">
+                            <label for="party_a_short_name_{{ loop.index0 }}" class="form-label">Short Name</label>
+                            <input type="text" class="form-control party-a-short-name" id="party_a_short_name_{{ loop.index0 }}" name="party_a_short_name[]" value="{{ person.short_name | default('NGOF') }}" placeholder="e.g., NGOF" pattern="[a-zA-Z0-9\s\-]*">
+                            <div class="invalid-feedback">Please enter a valid short name (letters, numbers, spaces, hyphens only).</div>
+                        </div>
+                        <div class="col-md-6">
                             <label for="party_a_name_{{ loop.index0 }}" class="form-label">Name</label>
                             <input type="text" class="form-control party-a-name" id="party_a_name_{{ loop.index0 }}" name="party_a_name[]" value="{{ person.name | default('') }}" placeholder="e.g., Mr. SOEUNG Saroeun" pattern="[a-zA-Z\s\.]+" required>
                             <div class="invalid-feedback">Please enter a valid name (letters, spaces, and periods only).</div>
@@ -97,6 +102,16 @@
                             <label for="party_a_address_{{ loop.index0 }}" class="form-label">Address</label>
                             <textarea class="form-control party-a-address" id="party_a_address_{{ loop.index0 }}" name="party_a_address[]" rows="3" placeholder="e.g., #9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia" required>{{ person.address | default('') }}</textarea>
                             <div class="invalid-feedback">Please enter a valid address.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="party_a_registration_number_{{ loop.index0 }}" class="form-label">Registration Number</label>
+                            <input type="text" class="form-control party-a-registration-number" id="party_a_registration_number_{{ loop.index0 }}" name="party_a_registration_number[]" value="{{ person.registration_number | default('#304 សជណ') }}" placeholder="e.g., #304 សជណ" required>
+                            <div class="invalid-feedback">Please enter a valid registration number.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="party_a_registration_date_{{ loop.index0 }}" class="form-label">Registration Date</label>
+                            <input type="text" class="form-control party-a-registration-date" id="party_a_registration_date_{{ loop.index0 }}" name="party_a_registration_date[]" value="{{ person.registration_date | default('07 March 2012') }}" placeholder="e.g., 07 March 2012" required>
+                            <div class="invalid-feedback">Please enter a valid registration date.</div>
                         </div>
                         <div class="col-12">
                             <button type="button" class="btn btn-danger btn-remove-party-a {{ 'd-none' if loop.first and (form_data.party_a_info | default([])) | length == 1 else '' }}">Remove</button>
@@ -116,7 +131,7 @@
                     <label for="party_a_signer" class="form-label">Select Party A Signer</label>
                     <select class="form-select" id="party_a_signer" name="party_a_signer" required>
                         <option value="" disabled {{ 'selected' if not form_data.party_a_signer }}>Select a signer</option>
-                        {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia'}]) %}
+                        {% for person in form_data.party_a_info | default([{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia', 'short_name': 'NGOF', 'registration_number': '#304 សជណ', 'registration_date': '07 March 2012'}]) %}
                         <option value="{{ person.name }}" {{ 'selected' if form_data.party_a_signer == person.name }}>{{ person.name }} ({{ person.organization }})</option>
                         {% endfor %}
                     </select>
@@ -145,7 +160,8 @@
                 </div>
                 <div class="col-md-6">
                     <label for="party_b_position" class="form-label">Party B Position</label>
-                    <input type="text" class="form-control" id="party_b_position" name="party_b_position" value="{{ form_data.party_b_position | default('Freelance Consultant') }}" placeholder="e.g., Freelance Consultant">
+                    <input type="text" class="form-control" id="party_b_position" name="party_b_position" value="{{ form_data.party_b_position | default('Freelance Consultant') }}" placeholder="e.g., Freelance Consultant" pattern="[a-zA-Z\s]+">
+                    <div class="invalid-feedback">Please enter a valid position (letters and spaces only).</div>
                 </div>
                 <div class="col-md-6">
                     <label for="party_b_phone" class="form-label">Party B Phone</label>
@@ -236,8 +252,8 @@
                 </div>
                 <div class="col-md-4">
                     <label for="total_fee_usd" class="form-label">Total Fee USD (Gross)</label>
-                    <input type="number" class="form-control" id="total_fee_usd" name="total_fee_usd" value="{{ form_data.total_fee_usd | default('') }}" min="0" step="0.01" required>
-                    <div class="invalid-feedback">Please enter a valid total fee.</div>
+                    <input type="number" class="form-control" id="total_fee_usd" name="total_fee_usd" value="{{ form_data.total_fee_usd | default('0.00') }}" min="0" step="0.01" required>
+                    <div class="invalid-feedback">Please enter a valid total fee (non-negative).</div>
                 </div>
                 <div class="col-md-12">
                     <label for="total_fee_words" class="form-label">Total Fee in Words</label>
@@ -245,7 +261,7 @@
                     <div class="invalid-feedback">Total fee in words will be auto-generated.</div>
                 </div>
                 <div class="col-12" id="installmentContainer">
-                    <label class="form-label">Payment Installments</label>
+                    <label class="form-label">Payment Installments (At least one required)</label>
                     {% for installment in form_data.payment_installments | default([{'description': '', 'deliverables': '', 'dueDate': '', 'organization': ''}]) %}
                     <div class="installment-container mb-3 border p-3 rounded">
                         <div class="row g-3">
@@ -274,15 +290,15 @@
                                 <div class="invalid-feedback">Please select a paying organization.</div>
                             </div>
                             <div class="col-12">
-                                <label for="paymentInstallmentDeliverables{{ loop.index0 }}" class="form-label">Deliverables (one per line)</label>
-                                <textarea class="form-control" id="paymentInstallmentDeliverables{{ loop.index0 }}" name="paymentInstallmentDeliverables[]" rows="6" required spellcheck="false" aria-label="Deliverables for installment">{{ installment.deliverables | default('') }}</textarea>
+                                <label for="paymentInstallmentDeliverables_{{ loop.index0 }}" class="form-label">Deliverables (one per line)</label>
+                                <textarea class="form-control" id="paymentInstallmentDeliverables_{{ loop.index0 }}" name="paymentInstallmentDeliverables[]" rows="4" required>{{ installment.deliverables | default('') }}</textarea>
                                 <div class="invalid-feedback">Please enter deliverables for this installment.</div>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Due Date</label>
                                 <div class="input-group">
-                                    <input type="date" class="form-control" name="paymentInstallmentDueDate[]" value="{{ installment.dueDate | default('') }}" required aria-describedby="paymentInstallmentDueDateIcon{{ loop.index0 }}">
-                                    <span class="input-group-text" id="paymentInstallmentDueDateIcon{{ loop.index0 }}">
+                                    <input type="date" class="form-control" name="paymentInstallmentDueDate[]" value="{{ installment.dueDate | default('') }}" required aria-describedby="paymentInstallmentDueDateIcon_{{ loop.index0 }}">
+                                    <span class="input-group-text" id="paymentInstallmentDueDateIcon_{{ loop.index0 }}">
                                         <i class="bi bi-calendar"></i>
                                     </span>
                                     <div class="invalid-feedback">Please select a due date.</div>
@@ -330,7 +346,7 @@
                     <div class="col-md-8">
                         <label class="form-label">Custom Sentence</label>
                         <div class="input-group">
-                            <input type="text" class="form-control" name="customSentence[]" value="{{ article.custom_sentence }}" placeholder="e.g., Additional requirements for this article...">
+                            <input type="text" class="form-control" name="customSentence[]" value="{{ article.custom_sentence | default('') }}" placeholder="e.g., Additional requirements for this article...">
                             <button type="button" class="btn btn-danger btn-remove-article">Remove</button>
                         </div>
                     </div>
@@ -346,8 +362,8 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label for="party_b_signature_name_confirm" class="form-label">Party B Signature Name (Confirm)</label>
-                    <input type="text" class="form-control" id="party_b_signature_name_confirm" name="party_b_signature_name_confirm" value="{{ form_data.party_b_signature_name_confirm | default('') }}" required>
-                    <div class="invalid-feedback">Please confirm Party B signature name.</div>
+                    <input type="text" class="form-control" id="party_b_signature_name_confirm" name="party_b_signature_name_confirm" value="{{ form_data.party_b_signature_name_confirm | default(form_data.party_b_signature_name) }}" required pattern="[a-zA-Z\s\.]+">
+                    <div class="invalid-feedback">Please confirm Party B signature name (letters, spaces, and periods only).</div>
                 </div>
             </div>
 
@@ -421,6 +437,10 @@
         const taxSelect = document.getElementById('tax_percentage_select');
         const taxCustomContainer = document.getElementById('tax_percentage_custom_container');
         const taxInput = document.getElementById('tax_percentage');
+        const deductTaxCodeContainer = document.getElementById('deduct_tax_code_container');
+        const deductTaxCodeInput = document.getElementById('deduct_tax_code');
+        const vatOrgInput = document.getElementById('vat_organization_name');
+
         if (taxSelect.value === 'other') {
             taxCustomContainer.style.display = 'block';
             taxInput.required = true;
@@ -429,25 +449,13 @@
             taxInput.required = false;
             taxInput.value = '';
         }
-        toggleDeductTaxCode();
-    }
 
-    function toggleDeductTaxCode() {
-        const taxSelect = document.getElementById('tax_percentage_select');
-        const taxInput = document.getElementById('tax_percentage');
-        const deductTaxCodeContainer = document.getElementById('deduct_tax_code_container');
-        const deductTaxCodeInput = document.getElementById('deduct_tax_code');
-        const vatOrgInput = document.getElementById('vat_organization_name');
-        const isZeroTax = taxSelect.value === '0' || (taxSelect.value === 'other' && parseFloat(taxInput.value) === 0);
-        if (isZeroTax) {
-            deductTaxCodeContainer.style.display = 'block';
-            deductTaxCodeInput.required = true;
-            vatOrgInput.required = true;
-        } else {
-            deductTaxCodeContainer.style.display = 'none';
-            deductTaxCodeInput.required = false;
+        const isZeroTax = taxSelect.value === '0';
+        deductTaxCodeContainer.style.display = isZeroTax ? 'block' : 'none';
+        deductTaxCodeInput.required = isZeroTax;
+        vatOrgInput.required = isZeroTax;
+        if (!isZeroTax) {
             deductTaxCodeInput.value = '';
-            vatOrgInput.required = false;
             vatOrgInput.value = '';
         }
     }
@@ -455,19 +463,19 @@
     function handlePartyBSelect(select) {
         const newNameContainer = document.getElementById('party_b_new_name_container');
         const newNameInput = document.getElementById('party_b_signature_name');
+        const confirmInput = document.getElementById('party_b_signature_name_confirm');
         const fields = {
             'party_b_position': document.getElementById('party_b_position'),
             'party_b_phone': document.getElementById('party_b_phone'),
             'party_b_email': document.getElementById('party_b_email'),
-            'party_b_address': document.getElementById('party_b_address'),
-            'party_b_signature_name_confirm': document.getElementById('party_b_signature_name_confirm')
+            'party_b_address': document.getElementById('party_b_address')
         };
 
         if (select.value === 'new') {
             newNameContainer.style.display = 'block';
             newNameInput.required = true;
+            confirmInput.value = newNameInput.value;
             Object.values(fields).forEach(field => field.value = '');
-            newNameInput.value = '';
         } else {
             newNameContainer.style.display = 'none';
             newNameInput.required = false;
@@ -475,13 +483,14 @@
             if (select.value) {
                 const normalizedName = select.value.toLowerCase();
                 const data = partyBData[normalizedName];
-                fields.party_b_position.value = data ? data.position : '';
+                fields.party_b_position.value = data ? data.position : 'Freelance Consultant';
                 fields.party_b_phone.value = data ? data.phone : '';
                 fields.party_b_email.value = data ? data.email : '';
                 fields.party_b_address.value = data ? data.address : '';
-                fields.party_b_signature_name_confirm.value = select.value;
+                confirmInput.value = select.value;
             } else {
                 Object.values(fields).forEach(field => field.value = '');
+                confirmInput.value = '';
             }
         }
     }
@@ -489,31 +498,43 @@
     function populatePartyA(select) {
         const container = select.closest('.party-a-container');
         const organizationInput = container.querySelector('.party-a-organization');
+        const shortNameInput = container.querySelector('.party-a-short-name');
         const nameInput = container.querySelector('.party-a-name');
         const positionInput = container.querySelector('.party-a-position');
         const addressInput = container.querySelector('.party-a-address');
+        const regNumberInput = container.querySelector('.party-a-registration-number');
+        const regDateInput = container.querySelector('.party-a-registration-date');
 
         const selectedValue = select.value;
         if (selectedValue === 'new' || !selectedValue) {
             organizationInput.value = 'The NGO Forum on Cambodia';
+            shortNameInput.value = 'NGOF';
             nameInput.value = '';
             positionInput.value = '';
             addressInput.value = '';
+            regNumberInput.value = '#304 សជណ';
+            regDateInput.value = '07 March 2012';
             nameInput.required = selectedValue === 'new';
         } else {
             const normalizedName = selectedValue.toLowerCase();
             const person = partyAData[normalizedName];
             if (person) {
-                organizationInput.value = person.organization;
-                nameInput.value = person.name;
-                positionInput.value = person.position;
-                addressInput.value = person.address;
+                organizationInput.value = person.organization || 'The NGO Forum on Cambodia';
+                shortNameInput.value = person.short_name || 'NGOF';
+                nameInput.value = person.name || '';
+                positionInput.value = person.position || '';
+                addressInput.value = person.address || '';
+                regNumberInput.value = person.registration_number || '#304 សជណ';
+                regDateInput.value = person.registration_date || '07 March 2012';
                 nameInput.required = true;
             } else {
                 organizationInput.value = 'The NGO Forum on Cambodia';
+                shortNameInput.value = 'NGOF';
                 nameInput.value = '';
                 positionInput.value = '';
                 addressInput.value = '';
+                regNumberInput.value = '#304 សជណ';
+                regDateInput.value = '07 March 2012';
                 nameInput.required = false;
             }
         }
@@ -594,31 +615,71 @@
                 select.appendChild(option);
             });
             select.value = orgsSet.has(currentValue) ? currentValue : '';
+            select.required = true;
         });
     }
 
-    document.getElementById('total_fee_usd').addEventListener('input', function () {
-        const totalFeeUSD = parseFloat(this.value);
-        const totalFeeWordsInput = document.getElementById('total_fee_words');
-        totalFeeWordsInput.value = numberToWords(totalFeeUSD);
-    });
+    function updateInstallmentDescriptions() {
+        const containers = document.querySelectorAll('.installment-container');
+        containers.forEach((container, index) => {
+            const select = container.querySelector('.installment-percentage');
+            const descInput = container.querySelector('.installment-desc');
+            const percentage = select.value ? `${select.value}%` : '';
+            descInput.value = `Installment #${index + 1} (${percentage})`;
+        });
+    }
 
-    document.getElementById('party_b_select').addEventListener('change', function () {
-        handlePartyBSelect(this);
-    });
+    function assignPercentages() {
+        const containers = document.querySelectorAll('.installment-container');
+        const count = containers.length;
+        const availablePercentages = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+        let percentages = [];
 
-    document.addEventListener('change', function(e) {
-        if (e.target.classList.contains('party-a-name') || e.target.classList.contains('party-a-organization')) {
-            updatePartyASignerOptions();
-            updateOrgOptions();
+        let currentPercentages = Array.from(containers).map(container => {
+            const select = container.querySelector('.installment-percentage');
+            return parseFloat(select.value) || 0;
+        });
+        let currentTotal = currentPercentages.reduce((sum, val) => sum + val, 0);
+
+        if (Math.abs(currentTotal - 100) < 0.01 && currentPercentages.every(p => availablePercentages.includes(p))) {
+            percentages = currentPercentages;
+        } else {
+            const base = Math.floor(100 / count);
+            percentages = Array(count).fill(base);
+            let remainder = 100 - base * count;
+            for (let i = 0; i < remainder; i++) {
+                percentages[i] += 1;
+            }
+            percentages = percentages.map(p => {
+                return availablePercentages.reduce((prev, curr) =>
+                    Math.abs(curr - p) < Math.abs(prev - p) ? curr : prev
+                );
+            });
+            let total = percentages.reduce((sum, val) => sum + val, 0);
+            if (Math.abs(total - 100) > 0.01) {
+                const diff = 100 - total;
+                const lastIndex = percentages.length - 1;
+                const newLast = percentages[lastIndex] + diff;
+                percentages[lastIndex] = availablePercentages.reduce((prev, curr) =>
+                    Math.abs(curr - newLast) < Math.abs(prev - newLast) ? curr : prev
+                );
+                total = percentages.reduce((sum, val) => sum + val, 0);
+                if (Math.abs(total - 100) > 0.01) {
+                    percentages[0] += 100 - total;
+                    percentages[0] = availablePercentages.reduce((prev, curr) =>
+                        Math.abs(curr - percentages[0]) < Math.abs(prev - percentages[0]) ? curr : prev
+                    );
+                }
+            }
         }
-    });
 
-    document.addEventListener('input', function(e) {
-        if (e.target.classList.contains('party-a-organization')) {
-            updateOrgOptions();
-        }
-    });
+        containers.forEach((container, index) => {
+            const select = container.querySelector('.installment-percentage');
+            select.value = percentages[index] || availablePercentages[0];
+        });
+
+        updateInstallmentDescriptions();
+    }
 
     function addPartyAField() {
         const container = document.getElementById('partyAContainer');
@@ -629,18 +690,27 @@
 
         newPartyA.querySelector('.party-a-select').value = '';
         newPartyA.querySelector('.party-a-organization').value = 'The NGO Forum on Cambodia';
+        newPartyA.querySelector('.party-a-short-name').value = 'NGOF';
         newPartyA.querySelector('.party-a-name').value = '';
         newPartyA.querySelector('.party-a-position').value = '';
         newPartyA.querySelector('.party-a-address').value = '';
+        newPartyA.querySelector('.party-a-registration-number').value = '#304 សជណ';
+        newPartyA.querySelector('.party-a-registration-date').value = '07 March 2012';
 
         newPartyA.querySelector('.party-a-organization').id = `party_a_organization_${timestamp}`;
         newPartyA.querySelector('label[for^="party_a_organization"]').setAttribute('for', `party_a_organization_${timestamp}`);
+        newPartyA.querySelector('.party-a-short-name').id = `party_a_short_name_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_short_name"]').setAttribute('for', `party_a_short_name_${timestamp}`);
         newPartyA.querySelector('.party-a-name').id = `party_a_name_${timestamp}`;
         newPartyA.querySelector('label[for^="party_a_name"]').setAttribute('for', `party_a_name_${timestamp}`);
         newPartyA.querySelector('.party-a-position').id = `party_a_position_${timestamp}`;
         newPartyA.querySelector('label[for^="party_a_position"]').setAttribute('for', `party_a_position_${timestamp}`);
         newPartyA.querySelector('.party-a-address').id = `party_a_address_${timestamp}`;
         newPartyA.querySelector('label[for^="party_a_address"]').setAttribute('for', `party_a_address_${timestamp}`);
+        newPartyA.querySelector('.party-a-registration-number').id = `party_a_registration_number_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_registration_number"]').setAttribute('for', `party_a_registration_number_${timestamp}`);
+        newPartyA.querySelector('.party-a-registration-date').id = `party_a_registration_date_${timestamp}`;
+        newPartyA.querySelector('label[for^="party_a_registration_date"]').setAttribute('for', `party_a_registration_date_${timestamp}`);
 
         const removeButton = newPartyA.querySelector('.btn-remove-party-a');
         removeButton.classList.remove('d-none');
@@ -722,139 +792,6 @@
         }
     }
 
-    (function () {
-        'use strict';
-        const form = document.getElementById('contractForm');
-        form.addEventListener('submit', function (event) {
-            if (!form.checkValidity()) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-            const percentages = Array.from(document.querySelectorAll('.installment-percentage')).map(select => parseFloat(select.value) || 0);
-            const totalPercentage = percentages.reduce((sum, val) => sum + val, 0);
-            if (Math.abs(totalPercentage - 100) > 0.01) {
-                event.preventDefault();
-                event.stopPropagation();
-                alert('Total percentage of payment installments must equal 100%.');
-            }
-            const focalPersons = document.querySelectorAll('.focal-person-container');
-            if (focalPersons.length === 0) {
-                event.preventDefault();
-                event.stopPropagation();
-                alert('At least one focal person is required.');
-            }
-            const partyAs = document.querySelectorAll('.party-a-container');
-            if (partyAs.length === 0) {
-                event.preventDefault();
-                event.stopPropagation();
-                alert('At least one Party A representative is required.');
-            }
-            const partyBSelect = document.getElementById('party_b_select').value;
-            const partyBName = document.getElementById('party_b_signature_name').value;
-            if (!partyBSelect || (partyBSelect === 'new' && !partyBName)) {
-                event.preventDefault();
-                event.stopPropagation();
-                alert('Please select a Party B name or enter a new one.');
-            }
-            const partyASigner = document.getElementById('party_a_signer').value;
-            if (!partyASigner) {
-                event.preventDefault();
-                event.stopPropagation();
-                alert('Please select a Party A signer.');
-            }
-            const taxSelect = document.getElementById('tax_percentage_select').value;
-            const taxInput = document.getElementById('tax_percentage').value;
-            const taxPercentage = taxSelect === 'other' ? parseFloat(taxInput) : parseFloat(taxSelect);
-            const deductTaxCode = document.getElementById('deduct_tax_code').value;
-            const vatOrgName = document.getElementById('vat_organization_name').value;
-            if (taxPercentage === 0) {
-                if (!deductTaxCode) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    alert('VAT TIN is required when tax percentage is 0%.');
-                }
-                if (!vatOrgName) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    alert('Name of Organization is required when tax percentage is 0%.');
-                }
-                if (deductTaxCode && !/^[A-Z0-9\-]+$/.test(deductTaxCode)) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    alert('VAT TIN must contain only uppercase letters, numbers, and hyphens.');
-                }
-            }
-            if (taxSelect === 'other' && (isNaN(taxPercentage) || taxPercentage < 0 || taxPercentage > 100)) {
-                event.preventDefault();
-                event.stopPropagation();
-                alert('Custom tax percentage must be between 0 and 100.');
-            }
-            form.classList.add('was-validated');
-        }, false);
-    })();
-
-    function updateInstallmentDescriptions() {
-        const containers = document.querySelectorAll('.installment-container');
-        containers.forEach((container, index) => {
-            const select = container.querySelector('.installment-percentage');
-            const descInput = container.querySelector('.installment-desc');
-            const percentage = select.value ? `${select.value}%` : '';
-            descInput.value = `Installment #${index + 1} (${percentage})`;
-        });
-    }
-
-    function assignPercentages() {
-        const containers = document.querySelectorAll('.installment-container');
-        const count = containers.length;
-        const availablePercentages = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
-        let percentages = [];
-
-        let currentPercentages = Array.from(containers).map(container => {
-            const select = container.querySelector('.installment-percentage');
-            return parseFloat(select.value) || 0;
-        });
-        let currentTotal = currentPercentages.reduce((sum, val) => sum + val, 0);
-
-        if (Math.abs(currentTotal - 100) < 0.01 && currentPercentages.every(p => availablePercentages.includes(p))) {
-            percentages = currentPercentages;
-        } else {
-            const base = Math.floor(100 / count);
-            percentages = Array(count).fill(base);
-            let remainder = 100 - base * count;
-            for (let i = 0; i < remainder; i++) {
-                percentages[i] += 1;
-            }
-            percentages = percentages.map(p => {
-                return availablePercentages.reduce((prev, curr) =>
-                    Math.abs(curr - p) < Math.abs(prev - p) ? curr : prev
-                );
-            });
-            let total = percentages.reduce((sum, val) => sum + val, 0);
-            if (Math.abs(total - 100) > 0.01) {
-                const diff = 100 - total;
-                const lastIndex = percentages.length - 1;
-                const newLast = percentages[lastIndex] + diff;
-                percentages[lastIndex] = availablePercentages.reduce((prev, curr) =>
-                    Math.abs(curr - newLast) < Math.abs(prev - newLast) ? curr : prev
-                );
-                total = percentages.reduce((sum, val) => sum + val, 0);
-                if (Math.abs(total - 100) > 0.01) {
-                    percentages[0] += 100 - total;
-                    percentages[0] = availablePercentages.reduce((prev, curr) =>
-                        Math.abs(curr - percentages[0]) < Math.abs(prev - percentages[0]) ? curr : prev
-                    );
-                }
-            }
-        }
-
-        containers.forEach((container, index) => {
-            const select = container.querySelector('.installment-percentage');
-            select.value = percentages[index] || availablePercentages[0];
-        });
-
-        updateInstallmentDescriptions();
-    }
-
     function addInstallmentField() {
         const container = document.getElementById('installmentContainer');
         const firstInstallment = container.querySelector('.installment-container');
@@ -868,10 +805,10 @@
         newInstallment.querySelector('select[name="paymentInstallmentPercentage[]"]').value = '';
         newInstallment.querySelector('select[name="paymentInstallmentOrg[]"]').value = '';
 
-        newInstallment.querySelector('textarea').id = `paymentInstallmentDeliverables${timestamp}`;
-        newInstallment.querySelector('label[for^="paymentInstallmentDeliverables"]').setAttribute('for', `paymentInstallmentDeliverables${timestamp}`);
-        newInstallment.querySelector('input[name="paymentInstallmentDueDate[]"]').setAttribute('aria-describedby', `paymentInstallmentDueDateIcon${timestamp}`);
-        newInstallment.querySelector('.input-group-text').id = `paymentInstallmentDueDateIcon${timestamp}`;
+        newInstallment.querySelector('textarea').id = `paymentInstallmentDeliverables_${timestamp}`;
+        newInstallment.querySelector('label[for^="paymentInstallmentDeliverables"]').setAttribute('for', `paymentInstallmentDeliverables_${timestamp}`);
+        newInstallment.querySelector('input[name="paymentInstallmentDueDate[]"]').setAttribute('aria-describedby', `paymentInstallmentDueDateIcon_${timestamp}`);
+        newInstallment.querySelector('.input-group-text').id = `paymentInstallmentDueDateIcon_${timestamp}`;
 
         const removeButton = newInstallment.querySelector('.btn-remove-installment');
         removeButton.classList.remove('d-none');
@@ -943,18 +880,54 @@
             }
         });
 
-        updateRemoveButtons();
-        updateFocalPersonRemoveButtons();
-        updatePartyARemoveButtons();
-        updatePartyASignerOptions();
-        updateOrgOptions();
-        toggleTaxPercentageInput(); // Initialize tax percentage and deduct_tax_code visibility
+        document.getElementById('total_fee_usd').addEventListener('input', function () {
+            const totalFeeUSD = parseFloat(this.value);
+            const totalFeeWordsInput = document.getElementById('total_fee_words');
+            totalFeeWordsInput.value = numberToWords(totalFeeUSD);
+        });
+
+        document.getElementById('party_b_select').addEventListener('change', function () {
+            handlePartyBSelect(this);
+        });
+
+        document.getElementById('party_b_signature_name').addEventListener('input', function () {
+            document.getElementById('party_b_signature_name_confirm').value = this.value;
+        });
+
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('party-a-name') || e.target.classList.contains('party-a-organization')) {
+                updatePartyASignerOptions();
+                updateOrgOptions();
+            }
+            if (e.target.classList.contains('installment-percentage')) {
+                updateInstallmentDescriptions();
+            }
+        });
+
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('party-a-organization')) {
+                updateOrgOptions();
+            }
+        });
+
+        document.querySelectorAll('.party-a-select').forEach(select => {
+            select.addEventListener('change', function() {
+                populatePartyA(this);
+            });
+        });
+
+        document.querySelectorAll('.focal-person-select').forEach(select => {
+            select.addEventListener('change', function() {
+                populateFocalPerson(this);
+            });
+        });
 
         document.querySelectorAll('.btn-remove-article').forEach(button => {
             button.addEventListener('click', function () {
                 button.closest('.article-container').remove();
             });
         });
+
         document.querySelectorAll('.btn-remove-installment').forEach(button => {
             button.addEventListener('click', function () {
                 button.closest('.installment-container').remove();
@@ -962,12 +935,14 @@
                 assignPercentages();
             });
         });
+
         document.querySelectorAll('.btn-remove-focal-person').forEach(button => {
             button.addEventListener('click', function () {
                 button.closest('.focal-person-container').remove();
                 updateFocalPersonRemoveButtons();
             });
         });
+
         document.querySelectorAll('.btn-remove-party-a').forEach(button => {
             button.addEventListener('click', function () {
                 button.closest('.party-a-container').remove();
@@ -977,33 +952,130 @@
             });
         });
 
-        document.querySelectorAll('.installment-percentage').forEach(select => {
-            select.addEventListener('change', updateInstallmentDescriptions);
+        const form = document.getElementById('contractForm');
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            const percentages = Array.from(document.querySelectorAll('.installment-percentage')).map(select => parseFloat(select.value) || 0);
+            const totalPercentage = percentages.reduce((sum, val) => sum + val, 0);
+            if (Math.abs(totalPercentage - 100) > 0.01) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Total percentage of payment installments must equal 100%.');
+            }
+
+            const focalPersons = document.querySelectorAll('.focal-person-container');
+            if (focalPersons.length === 0) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('At least one focal person is required.');
+            }
+
+            const partyAs = document.querySelectorAll('.party-a-container');
+            if (partyAs.length === 0) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('At least one Party A representative is required.');
+            }
+
+            const partyBSelect = document.getElementById('party_b_select').value;
+            const partyBName = document.getElementById('party_b_signature_name').value;
+            const partyBConfirm = document.getElementById('party_b_signature_name_confirm').value;
+            if (!partyBSelect || (partyBSelect === 'new' && !partyBName)) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Please select a Party B name or enter a new one.');
+            }
+            if (partyBSelect === 'new' && partyBName !== partyBConfirm) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Party B signature name and confirmation do not match.');
+            }
+            if (partyBSelect !== 'new' && partyBSelect !== partyBConfirm) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Party B signature name confirmation must match the selected name.');
+            }
+
+            const partyASigner = document.getElementById('party_a_signer').value;
+            if (!partyASigner) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Please select a Party A signer.');
+            }
+
+            const taxSelect = document.getElementById('tax_percentage_select').value;
+            const taxInput = document.getElementById('tax_percentage').value;
+            const taxPercentage = taxSelect === 'other' ? parseFloat(taxInput) : parseFloat(taxSelect);
+            const deductTaxCode = document.getElementById('deduct_tax_code').value;
+            const vatOrgName = document.getElementById('vat_organization_name').value;
+
+            if (taxPercentage === 0) {
+                if (!deductTaxCode) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('VAT TIN is required when tax percentage is 0%.');
+                }
+                if (!vatOrgName) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('Name of Organization is required when tax percentage is 0%.');
+                }
+                if (deductTaxCode && !/^[A-Z0-9\-]+$/.test(deductTaxCode)) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('VAT TIN must contain only uppercase letters, numbers, and hyphens.');
+                }
+                if (deductTaxCode.length > 50) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('VAT TIN must not exceed 50 characters.');
+                }
+                if (vatOrgName.length > 255) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('Name of Organization must not exceed 255 characters.');
+                }
+            }
+
+            if (taxSelect === 'other' && (isNaN(taxPercentage) || taxPercentage < 0 || taxPercentage > 20)) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Custom tax percentage must be between 0 and 20.');
+            }
+
+            const startDate = document.getElementById('agreement_start_date').value;
+            const endDate = document.getElementById('agreement_end_date').value;
+            if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Agreement end date must be after start date.');
+            }
+
+            const totalFeeUSD = parseFloat(document.getElementById('total_fee_usd').value);
+            if (isNaN(totalFeeUSD) || totalFeeUSD < 0) {
+                event.preventDefault();
+                event.stopPropagation();
+                alert('Total fee USD must be a non-negative number.');
+            }
+
+            form.classList.add('was-validated');
         });
 
-        document.querySelectorAll('.focal-person-select').forEach(select => {
-            select.addEventListener('change', function() {
-                populateFocalPerson(this);
-            });
-        });
-
-        document.querySelectorAll('.party-a-select').forEach(select => {
-            select.addEventListener('change', function() {
-                populatePartyA(this);
-            });
-        });
+        updateRemoveButtons();
+        updateFocalPersonRemoveButtons();
+        updatePartyARemoveButtons();
+        updatePartyASignerOptions();
+        updateOrgOptions();
+        toggleTaxPercentageInput();
 
         const totalFeeUSD = document.getElementById('total_fee_usd').value;
         if (totalFeeUSD) {
             document.getElementById('total_fee_words').value = numberToWords(parseFloat(totalFeeUSD));
         }
-
-        const partyBSelect = document.getElementById('party_b_select');
-        if (partyBSelect.value) {
-            handlePartyBSelect(partyBSelect);
-        }
-
-        assignPercentages();
     });
 </script>
 {% endblock %}
