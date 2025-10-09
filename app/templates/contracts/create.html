@@ -3,6 +3,8 @@
 {% block content %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/create.css') }}">
+<!-- Add Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
 <div class="container mt-4">
     <div class="form-header">
@@ -138,7 +140,7 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label for="party_b_select" class="form-label">Party B Signature Name</label>
-                    <select class="form-select" id="party_b_select" name="party_b_select" onchange="handlePartyBSelect(this)">
+                    <select class="form-select" id="party_b_select" name="party_b_select">
                         <option value="" {{ 'selected' if not form_data.party_b_select }}>Select Party B or enter new name</option>
                         <option value="new" {{ 'selected' if form_data.party_b_select == 'new' }}>Enter new name</option>
                         {% for name in party_b_data.values() %}
@@ -368,6 +370,9 @@
     </div>
 </div>
 
+<!-- Add jQuery and Select2 JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     const partyAData = {{ party_a_data | tojson | safe }};
     const partyBData = {{ party_b_data | tojson | safe }};
@@ -540,7 +545,7 @@
             emailInput.value = '';
             nameInput.required = selectedValue === 'new';
         } else {
-            const normalizedName = selectedValue.toLowerCase();
+            const normalizedName = select.value.toLowerCase();
             const person = focalPersonData[normalizedName];
             if (person) {
                 nameInput.value = person.name;
@@ -613,29 +618,6 @@
         });
     }
 
-    document.getElementById('total_fee_usd').addEventListener('input', function () {
-        const totalFeeUSD = parseFloat(this.value);
-        const totalFeeWordsInput = document.getElementById('total_fee_words');
-        totalFeeWordsInput.value = numberToWords(totalFeeUSD);
-    });
-
-    document.getElementById('party_b_select').addEventListener('change', function () {
-        handlePartyBSelect(this);
-    });
-
-    document.addEventListener('change', function(e) {
-        if (e.target.classList.contains('party-a-name') || e.target.classList.contains('party-a-organization') || e.target.classList.contains('party-a-short-name')) {
-            updatePartyASignerOptions();
-            updateOrgOptions();
-        }
-    });
-
-    document.addEventListener('input', function(e) {
-        if (e.target.classList.contains('party-a-organization') || e.target.classList.contains('party-a-short-name')) {
-            updateOrgOptions();
-        }
-    });
-
     function addPartyAField() {
         const container = document.getElementById('partyAContainer');
         const firstPartyA = container.querySelector('.party-a-container');
@@ -698,6 +680,18 @@
         }
     }
 
+    function initializeSelect2ForFocalPerson(select) {
+        $(select).select2({
+            placeholder: "Select a focal person or enter manually",
+            allowClear: true,
+            width: '100%'
+        }).on('select2:select', function() {
+            populateFocalPerson(this);
+        }).on('select2:clear', function() {
+            populateFocalPerson(this);
+        });
+    }
+
     function addFocalPersonField() {
         const container = document.getElementById('focalPersonContainer');
         const firstFocalPerson = container.querySelector('.focal-person-container');
@@ -723,15 +717,15 @@
         const removeButton = newFocalPerson.querySelector('.btn-remove-focal-person');
         removeButton.classList.remove('d-none');
 
-        newFocalPerson.querySelector('.focal-person-select').addEventListener('change', function() {
-            populateFocalPerson(this);
-        });
+        const select = newFocalPerson.querySelector('.focal-person-select');
         removeButton.addEventListener('click', function() {
+            $(select).select2('destroy'); // Destroy Select2 instance before removing
             newFocalPerson.remove();
             updateFocalPersonRemoveButtons();
         });
 
         container.appendChild(newFocalPerson);
+        initializeSelect2ForFocalPerson(select);
         updateFocalPersonRemoveButtons();
     }
 
@@ -746,68 +740,6 @@
             });
         }
     }
-
-    (function () {
-        'use strict';
-        const form = document.getElementById('contractForm');
-        form.addEventListener('submit', function (event) {
-            if (!form.checkValidity()) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-            const percentages = Array.from(document.querySelectorAll('.installment-percentage')).map(select => parseFloat(select.value) || 0);
-            const totalPercentage = percentages.reduce((sum, val) => sum + val, 0);
-            if (Math.abs(totalPercentage - 100) > 0.01) {
-                event.preventDefault();
-                event.stopPropagation();
-                alert('Total percentage of payment installments must equal 100%.');
-            }
-            const focalPersons = document.querySelectorAll('.focal-person-container');
-            if (focalPersons.length === 0) {
-                event.preventDefault();
-                event.stopPropagation();
-                alert('At least one focal person is required.');
-            }
-            const partyAs = document.querySelectorAll('.party-a-container');
-            if (partyAs.length === 0) {
-                event.preventDefault();
-                event.stopPropagation();
-                alert('At least one Party A representative is required.');
-            }
-            const partyBSelect = document.getElementById('party_b_select').value;
-            const partyBName = document.getElementById('party_b_signature_name').value;
-            if (!partyBSelect || (partyBSelect === 'new' && !partyBName)) {
-                event.preventDefault();
-                event.stopPropagation();
-                alert('Please select a Party B name or enter a new one.');
-            }
-            const partyASigner = document.getElementById('party_a_signer').value;
-            if (!partyASigner) {
-                event.preventDefault();
-                event.stopPropagation();
-                alert('Please select a Party A signer.');
-            }
-            const taxPercentage = document.getElementById('tax_percentage').value;
-            const deductTaxCode = document.getElementById('deduct_tax_code').value;
-            const vatOrgName = document.getElementById('vat_organization_name').value;
-            if (taxPercentage === '0' && !deductTaxCode) {
-                event.preventDefault();
-                event.stopPropagation();
-                alert('VAT TIN is required when tax percentage is 0%.');
-            }
-            if (taxPercentage === '0' && !vatOrgName) {
-                event.preventDefault();
-                event.stopPropagation();
-                alert('Name of Organization is required when tax percentage is 0%.');
-            }
-            if (taxPercentage === '0' && deductTaxCode && !/^[A-Z0-9\-]+$/.test(deductTaxCode)) {
-                event.preventDefault();
-                event.stopPropagation();
-                alert('VAT TIN must contain only uppercase letters, numbers, and hyphens.');
-            }
-            form.classList.add('was-validated');
-        }, false);
-    })();
 
     function updateInstallmentDescriptions() {
         const containers = document.querySelectorAll('.installment-container');
@@ -946,6 +878,22 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
+        // Initialize Select2 for Party B select
+        $('#party_b_select').select2({
+            placeholder: "Select Party B or enter new name",
+            allowClear: true,
+            width: '100%'
+        }).on('select2:select', function () {
+            handlePartyBSelect(this);
+        }).on('select2:clear', function () {
+            handlePartyBSelect(this);
+        });
+
+        // Initialize Select2 for all existing Focal Person selects
+        document.querySelectorAll('.focal-person-select').forEach(select => {
+            initializeSelect2ForFocalPerson(select);
+        });
+
         const dateInputs = document.querySelectorAll('input[type="date"]');
         dateInputs.forEach(input => {
             input.addEventListener('click', function () {
@@ -965,7 +913,7 @@
         updatePartyARemoveButtons();
         updatePartyASignerOptions();
         updateOrgOptions();
-        toggleDeductTaxCode(); // Initialize deduct_tax_code visibility
+        toggleDeductTaxCode();
 
         document.querySelectorAll('.btn-remove-article').forEach(button => {
             button.addEventListener('click', function () {
@@ -981,7 +929,10 @@
         });
         document.querySelectorAll('.btn-remove-focal-person').forEach(button => {
             button.addEventListener('click', function () {
-                button.closest('.focal-person-container').remove();
+                const container = button.closest('.focal-person-container');
+                const select = container.querySelector('.focal-person-select');
+                $(select).select2('destroy');
+                container.remove();
                 updateFocalPersonRemoveButtons();
             });
         });
@@ -996,12 +947,6 @@
 
         document.querySelectorAll('.installment-percentage').forEach(select => {
             select.addEventListener('change', updateInstallmentDescriptions);
-        });
-
-        document.querySelectorAll('.focal-person-select').forEach(select => {
-            select.addEventListener('change', function() {
-                populateFocalPerson(this);
-            });
         });
 
         document.querySelectorAll('.party-a-select').forEach(select => {
@@ -1021,6 +966,87 @@
         }
 
         assignPercentages();
+
+        document.getElementById('total_fee_usd').addEventListener('input', function () {
+            const totalFeeUSD = parseFloat(this.value);
+            const totalFeeWordsInput = document.getElementById('total_fee_words');
+            totalFeeWordsInput.value = numberToWords(totalFeeUSD);
+        });
+
+        document.addEventListener('change', function(e) {
+            if (e.target.classList.contains('party-a-name') || e.target.classList.contains('party-a-organization') || e.target.classList.contains('party-a-short-name')) {
+                updatePartyASignerOptions();
+                updateOrgOptions();
+            }
+        });
+
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('party-a-organization') || e.target.classList.contains('party-a-short-name')) {
+                updateOrgOptions();
+            }
+        });
+
+        (function () {
+            'use strict';
+            const form = document.getElementById('contractForm');
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                const percentages = Array.from(document.querySelectorAll('.installment-percentage')).map(select => parseFloat(select.value) || 0);
+                const totalPercentage = percentages.reduce((sum, val) => sum + val, 0);
+                if (Math.abs(totalPercentage - 100) > 0.01) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('Total percentage of payment installments must equal 100%.');
+                }
+                const focalPersons = document.querySelectorAll('.focal-person-container');
+                if (focalPersons.length === 0) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('At least one focal person is required.');
+                }
+                const partyAs = document.querySelectorAll('.party-a-container');
+                if (partyAs.length === 0) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('At least one Party A representative is required.');
+                }
+                const partyBSelect = document.getElementById('party_b_select').value;
+                const partyBName = document.getElementById('party_b_signature_name').value;
+                if (!partyBSelect || (partyBSelect === 'new' && !partyBName)) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('Please select a Party B name or enter a new one.');
+                }
+                const partyASigner = document.getElementById('party_a_signer').value;
+                if (!partyASigner) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('Please select a Party A signer.');
+                }
+                const taxPercentage = document.getElementById('tax_percentage').value;
+                const deductTaxCode = document.getElementById('deduct_tax_code').value;
+                const vatOrgName = document.getElementById('vat_organization_name').value;
+                if (taxPercentage === '0' && !deductTaxCode) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('VAT TIN is required when tax percentage is 0%.');
+                }
+                if (taxPercentage === '0' && !vatOrgName) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('Name of Organization is required when tax percentage is 0%.');
+                }
+                if (taxPercentage === '0' && deductTaxCode && !/^[A-Z0-9\-]+$/.test(deductTaxCode)) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    alert('VAT TIN must contain only uppercase letters, numbers, and hyphens.');
+                }
+                form.classList.add('was-validated');
+            }, false);
+        })();
     });
 </script>
 {% endblock %}
