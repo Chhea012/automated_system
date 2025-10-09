@@ -2575,21 +2575,28 @@ def view(contract_id):
             return redirect(url_for('contracts.index'))
 
         contract_data = contract.to_dict()
+        contract_data['custom_article_sentences'] = contract_data.get('custom_article_sentences', {})
 
         # Format dates
-        contract_data['agreement_start_date_display'] = format_date(contract_data['agreement_start_date'])
-        contract_data['agreement_end_date_display'] = format_date(contract_data['agreement_end_date'])
+        contract_data['agreement_start_date_display'] = format_date(contract_data.get('agreement_start_date', ''))
+        contract_data['agreement_end_date_display'] = format_date(contract_data.get('agreement_end_date', ''))
 
         # Get financial data as floats
-        total_fee_usd = float(contract_data['total_fee_usd']) if contract_data['total_fee_usd'] else 0.0
-        tax_percentage = float(contract_data.get('tax_percentage', 15.0))
-        deduct_tax_code = contract_data.get('deduct_tax_code', '')
-        vat_organization_name = contract_data.get('vat_organization_name', '')  # New field
+        try:
+            total_fee_usd = float(contract_data.get('total_fee_usd', 0.0)) or 0.0
+            tax_percentage = float(contract_data.get('tax_percentage', 15.0)) or 15.0
+            deduct_tax_code = contract_data.get('deduct_tax_code', '')
+            vat_organization_name = contract_data.get('vat_organization_name', '')
+        except (ValueError, TypeError) as e:
+            logger.error(f"Error converting financial data for contract {contract.id}: {str(e)}")
+            flash("Invalid financial data.", 'danger')
+            return redirect(url_for('contracts.index'))
+
         contract_data['total_fee_usd'] = total_fee_usd
         contract_data['gross_amount_usd'] = total_fee_usd
         contract_data['total_fee_words'] = contract_data.get('total_fee_words') or number_to_words(total_fee_usd)
 
-        # Calculate total gross and net as floats
+        # Calculate total gross and net amounts
         total_gross_amount, total_net_amount = calculate_payments(
             total_fee_usd, tax_percentage, contract_data.get('payment_installments', [])
         )
@@ -2598,25 +2605,53 @@ def view(contract_id):
         contract_data['total_gross'] = f"USD{total_gross_amount:.2f}"
         contract_data['total_net'] = f"USD{total_net_amount:.2f}"
 
+        # Determine if multiple organizations are used in installments
+        installments = contract_data.get('payment_installments', [])
+        unique_orgs = {inst.get('organization', '').strip() for inst in installments if inst.get('organization')}
+        append_org = len(unique_orgs) > 1
+
+        # Create mapping from full organization to short_name
+        party_a_info = contract_data.get('party_a_info', [
+            {
+                'name': 'Mr. SOEUNG Saroeun',
+                'position': 'Executive Director',
+                'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia',
+                'organization': 'The NGO Forum on Cambodia',
+                'short_name': 'NGOF',
+                'registration_number': '#304 សជណ',
+                'registration_date': '07 March 2012'
+            }
+        ])
+        org_to_short = {person.get('organization', '').strip(): person.get('short_name', '').strip() for person in party_a_info if person.get('organization') and person.get('short_name')}
+
         # Process payment installments
-        for installment in contract_data.get('payment_installments', []):
+        for installment in installments:
             installment['dueDate_display'] = format_date(installment.get('dueDate', ''))
-            match = re.search(r'\((\d+\.?\d*)\%\)', installment['description'])
+            match = re.search(r'\((\d+\.?\d*)\%\)', installment.get('description', ''))
             percentage = float(match.group(1)) if match else 0.0
             gross, tax, net = calculate_installment_payments(total_fee_usd, tax_percentage, percentage)
             installment['gross_amount'] = gross
             installment['tax_amount'] = tax
             installment['net_amount'] = net
+            org = installment.get('organization', '').strip()
+            if append_org and org:
+                short_org = org_to_short.get(org, org)
+                installment['description'] = f"{installment['description']} by {short_org}"
 
-        # Define standard articles
+        # Conditional withholding sentence
+        withholding_sentence = '' if tax_percentage == 0 else (
+            f'“Party A” is responsible for withholding tax and any related taxes to be paid to the tax department for “Party B”.<br><br>'
+        )
+
+        # Define standard articles (same as previous response)
         standard_articles = [
             {
                 'number': 1,
                 'title': 'TERMS OF REFERENCE',
                 'content': (
-                    '“Party B” shall perform tasks as stated in the attached TOR <strong> (annex-1)</strong> to “Party A”, '
-                    'and deliver each milestone as stipulated in article 4.\n\n'
-                    'The work shall be of good quality and well performed with the acceptance by “Party A.”'
+                    '“Party B” shall perform tasks as stated in the attached TOR <strong>(annex-1)</strong> to “Party A”, '
+                    'and deliver each milestone as stipulated in <strong>article 4</strong>.<br><br>'
+                    'The work shall be of good quality and well performed with the acceptance by “Party A”.'
                 ),
                 'table': None
             },
@@ -2635,15 +2670,16 @@ def view(contract_id):
                 'number': 3,
                 'title': 'PROFESSIONAL FEE',
                 'content': (
-                    f'The professional fee is the total amount of <span style="font-size: 16px;"> <strong> {contract_data["total_gross"]} </strong></span>'
-                    f'<span style="font-size: 16px; "><strong> ({contract_data["total_fee_words"]})</strong></span> '
+                    f'The professional fee is the total amount of <strong style="font-size: 16px;">{contract_data["total_gross"]}</strong> '
+                    f'<strong style="font-size: 16px;">({contract_data["total_fee_words"]})</strong> '
                     f'{"excluding" if tax_percentage == 0 else "including"} tax for the whole assignment period.'
-                    f'{"\n\n<span style=\"font-size: 16px; margin-left:40px;\"><strong>" + vat_organization_name + "</strong></span>\n<span style=\"font-size: 16px; margin-left:40px;\"><strong>VAT TIN: " + deduct_tax_code + "</strong></span>" if tax_percentage == 0 and deduct_tax_code and vat_organization_name else ""}\n\n'
-                    f'<span style="font-size: 16px; margin-left:40px;"><strong>Total Service Fee: {contract_data["total_gross"]}</strong></span>\n'
-                    f'{"<span style=\"font-size: 16px; margin-left:40px;\"><strong>Withholding Tax " + f"{tax_percentage}%: USD{contract_data['total_gross_amount'] * (tax_percentage/100):.2f}</strong></span>\n" if tax_percentage > 0 else ""}'
-                    f'<span style="font-size: 16px; margin-left:40px;"><strong>Net amount: {contract_data["total_net"]}</strong></span>\n\n'
+                    f'{"<br><br><strong style=\"font-size: 16px; margin-left:40px;\">" + vat_organization_name + "</strong><br><strong style=\"font-size: 16px; margin-left:40px;\">VAT TIN: " + deduct_tax_code + "</strong>" if tax_percentage == 0 and deduct_tax_code and vat_organization_name else ""}<br><br>'
+                    f'<strong style="font-size: 16px; margin-left:40px;">Total Service Fee: {contract_data["total_gross"]}</strong><br>'
+                    f'{"<strong style=\"font-size: 16px; margin-left:40px;\">Withholding Tax " + f"{int(tax_percentage)}%: USD{total_gross_amount * (tax_percentage/100):.2f}</strong><br>" if tax_percentage > 0 else ""}'
+                    f'<strong style="font-size: 16px; margin-left:40px;">Net amount: {contract_data["total_net"]}</strong><br><br>'
                     f'“Party B” is responsible to issue the Invoice (net amount) and receipt (when receiving the payment) '
-                    f'with the total amount as stipulated in each instalment as in <strong>Article 4.</strong>\n\n'
+                    f'with the total amount as stipulated in each instalment as in <strong>Article 4</strong>.<br><br>'
+                    f'{withholding_sentence}'
                     f'“Party B” is responsible for all related taxes payable to the government department.'
                 ),
                 'table': None
@@ -2653,16 +2689,21 @@ def view(contract_id):
                 'title': 'TERM OF PAYMENT',
                 'content': 'The payment will be made based on the following schedules:',
                 'table': [
-                    {'Installment': 'Installment', 'Total Amount (USD)': 'Total Amount (USD)', 'Deliverable': 'Deliverable', 'Due date': 'Due date'},
+                    {
+                        'Installment': 'Installment',
+                        'Total Amount (USD)': 'Total Amount (USD)',
+                        'Deliverable': 'Deliverable',
+                        'Due date': 'Due date'
+                    },
                     *[
                         {
                             'Installment': installment['description'],
                             'Total Amount (USD)': (
                                 f'- Gross: ${installment["gross_amount"]:.2f}\n'
-                                f'{"- Tax " + f"{tax_percentage}%: ${installment['tax_amount']:.2f}\n" if tax_percentage > 0 else ""}'
+                                f'{"- Tax " + f"{int(tax_percentage)}%: ${installment["tax_amount"]:.2f}\n" if tax_percentage > 0 else ""}'
                                 f'- Net pay: ${installment["net_amount"]:.2f}'
                             ),
-                            'Deliverable': installment['deliverables'].replace('; ', '\n- '),
+                            'Deliverable': '\n'.join([f"- {d.strip()}" for d in installment.get('deliverables', '').split(';') if d.strip()]),
                             'Due date': installment['dueDate_display']
                         }
                         for installment in contract_data.get('payment_installments', [])
@@ -2684,8 +2725,8 @@ def view(contract_id):
                 'content': (
                     f'“Party A” shall monitor and evaluate the progress of the agreement toward its objective, '
                     f'including the activities implemented. '
-                    f'{" and ".join([f"<strong>{person['name']}</strong>, <strong>{person['position']}</strong> "
-                    f"(Telephone {person['phone']} Email: <span style='color: blue; text-decoration: underline;'>{person['email']}</span>)" 
+                    f'{" and ".join([f"<strong>{person.get('name', 'N/A')}</strong>, <strong>{person.get('position', 'N/A')}</strong> "
+                    f"(Telephone {person.get('phone', 'N/A')} Email: <span style='color: blue; text-decoration: underline;'>{person.get('email', 'N/A')}</span>)" 
                     for person in contract_data.get("focal_person_info", [])]) or "<strong>N/A</strong>, <strong>N/A</strong> (Telephone N/A Email: N/A)"} '
                     f'is the focal contact person of “Party A” and '
                     f'<strong>{contract_data.get("party_b_signature_name", "N/A")}</strong>, <strong>{contract_data.get("party_b_position", "Freelance Consultant")}</strong> '
@@ -2699,7 +2740,7 @@ def view(contract_id):
                 'number': 7,
                 'title': 'CONFIDENTIALITY',
                 'content': (
-                    f'All outputs produced, with the exception of the <strong> “{contract_data.get("project_title", "N/A")}” </strong>, '
+                    f'All outputs produced, with the exception of the <strong>“{contract_data.get("project_title", "N/A")}”</strong>, '
                     f'which is a contribution from, and to be claimed as a public document by the main author and co-author '
                     f'in associated, and/or under this agreement, shall be the property of “Party A”. The “Party B” agrees '
                     f'to not disclose any confidential information, of which he/she may take cognizance in the performance '
@@ -2712,8 +2753,8 @@ def view(contract_id):
                 'title': 'ANTI-CORRUPTION and CONFLICT OF INTEREST',
                 'content': (
                     '“Party B” shall not participate in any practice that is or could be construed as an illegal or corrupt '
-                    'practice in Cambodia. The “Party A” is committed to fighting all types of corruption and expects this same '
-                    'commitment from the consultant it reserves the rights and believes based on the declaration of “Party B” '
+                    'practice in Cambodia.<br><br>The “Party A” is committed to fighting all types of corruption and expects this same '
+                    'commitment from the consultant. It reserves the rights and believes based on the declaration of “Party B” '
                     'that it is an independent social enterprise firm operating in Cambodia and it does not involve any conflict '
                     'of interest with other parties that may be affected to the “Party A”.'
                 ),
@@ -2739,9 +2780,9 @@ def view(contract_id):
                     'this objective, NGOF will not knowingly or recklessly provide funds, economic goods, or material support to any '
                     'entity or individual designated as a “terrorist” by the international community or affiliate domestic governments '
                     'and will take all reasonable steps to safeguard and protect its assets from such illicit use and to comply with '
-                    'host government laws.\nNGOF respects its contracts with its donors and puts procedures in place for compliance '
-                    'with these contracts.\n“Illicit use” refers to terrorist financing, sanctions, money laundering, and export '
-                    'control regulations.'
+                    'host government laws.<br><br>'
+                    'NGOF respects its contracts with its donors and puts procedures in place for compliance with these contracts.<br><br>'
+                    '“Illicit use” refers to terrorist financing, sanctions, money laundering, and export control regulations.'
                 ),
                 'table': None
             },
@@ -2759,8 +2800,8 @@ def view(contract_id):
                 'title': 'ASSIGNMENT',
                 'content': (
                     '“Party B” shall have the right to assign individuals within its organization to carry out the tasks herein '
-                    'named in the attached Technical Proposal. The “Party B” shall not assign, or transfer any of its rights or '
-                    'obligations under this agreement hereunder without the prior written consent of “Party A”. Any attempt by '
+                    'named in the attached Technical Proposal.<br><br>The “Party B” shall not assign, or transfer any of its rights or '
+                    'obligations under this agreement without the prior written consent of “Party A”. Any attempt by '
                     '“Party B” to assign or transfer any of its rights and obligations without the prior written consent of “Party A” '
                     'shall render this agreement subject to immediate termination by “Party A”.'
                 ),
@@ -2770,15 +2811,15 @@ def view(contract_id):
                 'number': 13,
                 'title': 'RESOLUTION OF CONFLICTS/DISPUTES',
                 'content': (
-                    'Conflicts between any of these agreements shall be resolved by the following methods:\n'
+                    'Conflicts between any of these agreements shall be resolved by the following methods:<br><br>'
                     'In the case of a disagreement arising between “Party A” and the “Party B” regarding the implementation of '
                     'any part of, or any other substantive question arising under or relating to this agreement, the parties shall '
-                    'use their best efforts to arrive at an agreeable resolution by mutual consultation.\n'
+                    'use their best efforts to arrive at an agreeable resolution by mutual consultation.<br><br>'
                     'Unresolved issues may, upon the option of either party and written notice to the other party, be referred to '
                     'for arbitration. Failure by the “Party B” or “Party A” to dispute a decision arising from such arbitration in '
                     'writing within thirty (30) calendar days of receipt of a final decision shall result in such final decision '
-                    'being deemed binding upon either the “Party B” and/or “Party A”.<strong> All expenses related to arbitration will be </strong> '
-                    '<strong>shared equally between both parties.</strong>'
+                    'being deemed binding upon either the “Party B” and/or “Party A”. <strong>All expenses related to arbitration will be '
+                    'shared equally between both parties.</strong>'
                 ),
                 'table': None
             },
@@ -2786,17 +2827,17 @@ def view(contract_id):
                 'number': 14,
                 'title': 'TERMINATION',
                 'content': (
-                    'The “Party A” or the “Party B” may, by notice in writing, terminate this agreement under the following conditions:\n\n'
+                    'The “Party A” or the “Party B” may, by notice in writing, terminate this agreement under the following conditions:<br><br>'
                     '1. “Party A” may terminate this agreement at any time with a one-week notice if “Party B” fails to comply with the '
-                    'terms and conditions of this agreement.\n\n'
+                    'terms and conditions of this agreement.<br><br>'
                     '2. For gross professional misconduct (as defined in the NGOF Human Resource Policy), “Party A” may terminate '
                     'this agreement immediately without prior notice. “Party A” will notify “Party B” in a letter that will indicate '
-                    'the reason for termination as well as the effective date of termination.\n\n'
+                    'the reason for termination as well as the effective date of termination.<br><br>'
                     '3. “Party B” may terminate this agreement at any time with a one-week notice if “Party A” fails to comply with '
                     'the terms and conditions of this agreement. “Party B” will notify “Party A” in a letter that will indicate the '
                     'reason for termination as well as the effective date of termination. If “Party B” terminates this '
                     'agreement without any appropriate reason or fails to implement the assignment, “Party B” must '
-                    'refund the full amount of fees received to “Party A”.\n\n'
+                    'refund the full amount of fees received to “Party A”.<br><br>'
                     '4. If for any reason either “Party A” or “Party B” decides to terminate this agreement, “Party B” shall be '
                     'paid pro-rata for the work already completed by “Party A”. This payment will require the submission of a timesheet '
                     'that demonstrates work completed as well as the handing over of any deliverables completed or partially completed. '
@@ -2819,7 +2860,7 @@ def view(contract_id):
                 'title': 'CONTROLLING OF LAW',
                 'content': (
                     'This agreement shall be governed and construed following the law of the Kingdom of Cambodia. '
-                    'The Simultaneous Interpretation Agreement is prepared in two original copies.'
+                    'This Agreement is prepared in two original copies.'
                 ),
                 'table': None
             }
@@ -2828,14 +2869,38 @@ def view(contract_id):
         # Prepare custom articles
         custom_articles = [
             {'article_number': str(k), 'custom_sentence': v}
-            for k, v in contract_data.get('custom_article_sentences', {}).items()
+            for k, v in contract_data.get('custom_article_sentences', {}).items() if v.strip()
+        ]
+
+        # Prepare Party A and Party B data for template
+        party_a_info = contract_data.get('party_a_info', [
+            {
+                'name': 'Mr. SOEUNG Saroeun',
+                'position': 'Executive Director',
+                'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia',
+                'organization': 'The NGO Forum on Cambodia',
+                'short_name': 'NGOF',
+                'registration_number': '#304 សជណ',
+                'registration_date': '07 March 2012'
+            }
+        ])
+        party_b_info = [
+            {
+                'position': contract_data.get('party_b_position', 'Freelance Consultant'),
+                'name': contract_data.get('party_b_signature_name', 'N/A'),
+                'address': contract_data.get('party_b_address', 'N/A'),
+                'phone': contract_data.get('party_b_phone', 'N/A'),
+                'email': contract_data.get('party_b_email', 'N/A')
+            }
         ]
 
         return render_template(
             'contracts/view.html',
             contract=contract_data,
             standard_articles=standard_articles,
-            articles=custom_articles,
+            custom_articles=custom_articles,
+            party_a_info=party_a_info,
+            party_b_info=party_b_info,
             format_date=format_date
         )
     except Exception as e:

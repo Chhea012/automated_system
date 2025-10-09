@@ -17,86 +17,93 @@
         <p class="text-center" style="font-weight: bold; font-size: 18px;">No.: {{ contract.contract_number or 'N/A' }}</p>
         <p class="text-center" style="font-size: 16px;">BETWEEN</p>
 
-        <!-- Party A (centered for clarity) -->
-        <p class="text-center" style="font-size: 16px; line-height: 1.6; margin-bottom: 15px;">
-            <strong>The NGO Forum on Cambodia</strong>, represented by 
-            {% for person in contract.party_a_info %}
-                <strong>{{ person.name or 'Mr. Soeung Saroeun' }}</strong>, {{ person.position or 'Executive Director' }}
-                {% if not loop.last %}; {% endif %}
-            {% endfor %}.<br>
-            Address: {{ contract.party_a_info[0].address or '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia' }}.<br>
-            hereinafter called the “<strong>Party A</strong>”
-        </p>
+        <!-- Party A -->
+        {% for person in party_a_info %}
+            <p class="text-center" style="font-size: 16px; line-height: 1.6; margin-bottom: 15px;">
+                <strong>{{ person.organization or 'The NGO Forum on Cambodia' }}</strong>, represented by 
+                <strong>{{ person.name or 'Mr. SOEUNG Saroeun' }}</strong>, {{ person.position or 'Executive Director' }}.<br>
+                Address: {{ person.address or '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia' }}.<br>
+                hereinafter called the “<strong>Party A</strong>”
+            </p>
+            {% if not loop.last %}
+                <p class="text-center" style="font-size: 16px;">AND</p>
+            {% endif %}
+        {% endfor %}
 
         <p class="text-center" style="font-size: 16px;">AND</p>
 
-        <!-- Party B (centered for clarity) -->
+        <!-- Party B -->
         <p class="text-center" style="font-size: 16px; line-height: 1.6; margin-bottom: 15px;">
-            {% if contract.party_b_info %}
-                {% for person in contract.party_b_info %}
-                    <strong>{{ person.position or 'Freelance Consultant' }} {{ person.name or 'N/A' }}</strong>
-                    {% if not loop.last %}; {% endif %}
-                {% endfor %},<br>
-                Address: {{ contract.party_b_info[0].address or 'N/A' }}<br>
-                H/P: {{ contract.party_b_info[0].phone or 'N/A' }}, E-mail: <span style="color: blue; text-decoration: underline;">{{ contract.party_b_info[0].email or 'N/A' }}</span><br>
-            {% else %}
-                <strong>{{ contract.party_b_position or 'Freelance Consultant' }} {{ contract.party_b_signature_name or 'N/A' }}</strong>,<br>
-                Address: {{ contract.party_b_address or 'N/A' }}<br>
-                H/P: {{ contract.party_b_phone or 'N/A' }}, E-mail: <span style="color: blue; text-decoration: underline;">{{ contract.party_b_email or 'N/A' }}</span><br>
-            {% endif %}
+            {% for person in party_b_info %}
+                <strong>{{ person.position or 'Freelance Consultant' }} {{ person.name or 'N/A' }}</strong>{% if not loop.last %}; {% endif %}
+            {% endfor %},<br>
+            Address: {{ party_b_info[0].address or 'N/A' }}<br>
+            H/P: {{ party_b_info[0].phone or 'N/A' }}, E-mail: <span style="color: blue; text-decoration: underline;">{{ party_b_info[0].email or 'N/A' }}</span><br>
             hereinafter called the “<strong>Party B</strong>”
         </p>
 
         <!-- Whereas Clauses -->
+        {% for person in party_a_info %}
+            <p class="text-justify" style="font-size: 14px; line-height: 1.8; margin-bottom: 15px;">
+                Whereas <strong>{{ person.short_name or person.organization or 'NGOF' }}</strong> is a legal entity registered with the Ministry of Interior (MOI)
+                {% if person.registration_number %} {{ person.registration_number }}{% endif %}
+                {% if person.registration_date %} dated {{ person.registration_date }}{% endif %}.
+            </p>
+        {% endfor %}
         <p class="text-justify" style="font-size: 14px; line-height: 1.8; margin-bottom: 15px;">
-            Whereas NGOF is a legal entity registered with the Ministry of Interior (MOI) {{ contract.registration_number or '#304 សជណ' }} dated {{ contract.registration_date or '07 March 2012' }}.
-        </p>
-        <p class="text-justify" style="font-size: 14px; line-height: 1.8; margin-bottom: 15px;">
-            Whereas NGOF will engage the services of “<strong>Party B</strong>” which accepts the engagement under the following terms and conditions.
+            Whereas {% if party_a_info|length > 1 %}{{ party_a_info[:-1]|map(attribute='short_name')|join(', ') }} and {{ party_a_info[-1].short_name }}{% else %}{{ party_a_info[0].short_name or party_a_info[0].organization or 'NGOF' }}{% endif %}
+            will engage the services of “<strong>Party B</strong>” which accepts the engagement under the following terms and conditions.
         </p>
         <p class="text-center" style="font-weight: bold; font-size: 14px; margin-bottom: 20px;">Both Parties Agreed as follows:</p>
 
-                <!-- Articles -->
+        <!-- Articles -->
         {% for article in standard_articles %}
-        <h6 class="mb-1" style="font-weight: bold; margin: 0;">
-            <span style="text-decoration: underline;">ARTICLE {{ article.number }}:</span> {{ article.title }}
-        </h6>
-        <p class="text-justify" style="white-space: pre-line; font-size: 14px; line-height: 1.6; margin: 0;">
-            {{ article.content | replace('Party A', '<strong>Party A</strong>') | replace('Party B', '<strong>Party B</strong>') | safe }}
-        </p>
+            <h6 class="mb-1" style="font-weight: bold; margin: 0;">
+                <span style="text-decoration: underline;">ARTICLE {{ article.number }}:</span> {{ article.title }}
+            </h6>
+            <p class="text-justify" style="white-space: pre-line; font-size: 14px; line-height: 1.6; margin: 0;">
+                {{ article.content | safe }}
+            </p>
 
-        {% if article.table %}
-        <table class="table table-bordered" style="border: 1px solid black; margin: 0;">
-            <thead>
-                <tr>
-                    {% for key in article.table[0].keys() %}
-                    <th class="text-center text-black" style="border: 1px solid black;">{{ key }}</th>
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in article.table[1:] %}
-                <tr>
-                    {% for key in row.keys() %}
-                        <td style="white-space: pre-line; border: 1px solid black; margin: 0; {% if key == 'Total Amount (USD)' %}font-weight: bold;{% endif %}">
-                            {{ row[key] }}
-                        </td>
-                    {% endfor %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% endif %}
+            {% if article.table %}
+                <table class="table table-bordered" style="border: 1px solid black; margin: 10px 0; width: 100%;">
+                    <thead>
+                        <tr>
+                            {% for key in article.table[0].keys() %}
+                                <th class="text-center text-black" style="border: 1px solid black; padding: 8px; 
+                                    {% if key == 'Total Amount (USD)' %}width: 20%;
+                                    {% elif key == 'Installment' %}width: 15%;
+                                    {% elif key == 'Deliverable' %}width: 50%;
+                                    {% elif key == 'Due date' %}width: 15%;
+                                    {% endif %}">
+                                    {{ key }}
+                                </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in article.table[1:] %}
+                            <tr>
+                                {% for key in row.keys() %}
+                                    <td style="white-space: pre-wrap; border: 1px solid black; padding: 8px; vertical-align: top;
+                                        {% if key == 'Total Amount (USD)' %}font-weight: bold;{% endif %}">
+                                        {{ row[key] | safe }}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
 
-        {% for custom in articles %}
-        {% if custom.article_number | string == article.number | string %}
-        <p class="text-justify" style="white-space: pre-line; font-size: 14px; line-height: 1.6; margin: 0;">
-            {{ custom.custom_sentence }}
-        </p>
-        {% endif %}
+            {% for custom in custom_articles %}
+                {% if custom.article_number | string == article.number | string %}
+                    <p class="text-justify" style="white-space: pre-line; font-size: 14px; line-height: 1.6; margin: 0;">
+                        {{ custom.custom_sentence }}
+                    </p>
+                {% endif %}
+            {% endfor %}
         {% endfor %}
-        {% endfor %}
-
 
         <!-- Signatures -->
         <p class="text-center mt-3 mb-2" style="font-weight: bold; font-size: 15px;">
@@ -104,15 +111,15 @@
         </p>
         <table class="table table-borderless" style="margin-left: 17%; font-size: 15px;">
             <tr>
-                <td class="text-start" style="width: %;">
+                <td class="text-start" style="width: 50%;">
                     <div style="margin-bottom: 50px;">
                         <strong>For “Party A”</strong>
                     </div>
-                    _________________<br>
-                    {% for person in contract.party_a_info %}
+                    {% for person in party_a_info %}
                         {% if person.name == contract.party_a_signature_name %}
+                            _________________<br>
                             <strong>{{ person.name or 'Mr. SOEUNG Saroeun' }}</strong><br>
-                            <strong>{{ person.position or 'Executive Director' }}</strong>
+                            <strong>{{ person.position or 'Executive Director' }}</strong><br>
                         {% endif %}
                     {% endfor %}
                 </td>
@@ -121,20 +128,15 @@
                         <strong>For “Party B”</strong>
                     </div>
                     _________________<br>
-                    {% if contract.party_b_info %}
-                        {% for person in contract.party_b_info %}
-                            {% if person.name == contract.party_b_signature_name %}
-                                <strong>{{ person.name or 'N/A' }}</strong><br>
-                                <strong>{{ person.position or 'N/A' }}</strong>
-                            {% endif %}
-                        {% endfor %}
-                    {% else %}
-                        <strong>{{ contract.party_b_signature_name or 'N/A' }}</strong><br>
-                        <strong>{{ contract.party_b_position or 'N/A' }}</strong>
-                    {% endif %}
+                    {% for person in party_b_info %}
+                        {% if person.name == contract.party_b_signature_name %}
+                            <strong>{{ person.name or 'N/A' }}</strong><br>
+                            <strong>{{ person.position or 'Freelance Consultant' }}</strong>
+                        {% endif %}
+                    {% endfor %}
                 </td>
             </tr>
-        </table>        
+        </table>
     </div>
 </div>
 {% endblock %}
