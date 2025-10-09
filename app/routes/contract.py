@@ -266,6 +266,9 @@ def generate_docx(contract):
                 installment['description'] = f"{installment['description']} by {short_org}"
             # else: keep original description without 'by org'
 
+        # Conditional withholding sentence based on tax_percentage
+        withholding_sentence = '' if tax_percentage == 0 else f'“Party A” is responsible for withholding tax and any related taxes to be paid to the tax department for “Party B”.\n\n'
+
         # Create DOCX document
         doc = Document()
 
@@ -459,7 +462,7 @@ def generate_docx(contract):
                     f'with the total amount as stipulated in each instalment as in the Article 4 after having done the '
                     f'agreed deliverable tasks, for payment request. The payment will be processed after the satisfaction '
                     f'from “Party A” as of the required deliverable tasks as stated in Article 4.\n\n'
-                    f'“Party B” is responsible for all related taxes payable to the government department.'
+                    f'{withholding_sentence}“Party B” is responsible for all related taxes payable to the government department.'
                 ],
                 'bold_parts': [
                     format_usd(contract_data["total_gross"]),
@@ -711,13 +714,18 @@ def generate_docx(contract):
 
         # Whereas Clauses
         add_paragraph(
-            f"Whereas NGOF is a legal entity registered with the Ministry of Interior (MOI) "
-            f"{contract_data.get('registration_number', '#304 សជណ')} dated {contract_data.get('registration_date', '07 March 2012')}.",
+            f"Whereas NGOF is a legal entity registered with the Ministry of Interior (MOI) #304 សជណ dated 07 March 2012.",
             WD_ALIGN_PARAGRAPH.JUSTIFY, size=11
         )
+        # Dynamically construct the Whereas clause with short names
+        short_names = [person.get('short_name', person.get('organization', 'NGOF')) for person in party_a_info if person.get('short_name') or person.get('organization')]
+        if len(short_names) > 1:
+            whereas_text = f"Whereas {', '.join(short_names[:-1])} and {short_names[-1]} will engage the services of “Party B” which accepts the engagement under the following terms and conditions."
+        else:
+            whereas_text = f"Whereas {short_names[0] if short_names else 'NGOF'} will engage the services of “Party B” which accepts the engagement under the following terms and conditions."
         add_paragraph(
-            f"Whereas NGOF will engage the services of “Party B” which accepts the engagement under the following terms and conditions.",
-            WD_ALIGN_PARAGRAPH.JUSTIFY, size=11
+            whereas_text,
+            WD_ALIGN_PARAGRAPH.JUSTIFY, size=11, bold_segments=short_names
         )
         add_paragraph("Both Parties Agreed as follows:", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=11)
 
