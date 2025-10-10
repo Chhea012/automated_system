@@ -890,53 +890,59 @@ def generate_docx(contract):
         run.font.size = Pt(11)
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        tab_position_a = Inches(0.5)
-        tab_position_b = Inches(4.5)
-
+        # Headers for parties
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(30)
         p.paragraph_format.space_after = Pt(0)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
-        p.add_run('\tFor “Party A”').bold = True
-        p.add_run('\tFor “Party B”').bold = True
+        p.paragraph_format.tab_stops.add_tab_stop(Inches(0.5), WD_TAB_ALIGNMENT.LEFT)
+        p.paragraph_format.tab_stops.add_tab_stop(Inches(4.5), WD_TAB_ALIGNMENT.LEFT)
+        run_a = p.add_run('\tFor “Party A”')
+        run_a.bold = True
+        run_a.font.size = Pt(11)
+        run_b = p.add_run('\tFor “Party B”')
+        run_b.bold = True
+        run_b.font.size = Pt(11)
 
-        p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(45)
-        p.paragraph_format.space_after = Pt(0)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_ALIGN_PARAGRAPH.LEFT)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_ALIGN_PARAGRAPH.LEFT)
-        p.add_run('\t__________________')
-        p.add_run('\t__________________')
+        # Party A signers from party_a_info list
+        party_a_signers = party_a_info
+        for idx, signer in enumerate(party_a_signers):
+            # Underline line
+            p_line = doc.add_paragraph()
+            p_line.paragraph_format.space_before = Pt(45) if idx == 0 else Pt(30)
+            p_line.paragraph_format.space_after = Pt(0)
+            p_line.paragraph_format.tab_stops.add_tab_stop(Inches(0.5), WD_TAB_ALIGNMENT.LEFT)
+            p_line.paragraph_format.tab_stops.add_tab_stop(Inches(4.5), WD_TAB_ALIGNMENT.LEFT)
+            p_line.add_run('\t__________________')
+            if idx == 0:
+                p_line.add_run('\t__________________')
 
-        p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(0)
-        p.paragraph_format.space_after = Pt(0)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_ALIGN_PARAGRAPH.LEFT)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_ALIGN_PARAGRAPH.LEFT)
-        run = p.add_run(f"\t{contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun')}")
-        run.bold = True
-        run.font.size = Pt(11)
-        run = p.add_run(f"\t{contract_data.get('party_b_signature_name', 'Mr. Leader Din')}")
-        run.bold = True
-        run.font.size = Pt(11)
+            # Name
+            p_name = doc.add_paragraph()
+            p_name.paragraph_format.space_before = Pt(0)
+            p_name.paragraph_format.space_after = Pt(0)
+            p_name.paragraph_format.tab_stops.add_tab_stop(Inches(0.5), WD_TAB_ALIGNMENT.LEFT)
+            p_name.paragraph_format.tab_stops.add_tab_stop(Inches(4.5), WD_TAB_ALIGNMENT.LEFT)
+            run_name_a = p_name.add_run(f"\t{signer.get('name', 'Mr. SOEUNG Saroeun')}")
+            run_name_a.bold = True
+            run_name_a.font.size = Pt(11)
+            if idx == 0:
+                run_name_b = p_name.add_run(f"\t{contract_data.get('party_b_signature_name', 'Mr. Chhea Chhouy')}")
+                run_name_b.bold = True
+                run_name_b.font.size = Pt(11)
 
-        p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(0)
-        p.paragraph_format.space_after = Pt(0)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_ALIGN_PARAGRAPH.LEFT)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_ALIGN_PARAGRAPH.LEFT)
-        signer_position = next(
-            (person['position'] for person in party_a_info
-             if person['name'] == contract_data.get('party_a_signature_name')),
-            'Executive Director'
-        )
-        run = p.add_run(f"\t{signer_position}")
-        run.bold = True
-        run.font.size = Pt(11)
-        run = p.add_run(f"\t{contract_data.get('party_b_position', 'Freelance Consultant')}")
-        run.bold = True
-        run.font.size = Pt(11)
+            # Position
+            p_pos = doc.add_paragraph()
+            p_pos.paragraph_format.space_before = Pt(0)
+            p_pos.paragraph_format.space_after = Pt(0)
+            p_pos.paragraph_format.tab_stops.add_tab_stop(Inches(0.5), WD_TAB_ALIGNMENT.LEFT)
+            p_pos.paragraph_format.tab_stops.add_tab_stop(Inches(4.5), WD_TAB_ALIGNMENT.LEFT)
+            run_pos_a = p_pos.add_run(f"\t{signer.get('position', 'Executive Director')}")
+            run_pos_a.bold = True
+            run_pos_a.font.size = Pt(11)
+            if idx == 0:
+                run_pos_b = p_pos.add_run(f"\t{contract_data.get('party_b_position', 'Freelance Consultant')}")
+                run_pos_b.bold = True
+                run_pos_b.font.size = Pt(11)
 
         # Save to BytesIO
         output = BytesIO()
