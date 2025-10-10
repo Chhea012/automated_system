@@ -713,11 +713,22 @@ def generate_docx(contract):
         add_paragraph_with_email_formatting(party_b_text_parts, party_b_bold_parts, party_b_email, WD_ALIGN_PARAGRAPH.CENTER, default_size=12, bold_size=12)
 
         # Whereas Clauses
-        add_paragraph(
-            f"Whereas NGOF is a legal entity registered with the Ministry of Interior (MOI) "
-            f"{contract_data.get('registration_number', '#304 សជណ')} dated {contract_data.get('registration_date', '07 March 2012')}.",
-            WD_ALIGN_PARAGRAPH.JUSTIFY, size=11
-        )
+        for person in party_a_info:
+            short_name = person.get('short_name', person.get('organization', 'NGOF'))
+            registration_number = person.get('registration_number', '#304 សជណ')
+            registration_date = person.get('registration_date', '07 March 2012')
+            whereas_text = (
+                f"Whereas {short_name} is a legal entity registered with the Ministry of Interior (MOI) "
+                f"{registration_number} dated {registration_date}."
+            )
+            bold_segments = [short_name]
+            add_paragraph(
+                whereas_text,
+                WD_ALIGN_PARAGRAPH.JUSTIFY,
+                size=11,
+                bold_segments=bold_segments
+            )
+
         # Dynamically construct the Whereas clause with short names
         short_names = [person.get('short_name', person.get('organization', 'NGOF')) for person in party_a_info if person.get('short_name') or person.get('organization')]
         if len(short_names) > 1:
@@ -726,7 +737,9 @@ def generate_docx(contract):
             whereas_text = f"Whereas {short_names[0] if short_names else 'NGOF'} will engage the services of “Party B” which accepts the engagement under the following terms and conditions."
         add_paragraph(
             whereas_text,
-            WD_ALIGN_PARAGRAPH.JUSTIFY, size=11, bold_segments=short_names
+            WD_ALIGN_PARAGRAPH.JUSTIFY,
+            size=11,
+            bold_segments=short_names
         )
         add_paragraph("Both Parties Agreed as follows:", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=11)
 
@@ -891,16 +904,16 @@ def generate_docx(contract):
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(45)
         p.paragraph_format.space_after = Pt(0)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_ALIGN_PARAGRAPH.LEFT)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_ALIGN_PARAGRAPH.LEFT)
         p.add_run('\t__________________')
         p.add_run('\t__________________')
 
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = Pt(0)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_ALIGN_PARAGRAPH.LEFT)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_ALIGN_PARAGRAPH.LEFT)
         run = p.add_run(f"\t{contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun')}")
         run.bold = True
         run.font.size = Pt(11)
@@ -911,8 +924,8 @@ def generate_docx(contract):
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = Pt(0)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_ALIGN_PARAGRAPH.LEFT)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_ALIGN_PARAGRAPH.LEFT)
         signer_position = next(
             (person['position'] for person in party_a_info
              if person['name'] == contract_data.get('party_a_signature_name')),
