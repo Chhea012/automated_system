@@ -197,34 +197,45 @@ def format_table_currency(value):
 def generate_docx(contract):
     """Generate a DOCX file for a contract and return it as BytesIO with filename."""
     try:
-        # Initialize contract data
+        from docx import Document
+        from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_UNDERLINE
+        from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL
+        from docx.shared import Inches, Pt, RGBColor
+        from docx.oxml.ns import qn
+        from docx.oxml import OxmlElement
+        import re
+        from io import BytesIO
+        import logging
+        logger = logging.getLogger(__name__)
+
         contract_data = contract.to_dict()
-        contract_data['custom_article_sentences'] = contract_data.get('custom_article_sentences', {})
+        if 'custom_article_sentences' not in contract_data or contract_data['custom_article_sentences'] is None:
+            contract_data['custom_article_sentences'] = {}
 
         # Format dates
-        contract_data['agreement_start_date_display'] = format_date(contract_data.get('agreement_start_date', ''))
-        contract_data['agreement_end_date_display'] = format_date(contract_data.get('agreement_end_date', ''))
+        contract_data['agreement_start_date_display'] = format_date(contract_data['agreement_start_date'])
+        contract_data['agreement_end_date_display'] = format_date(contract_data['agreement_end_date'])
 
         # Get financial data as floats
         try:
-            total_fee_usd = float(contract_data.get('total_fee_usd', 0.0)) or 0.0
-            tax_percentage = float(contract_data.get('tax_percentage', 15.0)) or 15.0
+            total_fee_usd = float(contract_data['total_fee_usd']) if contract_data['total_fee_usd'] else 0.0
+            tax_percentage = float(contract_data.get('tax_percentage', 15.0))
             deduct_tax_code = contract_data.get('deduct_tax_code', '')
             vat_organization_name = contract_data.get('vat_organization_name', '')
         except (ValueError, TypeError) as e:
             logger.error(f"Error converting financial data for contract {contract.id}: {str(e)}")
-            raise ValueError(f"Invalid financial data: {str(e)}")
+            raise
 
         contract_data['total_fee_usd'] = total_fee_usd
         contract_data['gross_amount_usd'] = total_fee_usd
         contract_data['total_fee_words'] = contract_data.get('total_fee_words') or number_to_words(total_fee_usd)
 
-        # Calculate total gross and net amounts
+        # Calculate total gross and net
         total_gross_amount, total_net_amount = calculate_payments(
             total_fee_usd, tax_percentage, contract_data.get('payment_installments', [])
         )
-        contract_data['total_gross'] = format_usd(f"USD{total_gross_amount:.2f}")
-        contract_data['total_net'] = format_usd(f"USD{total_net_amount:.2f}")
+        contract_data['total_gross'] = f"USD{total_gross_amount:.2f}"
+        contract_data['total_net'] = f"USD{total_net_amount:.2f}"
 
         # Determine if multiple organizations are used in installments
         installments = contract_data.get('payment_installments', [])
@@ -232,13 +243,18 @@ def generate_docx(contract):
         append_org = len(unique_orgs) > 1
 
         # Create mapping from full organization to short_name
-        party_a_info = contract_data.get('party_a_info', [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia', 'short_name': 'NGOF', 'registration_number': '#304 សជណ', 'registration_date': '07 March 2012'}])
-        org_to_short = {person.get('organization', '').strip(): person.get('short_name', '').strip() for person in party_a_info if person.get('organization') and person.get('short_name')}
+        party_a_info = contract_data.get('party_a_info', [])
+        org_to_short = {}
+        for person in party_a_info:
+            org = person.get('organization', '').strip()
+            short = person.get('short_name', '').strip()
+            if org and short and org not in org_to_short:
+                org_to_short[org] = short
 
         # Process payment installments
         for installment in installments:
             installment['dueDate_display'] = format_date(installment.get('dueDate', ''))
-            match = re.search(r'\((\d+\.?\d*)\%\)', installment.get('description', ''))
+            match = re.search(r'\((\d+\.?\d*)\%\)', installment['description'])
             percentage = float(match.group(1)) if match else 0.0
             gross, tax, net = calculate_installment_payments(total_fee_usd, tax_percentage, percentage)
             installment['gross_amount'] = gross
@@ -246,23 +262,30 @@ def generate_docx(contract):
             installment['net_amount'] = net
             org = installment.get('organization', '').strip()
             if append_org and org:
-                short_org = org_to_short.get(org, org)
+                short_org = org_to_short.get(org, org)  # Use short_name if available, else full org
                 installment['description'] = f"{installment['description']} by {short_org}"
+            # else: keep original description without 'by org'
 
-        # Conditional withholding sentence
-        withholding_sentence = '' if tax_percentage == 0 else (
-            f'“Party A” is responsible for withholding tax and any related taxes to be paid to the tax department for “Party B”.\n\n'
-        )
+        # Conditional withholding sentence based on tax_percentage
+        withholding_sentence = '' if tax_percentage == 0 else f'“Party A” is responsible for withholding tax and any related taxes to be paid to the tax department for “Party B”.\n\n'
 
         # Create DOCX document
         doc = Document()
 
-        # Set document margins and add footer
-        for i, section in enumerate(doc.sections):
-            section.top_margin = Inches(1.2 if i == 0 else 1)
-            section.left_margin = Inches(1)
-            section.right_margin = Inches(1)
-            section.bottom_margin = Inches(1)
+        # Set document margins and add footer to each section
+        sections = doc.sections
+        for i, section in enumerate(sections):
+            if i == 0:
+                section.top_margin = Inches(1.2)
+                section.left_margin = Inches(1)
+                section.right_margin = Inches(1)
+                section.bottom_margin = Inches(1)
+            else:
+                section.top_margin = Inches(1)
+                section.left_margin = Inches(1)
+                section.right_margin = Inches(1)
+                section.bottom_margin = Inches(1)
+
             footer = section.footer
             footer_para = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
             footer_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
@@ -271,6 +294,7 @@ def generate_docx(contract):
             run = footer_para.add_run()
             run.font.name = 'Calibri'
             run.font.size = Pt(10)
+
             run.add_text('Page ')
             fldChar1 = OxmlElement('w:fldChar')
             fldChar1.set(qn('w:fldCharType'), 'begin')
@@ -300,21 +324,17 @@ def generate_docx(contract):
         def add_paragraph(text, alignment=WD_ALIGN_PARAGRAPH.LEFT, bold=False, size=11, underline=False, email_addresses=None, bold_segments=None, indent=None):
             email_addresses = email_addresses or []
             bold_segments = bold_segments or []
-            pattern_parts = [re.escape(segment) for segment in email_addresses + bold_segments + ['“Party A”', '“Party B”'] if segment]
+            pattern_parts = [re.escape(segment) for segment in email_addresses + bold_segments + ['“Party A”', '“Party B”']]
             pattern = r'(' + '|'.join(pattern_parts) + r')' if pattern_parts else r'(“Party A”|“Party B”)'
             paragraphs = text.split('\n\n')
             ps = []
             for para_text in paragraphs:
-                if not para_text.strip():
-                    continue
                 p = doc.add_paragraph()
                 p.alignment = alignment
                 if indent:
                     p.paragraph_format.left_indent = Inches(indent)
                 parts = re.split(pattern, para_text)
                 for part in parts:
-                    if not part:
-                        continue
                     run = p.add_run(part)
                     run.font.size = Pt(size)
                     run.bold = bold or part in bold_segments or part in ['“Party A”', '“Party B”']
@@ -332,18 +352,14 @@ def generate_docx(contract):
             paragraphs = text.split('\n\n')
             ps = []
             for para_text in paragraphs:
-                if not para_text.strip():
-                    continue
                 p = doc.add_paragraph()
                 p.alignment = alignment
                 if indent:
                     p.paragraph_format.left_indent = Inches(indent)
-                pattern_parts = [re.escape(bp) for bp in bold_parts if bp] + ['“Party A”', '“Party B”']
+                pattern_parts = [re.escape(bp) for bp in bold_parts] + ['“Party A”', '“Party B”']
                 pattern = r'(' + '|'.join(pattern_parts) + r')'
                 sub_parts = re.split(pattern, para_text)
                 for sub_part in sub_parts:
-                    if not sub_part:
-                        continue
                     run = p.add_run(sub_part)
                     run.bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
                     run.font.size = Pt(bold_size if sub_part in bold_parts else default_size)
@@ -356,25 +372,20 @@ def generate_docx(contract):
             paragraphs = text.split('\n\n')
             ps = []
             for para_text in paragraphs:
-                if not para_text.strip():
-                    continue
                 p = doc.add_paragraph()
                 p.alignment = alignment
-                bold_pattern_parts = [re.escape(bp) for bp in bold_parts if bp] + ['“Party A”', '“Party B”']
+                bold_pattern_parts = [re.escape(bp) for bp in bold_parts] + ['“Party A”', '“Party B”']
                 bold_pattern = r'(' + '|'.join(bold_pattern_parts) + r')'
-                email_parts = para_text.split(email_text) if email_text else [para_text]
+                email_parts = para_text.split(email_text)
                 for i, email_part in enumerate(email_parts):
-                    if not email_part:
-                        continue
                     sub_parts = re.split(bold_pattern, email_part)
                     for sub_part in sub_parts:
-                        if not sub_part.strip():
-                            continue
-                        run = p.add_run(sub_part)
-                        is_bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
-                        run.bold = is_bold
-                        run.font.size = Pt(bold_size if is_bold else default_size)
-                    if i < len(email_parts) - 1 and email_text:
+                        if sub_part.strip():
+                            run = p.add_run(sub_part)
+                            is_bold = sub_part in bold_parts or sub_part in ['“Party A”', '“Party B”']
+                            run.bold = is_bold
+                            run.font.size = Pt(bold_size if is_bold else default_size)
+                    if i < len(email_parts) - 1:
                         email_run = p.add_run(email_text)
                         email_run.font.size = Pt(default_size)
                         email_run.font.color.rgb = RGBColor(0, 0, 255)
@@ -382,7 +393,7 @@ def generate_docx(contract):
                 ps.append(p)
             return ps
 
-        # Helper function to add heading
+        # Helper function to add heading with 11pt font size
         def add_heading(number, title, level, size=11):
             p = doc.add_paragraph()
             p.alignment = WD_ALIGN_PARAGRAPH.LEFT
@@ -474,14 +485,14 @@ def generate_docx(contract):
                     {'Installment': 'Installment', 'Total Amount (USD)': ['Total Amount (USD)'], 'Deliverable': 'Deliverable', 'Due date': 'Due date'},
                     *[
                         {
-                            'Installment': installment.get('description', ''),
+                            'Installment': installment['description'],
                             'Total Amount (USD)': [
                                 f'- Gross: {format_table_currency(installment["gross_amount"])}',
                                 f'- Tax {int(tax_percentage)}%: {format_table_currency(installment["tax_amount"])}' if tax_percentage > 0 else '',
                                 f'- Net pay: {format_table_currency(installment["net_amount"])}'
                             ],
-                            'Deliverable': '\n'.join(d.strip() for d in installment.get('deliverables', '').split(';') if d.strip()),
-                            'Due date': installment.get('dueDate_display', '')
+                            'Deliverable': '\n'.join(d.strip() for d in installment['deliverables'].split(';') if d.strip()),
+                            'Due date': installment['dueDate_display']
                         }
                         for installment in contract_data.get('payment_installments', [])
                     ]
@@ -502,7 +513,7 @@ def generate_docx(contract):
                 'content': (
                     f'“Party A” shall monitor and evaluate the progress of the agreement toward its objective, '
                     f'including the activities implemented. '
-                    f'{" and ".join([f"{person.get("name", "N/A")}, {person.get("position", "N/A")} (Telephone {person.get("phone", "N/A")} Email: {person.get("email", "N/A")})" for person in contract_data.get("focal_person_info", [])]) or "N/A, N/A (Telephone N/A Email: N/A)"} '
+                    f'{" and ".join([f"{person["name"]}, {person["position"]} (Telephone {person["phone"]} Email: {person["email"]})" for person in contract_data.get("focal_person_info", [])]) or "N/A, N/A (Telephone N/A Email: N/A)"} '
                     f'is the focal contact person of “Party A” and '
                     f'{contract_data.get("party_b_signature_name", "N/A")}, {contract_data.get("party_b_position", "Freelance Consultant")} '
                     f'(HP. {contract_data.get("party_b_phone", "N/A")}, E-mail: {contract_data.get("party_b_email", "N/A")}) '
@@ -644,7 +655,7 @@ def generate_docx(contract):
         # Prepare custom articles
         custom_articles = [
             {'article_number': str(k), 'custom_sentence': v}
-            for k, v in contract_data.get('custom_article_sentences', {}).items() if v.strip()
+            for k, v in contract_data.get('custom_article_sentences', {}).items()
         ]
 
         # Header
@@ -659,6 +670,7 @@ def generate_docx(contract):
         add_paragraph('BETWEEN', WD_ALIGN_PARAGRAPH.CENTER, size=12)
 
         # Party A
+        party_a_info = contract_data.get('party_a_info', [{'name': 'Mr. SOEUNG Saroeun', 'position': 'Executive Director', 'address': '#9-11, Street 476, Sangkat Tuol Tumpoung I, Phnom Penh, Cambodia', 'organization': 'The NGO Forum on Cambodia'}])
         for person in party_a_info:
             organization = person.get('organization', 'The NGO Forum on Cambodia')
             name = person.get('name', 'N/A')
@@ -701,33 +713,13 @@ def generate_docx(contract):
         add_paragraph_with_email_formatting(party_b_text_parts, party_b_bold_parts, party_b_email, WD_ALIGN_PARAGRAPH.CENTER, default_size=12, bold_size=12)
 
         # Whereas Clauses
-        # Static NGOF clause
         add_paragraph(
-            "Whereas NGOF is a legal entity registered with the Ministry of Interior (MOI) #304 សជណ dated 07 March 2012.",
-            WD_ALIGN_PARAGRAPH.JUSTIFY, size=11, bold_segments=['NGOF']
+            f"Whereas NGOF is a legal entity registered with the Ministry of Interior (MOI) "
+            f"{contract_data.get('registration_number', '#304 សជណ')} dated {contract_data.get('registration_date', '07 March 2012')}.",
+            WD_ALIGN_PARAGRAPH.JUSTIFY, size=11
         )
-
-        # Dynamic clauses for each Party A
-        for person in party_a_info:
-            short_name = person.get('short_name', person.get('organization', 'NGOF'))
-            reg_num = person.get('registration_number', '')
-            reg_date = person.get('registration_date', '')
-            if short_name != 'NGOF':  # Skip NGOF to avoid duplication
-                if reg_num and reg_date:
-                    whereas_text = f"Whereas {short_name} is a legal entity registered with the Ministry of Interior (MOI) {reg_num} dated {reg_date}."
-                elif reg_num:
-                    whereas_text = f"Whereas {short_name} is a legal entity registered with the Ministry of Interior (MOI) {reg_num}."
-                elif reg_date:
-                    whereas_text = f"Whereas {short_name} is a legal entity registered with the Ministry of Interior (MOI) dated {reg_date}."
-                else:
-                    whereas_text = f"Whereas {short_name} is a legal entity registered with the Ministry of Interior (MOI)."
-                add_paragraph(
-                    whereas_text,
-                    WD_ALIGN_PARAGRAPH.JUSTIFY, size=11, bold_segments=[short_name]
-                )
-
-        # Whereas clause for engagement
-        short_names = [person.get('short_name', person.get('organization', 'NGOF')) for person in party_a_info]
+        # Dynamically construct the Whereas clause with short names
+        short_names = [person.get('short_name', person.get('organization', 'NGOF')) for person in party_a_info if person.get('short_name') or person.get('organization')]
         if len(short_names) > 1:
             whereas_text = f"Whereas {', '.join(short_names[:-1])} and {short_names[-1]} will engage the services of “Party B” which accepts the engagement under the following terms and conditions."
         else:
@@ -736,7 +728,6 @@ def generate_docx(contract):
             whereas_text,
             WD_ALIGN_PARAGRAPH.JUSTIFY, size=11, bold_segments=short_names
         )
-
         add_paragraph("Both Parties Agreed as follows:", WD_ALIGN_PARAGRAPH.CENTER, bold=True, size=11)
 
         # Articles
@@ -757,6 +748,7 @@ def generate_docx(contract):
                         p.alignment = WD_ALIGN_PARAGRAPH.LEFT
                         p.paragraph_format.left_indent = Inches(0.33)
                         p.paragraph_format.space_after = Pt(0)
+
                         if ':' in line:
                             label, value = line.split(':', 1)
                             p.paragraph_format.tab_stops.add_tab_stop(Inches(2.5))
@@ -771,8 +763,10 @@ def generate_docx(contract):
                             run = p.add_run(line)
                             run.font.size = Pt(12)
                             run.bold = True
+
                         if line.startswith("Net amount"):
                             p.paragraph_format.space_after = Pt(12)
+
                 add_paragraph_with_bold(
                     article['remaining_content'],
                     article['bold_parts'],
@@ -787,6 +781,7 @@ def generate_docx(contract):
                     table = doc.add_table(rows=len(article['table']), cols=len(article['table'][0]))
                     table.alignment = WD_TABLE_ALIGNMENT.CENTER
                     table.allow_autofit = False
+
                     col_widths = [Inches(1.0), Inches(1.6), Inches(3.5), Inches(1.1)]
                     for row in table.rows:
                         for idx, cell in enumerate(row.cells):
@@ -805,6 +800,7 @@ def generate_docx(contract):
                         for j, key in enumerate(row_data.keys()):
                             cell = row_cells[j]
                             cell.text = ""
+
                             if key == 'Total Amount (USD)' and isinstance(row_data[key], list):
                                 for line in row_data[key]:
                                     if line:
@@ -816,20 +812,28 @@ def generate_docx(contract):
                                             run.font.size = Pt(12)
                                             run.font.name = 'Calibri'
                                             run.bold = True
+
                             elif key == 'Deliverable' and row_data[key]:
                                 deliverables = row_data[key].split('\n')
                                 for item in deliverables:
                                     item = item.strip()
                                     if not item:
                                         continue
-                                    p = cell.add_paragraph(item if i == 0 else f"- {item}")
-                                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER if i == 0 else WD_ALIGN_PARAGRAPH.LEFT
+                                    if i == 0:
+                                        p = cell.add_paragraph(item)
+                                        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                        bold = True
+                                    else:
+                                        p = cell.add_paragraph(f"- {item}")
+                                        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                                        bold = False
                                     p.paragraph_format.space_before = Pt(0)
                                     p.paragraph_format.space_after = Pt(0)
                                     for run in p.runs:
                                         run.font.size = Pt(12)
                                         run.font.name = 'Calibri'
-                                        run.bold = (i == 0)
+                                        run.bold = bold
+
                             else:
                                 text_val = str(row_data[key]) if row_data[key] is not None else ""
                                 p = cell.add_paragraph(text_val)
@@ -840,19 +844,22 @@ def generate_docx(contract):
                                     run.font.size = Pt(12)
                                     run.font.name = 'Calibri'
                                     run.bold = (i == 0)
+
                             cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
 
             elif article['number'] == 6:
-                email_addresses = [person.get('email', 'N/A') for person in contract_data.get('focal_person_info', [])] + [contract_data.get('party_b_email', 'N/A')]
+                email_addresses = [person['email'] for person in contract_data.get("focal_person_info", [])] + [contract_data.get("party_b_email", "N/A")]
                 bold_segments = (
-                    [f"{person.get('name', 'N/A')}, {person.get('position', 'N/A')}" for person in contract_data.get('focal_person_info', [])] +
-                    [f"Telephone {person.get('phone', 'N/A')}" for person in contract_data.get('focal_person_info', [])] +
+                    [f"{person['name']}, {person['position']}" for person in contract_data.get("focal_person_info", [])] +
+                    [f"Telephone {person['phone']}" for person in contract_data.get("focal_person_info", [])] +
                     [f"{contract_data.get('party_b_signature_name', 'N/A')}, {contract_data.get('party_b_position', 'Freelance Consultant')}",
                      f"HP. {contract_data.get('party_b_phone', 'N/A')}"]
                 )
                 add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11, email_addresses=email_addresses, bold_segments=bold_segments)
             elif article['number'] == 7:
-                bold_segments = [f"“{contract_data.get('project_title', 'N/A')}”"]
+                bold_segments = [
+                    f"“{contract_data.get('project_title', 'N/A')}”"
+                ]
                 add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11, bold_segments=bold_segments)
             else:
                 add_paragraph(article['content'], WD_ALIGN_PARAGRAPH.JUSTIFY, size=11)
@@ -873,84 +880,50 @@ def generate_docx(contract):
         tab_position_a = Inches(0.5)
         tab_position_b = Inches(4.5)
 
-        # For Party A and Party B labels
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(30)
         p.paragraph_format.space_after = Pt(0)
         p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
         p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
-        run_a = p.add_run('\tFor “Party A”')
-        run_a.bold = True
-        run_b = p.add_run('\tFor “Party B”')
-        run_b.bold = True
+        p.add_run('\tFor “Party A”').bold = True
+        p.add_run('\tFor “Party B”').bold = True
 
-        # Assume party_a_info contains the list of signatories for Party A
-        signatories_a = party_a_info
-        party_b_name = contract_data.get('party_b_signature_name', 'Ms. CHAB Charyna')
-        party_b_position = contract_data.get('party_b_position', 'Freelance Consultant')
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(45)
+        p.paragraph_format.space_after = Pt(0)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
+        p.add_run('\t__________________')
+        p.add_run('\t__________________')
 
-        if len(signatories_a) > 0:
-            # First signature line (for first Party A and Party B)
-            p_line = doc.add_paragraph()
-            p_line.paragraph_format.space_before = Pt(45)
-            p_line.paragraph_format.space_after = Pt(0)
-            p_line.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
-            p_line.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
-            p_line.add_run('\t__________________')
-            p_line.add_run('\t__________________')
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(0)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
+        run = p.add_run(f"\t{contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun')}")
+        run.bold = True
+        run.font.size = Pt(11)
+        run = p.add_run(f"\t{contract_data.get('party_b_signature_name', 'Mr. Leader Din')}")
+        run.bold = True
+        run.font.size = Pt(11)
 
-            # First name
-            p_name = doc.add_paragraph()
-            p_name.paragraph_format.space_before = Pt(0)
-            p_name.paragraph_format.space_after = Pt(0)
-            p_name.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
-            p_name.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
-            run_name_a = p_name.add_run(f"\t{signatories_a[0].get('name', 'Mr. SOEUNG Saroeun')}")
-            run_name_a.bold = True
-            run_name_a.font.size = Pt(11)
-            run_name_b = p_name.add_run(f"\t{party_b_name}")
-            run_name_b.bold = True
-            run_name_b.font.size = Pt(11)
-
-            # First position
-            p_pos = doc.add_paragraph()
-            p_pos.paragraph_format.space_before = Pt(0)
-            p_pos.paragraph_format.space_after = Pt(0)
-            p_pos.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
-            p_pos.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
-            run_pos_a = p_pos.add_run(f"\t{signatories_a[0].get('position', 'Executive Director')}")
-            run_pos_a.bold = True
-            run_pos_a.font.size = Pt(11)
-            run_pos_b = p_pos.add_run(f"\t{party_b_position}")
-            run_pos_b.bold = True
-            run_pos_b.font.size = Pt(11)
-
-            # Additional signatories for Party A
-            for sig in signatories_a[1:]:
-                # Additional signature line (left only)
-                p_extra_line = doc.add_paragraph()
-                p_extra_line.paragraph_format.space_before = Pt(30)  # Adjust spacing as needed
-                p_extra_line.paragraph_format.space_after = Pt(0)
-                p_extra_line.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
-                p_extra_line.add_run('\t__________________')
-
-                # Additional name (left only)
-                p_extra_name = doc.add_paragraph()
-                p_extra_name.paragraph_format.space_before = Pt(0)
-                p_extra_name.paragraph_format.space_after = Pt(0)
-                p_extra_name.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
-                run_extra_name = p_extra_name.add_run(f"\t{sig.get('name', 'N/A')}")
-                run_extra_name.bold = True
-                run_extra_name.font.size = Pt(11)
-
-                # Additional position (left only)
-                p_extra_pos = doc.add_paragraph()
-                p_extra_pos.paragraph_format.space_before = Pt(0)
-                p_extra_pos.paragraph_format.space_after = Pt(0)
-                p_extra_pos.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
-                run_extra_pos = p_extra_pos.add_run(f"\t{sig.get('position', 'Executive Director')}")
-                run_extra_pos.bold = True
-                run_extra_pos.font.size = Pt(11)
+        p = doc.add_paragraph()
+        p.paragraph_format.space_before = Pt(0)
+        p.paragraph_format.space_after = Pt(0)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
+        signer_position = next(
+            (person['position'] for person in party_a_info
+             if person['name'] == contract_data.get('party_a_signature_name')),
+            'Executive Director'
+        )
+        run = p.add_run(f"\t{signer_position}")
+        run.bold = True
+        run.font.size = Pt(11)
+        run = p.add_run(f"\t{contract_data.get('party_b_position', 'Freelance Consultant')}")
+        run.bold = True
+        run.font.size = Pt(11)
 
         # Save to BytesIO
         output = BytesIO()
