@@ -2677,7 +2677,7 @@ def view(contract_id):
             f'“Party A” is responsible for withholding tax and any related taxes to be paid to the tax department for “Party B”.<br><br>'
         )
 
-        # Define standard articles (same as previous response)
+        # Define standard articles
         standard_articles = [
             {
                 'number': 1,

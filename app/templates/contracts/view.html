@@ -115,13 +115,24 @@
                     <div style="margin-bottom: 50px;">
                         <strong>For “Party A”</strong>
                     </div>
-                    {% for person in party_a_info %}
-                        {% if person.name == contract.party_a_signature_name %}
+                    {% if party_a_info|length == 1 %}
+                        <!-- Single Party A signatory (original layout) -->
+                        {% for person in party_a_info %}
+                            {% if person.name == contract.party_a_signature_name or loop.first %}
+                                _________________<br>
+                                <strong>{{ person.name or 'Mr. SOEUNG Saroeun' }}</strong><br>
+                                <strong>{{ person.position or 'Executive Director' }}</strong>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <!-- Multiple Party A signatories -->
+                        {% for person in party_a_info %}
                             _________________<br>
                             <strong>{{ person.name or 'Mr. SOEUNG Saroeun' }}</strong><br>
-                            <strong>{{ person.position or 'Executive Director' }}</strong><br>
-                        {% endif %}
-                    {% endfor %}
+                            <strong>{{ person.position or 'Executive Director' }}</strong>
+                            {% if not loop.last %}<br><br>{% endif %}
+                        {% endfor %}
+                    {% endif %}
                 </td>
                 <td class="text-start" style="width: 50%;">
                     <div style="margin-bottom: 40px;">
