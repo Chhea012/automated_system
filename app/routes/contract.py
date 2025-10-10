@@ -873,50 +873,84 @@ def generate_docx(contract):
         tab_position_a = Inches(0.5)
         tab_position_b = Inches(4.5)
 
+        # For Party A and Party B labels
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(30)
         p.paragraph_format.space_after = Pt(0)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_ALIGN_PARAGRAPH.LEFT)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_ALIGN_PARAGRAPH.LEFT)
-        p.add_run('\tFor “Party A”').bold = True
-        p.add_run('\tFor “Party B”').bold = True
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
+        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
+        run_a = p.add_run('\tFor “Party A”')
+        run_a.bold = True
+        run_b = p.add_run('\tFor “Party B”')
+        run_b.bold = True
 
-        p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(45)
-        p.paragraph_format.space_after = Pt(0)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_ALIGN_PARAGRAPH.LEFT)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_ALIGN_PARAGRAPH.LEFT)
-        p.add_run('\t__________________')
-        p.add_run('\t__________________')
+        # Assume party_a_info contains the list of signatories for Party A
+        signatories_a = party_a_info
+        party_b_name = contract_data.get('party_b_signature_name', 'Ms. CHAB Charyna')
+        party_b_position = contract_data.get('party_b_position', 'Freelance Consultant')
 
-        p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(0)
-        p.paragraph_format.space_after = Pt(0)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_ALIGN_PARAGRAPH.LEFT)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_ALIGN_PARAGRAPH.LEFT)
-        run = p.add_run(f"\t{contract_data.get('party_a_signature_name', 'Mr. SOEUNG Saroeun')}")
-        run.bold = True
-        run.font.size = Pt(11)
-        run = p.add_run(f"\t{contract_data.get('party_b_signature_name', 'Mr. Leader Din')}")
-        run.bold = True
-        run.font.size = Pt(11)
+        if len(signatories_a) > 0:
+            # First signature line (for first Party A and Party B)
+            p_line = doc.add_paragraph()
+            p_line.paragraph_format.space_before = Pt(45)
+            p_line.paragraph_format.space_after = Pt(0)
+            p_line.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
+            p_line.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
+            p_line.add_run('\t__________________')
+            p_line.add_run('\t__________________')
 
-        p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(0)
-        p.paragraph_format.space_after = Pt(0)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_ALIGN_PARAGRAPH.LEFT)
-        p.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_ALIGN_PARAGRAPH.LEFT)
-        signer_position = next(
-            (person.get('position', 'Executive Director') for person in party_a_info
-             if person.get('name') == contract_data.get('party_a_signature_name')),
-            'Executive Director'
-        )
-        run = p.add_run(f"\t{signer_position}")
-        run.bold = True
-        run.font.size = Pt(11)
-        run = p.add_run(f"\t{contract_data.get('party_b_position', 'Freelance Consultant')}")
-        run.bold = True
-        run.font.size = Pt(11)
+            # First name
+            p_name = doc.add_paragraph()
+            p_name.paragraph_format.space_before = Pt(0)
+            p_name.paragraph_format.space_after = Pt(0)
+            p_name.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
+            p_name.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
+            run_name_a = p_name.add_run(f"\t{signatories_a[0].get('name', 'Mr. SOEUNG Saroeun')}")
+            run_name_a.bold = True
+            run_name_a.font.size = Pt(11)
+            run_name_b = p_name.add_run(f"\t{party_b_name}")
+            run_name_b.bold = True
+            run_name_b.font.size = Pt(11)
+
+            # First position
+            p_pos = doc.add_paragraph()
+            p_pos.paragraph_format.space_before = Pt(0)
+            p_pos.paragraph_format.space_after = Pt(0)
+            p_pos.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
+            p_pos.paragraph_format.tab_stops.add_tab_stop(tab_position_b, WD_TAB_ALIGNMENT.LEFT)
+            run_pos_a = p_pos.add_run(f"\t{signatories_a[0].get('position', 'Executive Director')}")
+            run_pos_a.bold = True
+            run_pos_a.font.size = Pt(11)
+            run_pos_b = p_pos.add_run(f"\t{party_b_position}")
+            run_pos_b.bold = True
+            run_pos_b.font.size = Pt(11)
+
+            # Additional signatories for Party A
+            for sig in signatories_a[1:]:
+                # Additional signature line (left only)
+                p_extra_line = doc.add_paragraph()
+                p_extra_line.paragraph_format.space_before = Pt(30)  # Adjust spacing as needed
+                p_extra_line.paragraph_format.space_after = Pt(0)
+                p_extra_line.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
+                p_extra_line.add_run('\t__________________')
+
+                # Additional name (left only)
+                p_extra_name = doc.add_paragraph()
+                p_extra_name.paragraph_format.space_before = Pt(0)
+                p_extra_name.paragraph_format.space_after = Pt(0)
+                p_extra_name.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
+                run_extra_name = p_extra_name.add_run(f"\t{sig.get('name', 'N/A')}")
+                run_extra_name.bold = True
+                run_extra_name.font.size = Pt(11)
+
+                # Additional position (left only)
+                p_extra_pos = doc.add_paragraph()
+                p_extra_pos.paragraph_format.space_before = Pt(0)
+                p_extra_pos.paragraph_format.space_after = Pt(0)
+                p_extra_pos.paragraph_format.tab_stops.add_tab_stop(tab_position_a, WD_TAB_ALIGNMENT.LEFT)
+                run_extra_pos = p_extra_pos.add_run(f"\t{sig.get('position', 'Executive Director')}")
+                run_extra_pos.bold = True
+                run_extra_pos.font.size = Pt(11)
 
         # Save to BytesIO
         output = BytesIO()
