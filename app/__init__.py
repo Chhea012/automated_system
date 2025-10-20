@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask
+from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
@@ -21,6 +21,7 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
+    # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
@@ -30,6 +31,7 @@ def create_app():
     login_manager.login_view = "auth.login"
     login_manager.login_message_category = "info"
 
+    # Register blueprints
     from .routes.auth import auth_bp
     from .routes.main import main_bp
     from .routes.users import users_bp
@@ -38,7 +40,8 @@ def create_app():
     from .routes.department import departments_bp
     from .routes.contract import contracts_bp
     from .routes.mydepartments import mydepartments_bp
-    from .routes.reports import reports_bp  # Added reports blueprint
+    from .routes.reports import reports_bp
+    from .routes.interns import interns_bp  # Added interns blueprint
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(main_bp)
@@ -48,20 +51,24 @@ def create_app():
     app.register_blueprint(departments_bp, url_prefix="/departments")
     app.register_blueprint(contracts_bp, url_prefix="/contracts")
     app.register_blueprint(mydepartments_bp, url_prefix="/mydepartments")
-    app.register_blueprint(reports_bp, url_prefix="/reports")  # Register reports blueprint
+    app.register_blueprint(reports_bp, url_prefix="/reports")
+    app.register_blueprint(interns_bp, url_prefix="/interns")  # Register interns blueprint
 
+    # Import models
     from .models.user import User
     from .models.permission import Permission
     from .models.role import Role
     from .models.department import Department
     from .models.contract import Contract
     from .models.notification import Notification
-    from .forms import LoginForm, RegisterForm, PasswordResetRequestForm, PasswordResetForm
+    from .models.interns import Intern  # Added Intern model
 
+    # User loader for Flask-Login
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
 
+    # Context processor for notifications
     @app.context_processor
     def inject_notifications():
         if current_user.is_authenticated and current_user.has_role('Admin'):
@@ -75,5 +82,15 @@ def create_app():
                 'notifications': notifications_dict
             }
         return {'unread_count': 0, 'notifications': []}
+
+    # Error handlers
+    @app.errorhandler(404)
+    def not_found_error(error):
+        return render_template('errors/404.html'), 404
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        db.session.rollback()  # Roll back session to avoid database inconsistencies
+        return render_template('errors/500.html'), 500
 
     return app

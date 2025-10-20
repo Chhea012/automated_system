@@ -54,7 +54,6 @@
               >
                 <strong>Administration</strong>
               </a>
-
               <ul class="dropdown-menu dropdown-menu-end card-1">
                 <li><h6 class="dropdown-header">Administration</h6></li>
                 <li><a class="dropdown-item" href="{{ url_for('roles.index') }}">Roles</a></li>
@@ -63,7 +62,6 @@
                 <li><a class="dropdown-item" href="{{ url_for('users.index') }}">Users</a></li>
               </ul>
             </li>
-
             {% endif %}
 
             {% if current_user.has_role('admin') or current_user.has_role('Manager') %}
@@ -74,25 +72,22 @@
             {% endif %}
             {% if current_user.has_role('admin') %}
             <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle text" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <a class="nav-link dropdown-toggle text {{ 'active' if request.endpoint in ['interns.index', 'interns.create', 'interns.view', 'interns.update', 'interns.delete'] }}"
+                href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <strong>Employees</strong>
               </a>
-
               <ul class="dropdown-menu dropdown-menu-end card-1">
-
                 <!-- Employees Section -->
                 <li><h6 class="dropdown-header">Employees</h6></li>
                 <li><a class="dropdown-item" href="#">Employee Contracts</a></li>
                 <li><a class="dropdown-item" href="#">Create Contract</a></li>
                 <li><hr class="dropdown-divider"></li>
-
                 <!-- Interns Section -->
                 <li><h6 class="dropdown-header">Interns</h6></li>
-                <li><a class="dropdown-item" href="#">Intern Contracts</a></li>
-                <li><a class="dropdown-item" href="#">Create Contract</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('interns.index') }}">Intern Contracts</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('interns.create') }}">Create Contract</a></li>
               </ul>
             </li>
-
             {% endif %}
 
             <li class="nav-item dropdown">
@@ -105,7 +100,6 @@
               >
                 <strong>Consultants</strong>
               </a>
-
               <ul class="dropdown-menu dropdown-menu-end card-1">
                 <li><h6 class="dropdown-header">Consultants</h6></li>
                 <li><a class="dropdown-item" href="{{ url_for('contracts.index') }}">List of Consultants</a></li>
@@ -113,7 +107,6 @@
                 <li><a class="dropdown-item" href="{{ url_for('reports.contract_report') }}">Report Consultants</a></li>
               </ul>
             </li>
-
 
             <li class="nav-item">
               <a class="nav-link {{ 'active' if request.endpoint == 'contracts.create' }}"
