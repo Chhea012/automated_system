@@ -18,39 +18,38 @@
             <!-- Intern Details -->
             <div class="section-header">Intern Details</div>
             <div class="row g-3">
-                <div class="col-md-6">
-                    <label for="intern_title" class="form-label">Title</label>
-                    <select class="form-select" id="intern_title" name="intern_title" required>
-                        <option value="" disabled {{ 'selected' if not form_data.intern_title | default(intern.intern_title) }}>Select Title</option>
-                        <option value="Mr." {{ 'selected' if form_data.intern_title | default(intern.intern_title) == 'Mr.' }}>Mr.</option>
-                        <option value="Ms." {{ 'selected' if form_data.intern_title | default(intern.intern_title) == 'Ms.' }}>Ms.</option>
-                        <option value="Dr." {{ 'selected' if form_data.intern_title | default(intern.intern_title) == 'Dr.' }}>Dr.</option>
-                    </select>
-                    <div class="invalid-feedback">Please select a title.</div>
-                </div>
-                <div class="col-md-6">
-                    <label for="intern_name" class="form-label">Full Name</label>
-                    <input type="text" class="form-control" id="intern_name" name="intern_name" value="{{ form_data.intern_name | default(intern.intern_name) }}" placeholder="e.g., Dorn Sochea" required pattern="[a-zA-Z\s\.]+">
-                    <div class="invalid-feedback">Please enter a valid name (letters, spaces, periods).</div>
+                <div class="col-6">
+                    <label for="intern_name" class="form-label">Full Name (including title)</label>
+                    <input type="text" class="form-control" id="intern_name" name="intern_name" 
+                           value="{{ form_data.intern_name | default(intern.intern_name) }}" 
+                           placeholder="e.g., Ms. Dorn Sochea" required pattern="[a-zA-Z\s\.]+">
+                    <div class="invalid-feedback">Please enter a valid full name including title.</div>
                 </div>
                 <div class="col-md-6">
                     <label for="intern_role" class="form-label">Role</label>
-                    <input type="text" class="form-control" id="intern_role" name="intern_role" value="{{ form_data.intern_role | default(intern.intern_role) }}" placeholder="e.g., Finance and Administrative Intern" required>
+                    <input type="text" class="form-control" id="intern_role" name="intern_role" 
+                           value="{{ form_data.intern_role | default(intern.intern_role) }}" 
+                           placeholder="e.g., Finance and Administrative Intern" required>
                     <div class="invalid-feedback">Please enter the intern role.</div>
                 </div>
                 <div class="col-12">
                     <label for="intern_address" class="form-label">Address</label>
-                    <textarea class="form-control" id="intern_address" name="intern_address" rows="3" placeholder="e.g., No. 174A St 23, Thmey Village, Sangkat Stung Mean Chey, Khan Mean Chey, Phnom Penh">{{ form_data.intern_address | default(intern.intern_address) }}</textarea>
+                    <textarea class="form-control" id="intern_address" name="intern_address" rows="3" 
+                              placeholder="e.g., No. 174A St 23, Thmey Village, Sangkat Stung Mean Chey, Khan Mean Chey, Phnom Penh">{{ form_data.intern_address | default(intern.intern_address) }}</textarea>
                     <div class="invalid-feedback">Please enter the intern's address.</div>
                 </div>
                 <div class="col-md-6">
                     <label for="intern_phone" class="form-label">Phone</label>
-                    <input type="tel" class="form-control" id="intern_phone" name="intern_phone" value="{{ form_data.intern_phone | default(intern.intern_phone) }}" placeholder="e.g., +85511 943 647" pattern="\+?\d{1,4}([-.\s]?\d{1,4}){2,3}">
+                    <input type="tel" class="form-control" id="intern_phone" name="intern_phone" 
+                           value="{{ form_data.intern_phone | default(intern.intern_phone) }}" 
+                           placeholder="e.g., +85511 943 647" pattern="\+?\d{1,4}([-.\s]?\d{1,4}){2,3}">
                     <div class="invalid-feedback">Please enter a valid phone number.</div>
                 </div>
                 <div class="col-md-6">
                     <label for="intern_email" class="form-label">Email</label>
-                    <input type="email" class="form-control" id="intern_email" name="intern_email" value="{{ form_data.intern_email | default(intern.intern_email) }}" placeholder="e.g., sochea.dorn@example.com">
+                    <input type="email" class="form-control" id="intern_email" name="intern_email" 
+                           value="{{ form_data.intern_email | default(intern.intern_email) }}" 
+                           placeholder="e.g., sochea.dorn@example.com">
                     <div class="invalid-feedback">Please enter a valid email address.</div>
                 </div>
             </div>
@@ -61,7 +60,8 @@
                 <div class="col-md-4">
                     <label for="start_date" class="form-label">Start Date</label>
                     <div class="input-group">
-                        <input type="date" class="form-control" id="start_date" name="start_date" value="{{ form_data.start_date | default(intern.start_date.strftime('%Y-%m-%d') if intern.start_date else '') }}" required>
+                        <input type="date" class="form-control" id="start_date" name="start_date" 
+                               value="{{ form_data.start_date | default(intern.start_date.strftime('%Y-%m-%d') if intern.start_date else '') }}" required>
                         <span class="input-group-text"><i class="bi bi-calendar"></i></span>
                         <div class="invalid-feedback">Please select a start date.</div>
                     </div>
@@ -78,18 +78,22 @@
                 </div>
                 <div class="col-md-4">
                     <label for="working_hours" class="form-label">Working Hours</label>
-                    <input type="text" class="form-control" id="working_hours" name="working_hours" value="{{ form_data.working_hours | default(intern.working_hours) }}" required>
+                    <input type="text" class="form-control" id="working_hours" name="working_hours" 
+                           value="{{ form_data.working_hours | default(intern.working_hours) }}" required>
                     <div class="invalid-feedback">Please enter working hours.</div>
                 </div>
                 <div class="col-md-4">
                     <label for="allowance_amount" class="form-label">Allowance (USD)</label>
-                    <input type="number" class="form-control" id="allowance_amount" name="allowance_amount" value="{{ form_data.allowance_amount | default('%.2f' % intern.allowance_amount if intern.allowance_amount is not none else '0.00') }}" min="0" step="0.01">
+                    <input type="number" class="form-control" id="allowance_amount" name="allowance_amount" 
+                           value="{{ form_data.allowance_amount | default('%.2f' % intern.allowance_amount if intern.allowance_amount is not none else '0.00') }}" 
+                           min="0" step="0.01">
                     <div class="invalid-feedback">Please enter a valid allowance amount.</div>
                 </div>
                 <div class="col-md-4">
                     <label for="has_nssf" class="form-label">NSSF Benefit</label>
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="has_nssf" name="has_nssf" {{ 'checked' if form_data.has_nssf | default(intern.has_nssf) }}>
+                        <input class="form-check-input" type="checkbox" id="has_nssf" name="has_nssf" 
+                               {{ 'checked' if form_data.has_nssf | default(intern.has_nssf) }}>
                         <label class="form-check-label" for="has_nssf">Include NSSF Benefit</label>
                     </div>
                 </div>
@@ -108,7 +112,9 @@
                 </div>
                 <div class="col-md-6">
                     <label for="supervisor_name" class="form-label">Supervisor Name</label>
-                    <input type="text" class="form-control" id="supervisor_name" name="supervisor_name" value="{{ form_data.supervisor_info.name | default(intern.supervisor_info.get('name', '')) }}" placeholder="e.g., Mr. SOM Chettana" required pattern="[a-zA-Z\s\.]+">
+                    <input type="text" class="form-control" id="supervisor_name" name="supervisor_name" 
+                           value="{{ form_data.supervisor_info.name | default(intern.supervisor_info.get('name', '')) }}" 
+                           placeholder="e.g., Mr. SOM Chettana" required pattern="[a-zA-Z\s\.]+">
                     <div class="invalid-feedback">Please enter a valid supervisor name.</div>
                 </div>
             </div>
@@ -118,12 +124,14 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label for="employer_representative_name" class="form-label">Representative Name</label>
-                    <input type="text" class="form-control" id="employer_representative_name" name="employer_representative_name" value="{{ form_data.employer_representative_name | default(intern.employer_representative_name) }}" required pattern="[a-zA-Z\s\.]+">
+                    <input type="text" class="form-control" id="employer_representative_name" name="employer_representative_name" 
+                           value="{{ form_data.employer_representative_name | default(intern.employer_representative_name) }}" required pattern="[a-zA-Z\s\.]+">
                     <div class="invalid-feedback">Please enter a valid representative name.</div>
                 </div>
                 <div class="col-md-6">
                     <label for="employer_representative_title" class="form-label">Representative Title</label>
-                    <input type="text" class="form-control" id="employer_representative_title" name="employer_representative_title" value="{{ form_data.employer_representative_title | default(intern.employer_representative_title) }}" required>
+                    <input type="text" class="form-control" id="employer_representative_title" name="employer_representative_title" 
+                           value="{{ form_data.employer_representative_title | default(intern.employer_representative_title) }}" required>
                     <div class="invalid-feedback">Please enter the representative title.</div>
                 </div>
                 <div class="col-12">
@@ -133,16 +141,19 @@
                 </div>
                 <div class="col-md-6">
                     <label for="employer_phone" class="form-label">Phone</label>
-                    <input type="tel" class="form-control" id="employer_phone" name="employer_phone" value="{{ form_data.employer_phone | default(intern.employer_phone) }}" pattern="\+?\d{1,4}([-.\s]?\d{1,4}){2,3}" required>
+                    <input type="tel" class="form-control" id="employer_phone" name="employer_phone" 
+                           value="{{ form_data.employer_phone | default(intern.employer_phone) }}" pattern="\+?\d{1,4}([-.\s]?\d{1,4}){2,3}" required>
                     <div class="invalid-feedback">Please enter a valid phone number.</div>
                 </div>
                 <div class="col-md-6">
                     <label for="employer_fax" class="form-label">Fax</label>
-                    <input type="text" class="form-control" id="employer_fax" name="employer_fax" value="{{ form_data.employer_fax | default(intern.employer_fax) }}">
+                    <input type="text" class="form-control" id="employer_fax" name="employer_fax" 
+                           value="{{ form_data.employer_fax | default(intern.employer_fax) }}">
                 </div>
                 <div class="col-md-6">
                     <label for="employer_email" class="form-label">Email</label>
-                    <input type="email" class="form-control" id="employer_email" name="employer_email" value="{{ form_data.employer_email | default(intern.employer_email) }}">
+                    <input type="email" class="form-control" id="employer_email" name="employer_email" 
+                           value="{{ form_data.employer_email | default(intern.employer_email) }}">
                     <div class="invalid-feedback">Please enter a valid email address.</div>
                 </div>
             </div>
@@ -156,44 +167,38 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('internForm');
-        form.addEventListener('submit', function (event) {
-            if (!form.checkValidity()) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-            form.classList.add('was-validated');
-        }, false);
-
-        // Calendar picker
-        const startDateInput = document.querySelector('#start_date');
-        const calendarIcon = startDateInput.parentElement.querySelector('.input-group-text');
-        if (calendarIcon) {
-            calendarIcon.addEventListener('click', function () {
-                startDateInput.showPicker();
-            });
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('internForm');
+    form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
         }
+        form.classList.add('was-validated');
+    }, false);
 
-        // Supervisor auto-fill feature
-        const supervisorMapping = {
-            "RITI Program Manager": "CHAN Vicheth",
-            "PALI Program Manager": "MAR Sophal",
-            "SACHAS Program Manager": "OUM Somaly",
-            "MACOR Program Manager": "SOM Chettana"
-        };
-
-        const supervisorTitle = document.getElementById('supervisor_title');
-        const supervisorName = document.getElementById('supervisor_name');
-
-        supervisorTitle.addEventListener('change', function () {
-            const selected = this.value;
-            if (supervisorMapping[selected]) {
-                supervisorName.value = supervisorMapping[selected];
-            } else {
-                supervisorName.value = "";
-            }
+    // Calendar picker
+    const startDateInput = document.querySelector('#start_date');
+    const calendarIcon = startDateInput.parentElement.querySelector('.input-group-text');
+    if (calendarIcon) {
+        calendarIcon.addEventListener('click', function () {
+            startDateInput.showPicker();
         });
+    }
+
+    // Supervisor auto-fill
+    const supervisorMapping = {
+        "RITI Program Manager": "CHAN Vicheth",
+        "PALI Program Manager": "MAR Sophal",
+        "SACHAS Program Manager": "OUM Somaly",
+        "MACOR Program Manager": "SOM Chettana"
+    };
+    const supervisorTitle = document.getElementById('supervisor_title');
+    const supervisorName = document.getElementById('supervisor_name');
+    supervisorTitle.addEventListener('change', function () {
+        const selected = this.value;
+        supervisorName.value = supervisorMapping[selected] || "";
     });
+});
 </script>
 {% endblock %}

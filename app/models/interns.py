@@ -7,8 +7,7 @@ class Intern(db.Model):
     __table_args__ = {'extend_existing': True}
 
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    intern_title = db.Column(db.String(10), default='')  # e.g., Mr., Ms.
-    intern_name = db.Column(db.String(255), nullable=False)  # Full name of intern
+    intern_name = db.Column(db.String(255), nullable=False)  # Full name including title, e.g., "Ms. Dorn Sochea"
     intern_role = db.Column(db.String(255), nullable=False)  # e.g., Finance and Administrative Intern
     intern_address = db.Column(db.Text, default='')  # Intern's address
     intern_phone = db.Column(db.String(20), default='')  # Intern's phone number
@@ -17,7 +16,7 @@ class Intern(db.Model):
     duration = db.Column(db.String(50), nullable=False)  # e.g., "3 months"
     end_date = db.Column(db.Date, nullable=False)  # Internship end date
     working_hours = db.Column(db.String(100), default='8:00am – 5:00pm, Monday to Friday')
-    allowance_amount = db.Column(db.Numeric(10, 2), default=0.0)  # Allowance in USD, 0.0 if none
+    allowance_amount = db.Column(db.Numeric(10, 2), default=0.0)  # Allowance in USD
     has_nssf = db.Column(db.Boolean, default=False)  # Whether NSSF benefit applies
     supervisor_info = db.Column(db.JSON, default=lambda: {})  # e.g., {"title": "MACOR Program Manager", "name": "Mr. SOM Chettana"}
     employer_representative_name = db.Column(db.String(100), default='Mr. Soeung Saroeun')
@@ -49,7 +48,6 @@ class Intern(db.Model):
         supervisor_info = self.supervisor_info if isinstance(self.supervisor_info, dict) else {}
         return {
             'id': self.id or '',
-            'intern_title': self.intern_title or '',
             'intern_name': self.intern_name or '',
             'intern_role': self.intern_role or '',
             'intern_address': self.intern_address or '',

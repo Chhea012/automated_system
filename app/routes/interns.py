@@ -9,7 +9,7 @@ import io
 import os
 import zipfile
 from markupsafe import Markup
-import mammoth  # For DOCX to HTML preview
+import mammoth
 
 interns_bp = Blueprint('interns', __name__)
 
@@ -90,8 +90,7 @@ def create():
             has_nssf = request.form.get('has_nssf') == 'on'
 
             new_intern = Intern(
-                intern_title=request.form['intern_title'],
-                intern_name=request.form['intern_name'],
+                intern_name=request.form['intern_name'],  # Full name including title
                 intern_role=request.form['intern_role'],
                 intern_address=request.form['intern_address'],
                 intern_phone=request.form['intern_phone'],
@@ -149,7 +148,6 @@ def update(id):
 
     if request.method == 'POST':
         try:
-            intern.intern_title = request.form['intern_title']
             intern.intern_name = request.form['intern_name']
             intern.intern_role = request.form['intern_role']
             intern.intern_address = request.form['intern_address']
