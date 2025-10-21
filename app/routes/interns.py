@@ -1,9 +1,12 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
 from flask_login import login_required, current_user
 from app import db
 from app.models.interns import Intern
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from docxtpl import DocxTemplate
+import io
+import os
 
 interns_bp = Blueprint('interns', __name__)
 
@@ -53,7 +56,6 @@ def index():
 @login_required
 def create():
     """Create a new intern record."""
-    # Initialize form_data with supervisor_info to avoid UndefinedError
     form_data = {'supervisor_info': {'title': '', 'name': ''}}
 
     if request.method == 'POST':
@@ -90,13 +92,11 @@ def create():
             )
             db.session.add(new_intern)
             db.session.commit()
-
             flash('Intern record created successfully!', 'success')
             return redirect(url_for('interns.index'))
         except Exception as e:
             db.session.rollback()
             flash(f'Error creating intern record: {str(e)}', 'danger')
-            # Populate form_data with form inputs, including supervisor_info
             form_data = request.form.to_dict()
             form_data['supervisor_info'] = {
                 'title': request.form.get('supervisor_title', ''),
@@ -147,7 +147,6 @@ def update(id):
             intern.employer_email = request.form['employer_email']
 
             db.session.commit()
-
             flash('Intern record updated successfully!', 'success')
             return redirect(url_for('interns.index'))
         except Exception as e:
@@ -175,3 +174,52 @@ def delete(id):
         db.session.rollback()
         flash(f'Error deleting intern record: {str(e)}', 'danger')
     return redirect(url_for('interns.index'))
+
+
+# 🆕 Generate & Download DOCX route (formatted dates + clean allowance)
+@interns_bp.route('/download/<string:id>')
+@login_required
+def download_docx(id):
+    """Generate and download internship agreement DOCX file."""
+    intern = Intern.query.filter_by(id=id, deleted_at=None).first_or_404()
+
+    # Template path
+    template_path = os.path.join('app', 'static', 'templates', 'internship_template.docx')
+    if not os.path.exists(template_path):
+        flash('Template file not found.', 'danger')
+        return redirect(url_for('interns.index'))
+
+    # Format functions
+    def format_date(date):
+        return date.strftime('%d %B %Y') if date else ''
+
+    def format_allowance(amount):
+        # Remove .00 if integer
+        if amount == int(amount):
+            return str(int(amount))
+        else:
+            return f"{amount:.2f}"
+
+    # Prepare context
+    context = intern.to_dict()
+    context['start_date'] = format_date(intern.start_date)
+    context['end_date'] = format_date(intern.end_date)
+    context['full_time_period'] = f"Full Time from {context['start_date']} to {context['end_date']}"
+    context['allowance_amount'] = format_allowance(float(intern.allowance_amount))
+
+    # Render the DOCX
+    doc = DocxTemplate(template_path)
+    doc.render(context)
+
+    # Save to memory for download
+    output = io.BytesIO()
+    doc.save(output)
+    output.seek(0)
+
+    filename = f"{intern.intern_name.replace(' ', '_')}_Internship_Agreement.docx"
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=filename,
+        mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    )

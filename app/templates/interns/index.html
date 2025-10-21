@@ -95,6 +95,7 @@
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="{{ url_for('interns.view', id=intern.id) }}"><i class="bx bx-show"></i> View</a></li>
                                     <li><a class="dropdown-item" href="{{ url_for('interns.update', id=intern.id) }}"><i class="bx bx-edit"></i> Edit</a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('interns.download_docx', id=intern.id) }}"><i class="bx bx-download"></i> Download Docx</a></li>
                                     <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal{{ intern.id }}"><i class="bx bx-trash"></i> Delete</a></li>
                                 </ul>
                             </div>

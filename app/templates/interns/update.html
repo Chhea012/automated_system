@@ -12,7 +12,9 @@
         <nav class="mb-3">
             <a href="{{ url_for('interns.index') }}" class="btn btn-outline-primary">Back to Intern Contract List</a>
         </nav>
+
         <form id="internForm" action="{{ url_for('interns.update', id=intern.id) }}" method="POST" class="needs-validation" novalidate>
+            
             <!-- Intern Details -->
             <div class="section-header">Intern Details</div>
             <div class="row g-3">
@@ -91,10 +93,18 @@
                         <label class="form-check-label" for="has_nssf">Include NSSF Benefit</label>
                     </div>
                 </div>
+
+                <!-- Supervisor Section -->
                 <div class="col-md-6">
                     <label for="supervisor_title" class="form-label">Supervisor Title</label>
-                    <input type="text" class="form-control" id="supervisor_title" name="supervisor_title" value="{{ form_data.supervisor_info.title | default(intern.supervisor_info.get('title', '')) }}" placeholder="e.g., MACOR Program Manager" required>
-                    <div class="invalid-feedback">Please enter the supervisor's title.</div>
+                    <select class="form-select" id="supervisor_title" name="supervisor_title" required>
+                        <option value="" disabled {{ 'selected' if not form_data.supervisor_info.title | default(intern.supervisor_info.get('title', '')) }}>Select Supervisor Title</option>
+                        <option value="RITI Program Manager" {{ 'selected' if form_data.supervisor_info.title | default(intern.supervisor_info.get('title', '')) == 'RITI Program Manager' }}>RITI Program Manager</option>
+                        <option value="PALI Program Manager" {{ 'selected' if form_data.supervisor_info.title | default(intern.supervisor_info.get('title', '')) == 'PALI Program Manager' }}>PALI Program Manager</option>
+                        <option value="SACHAS Program Manager" {{ 'selected' if form_data.supervisor_info.title | default(intern.supervisor_info.get('title', '')) == 'SACHAS Program Manager' }}>SACHAS Program Manager</option>
+                        <option value="MACOR Program Manager" {{ 'selected' if form_data.supervisor_info.title | default(intern.supervisor_info.get('title', '')) == 'MACOR Program Manager' }}>MACOR Program Manager</option>
+                    </select>
+                    <div class="invalid-feedback">Please select the supervisor title.</div>
                 </div>
                 <div class="col-md-6">
                     <label for="supervisor_name" class="form-label">Supervisor Name</label>
@@ -156,17 +166,34 @@
             form.classList.add('was-validated');
         }, false);
 
+        // Calendar picker
         const startDateInput = document.querySelector('#start_date');
         const calendarIcon = startDateInput.parentElement.querySelector('.input-group-text');
         if (calendarIcon) {
-            startDateInput.addEventListener('click', function () {
-                this.showPicker();
-            });
             calendarIcon.addEventListener('click', function () {
-                startDateInput.focus();
                 startDateInput.showPicker();
             });
         }
+
+        // Supervisor auto-fill feature
+        const supervisorMapping = {
+            "RITI Program Manager": "CHAN Vicheth",
+            "PALI Program Manager": "MAR Sophal",
+            "SACHAS Program Manager": "OUM Somaly",
+            "MACOR Program Manager": "SOM Chettana"
+        };
+
+        const supervisorTitle = document.getElementById('supervisor_title');
+        const supervisorName = document.getElementById('supervisor_name');
+
+        supervisorTitle.addEventListener('change', function () {
+            const selected = this.value;
+            if (supervisorMapping[selected]) {
+                supervisorName.value = supervisorMapping[selected];
+            } else {
+                supervisorName.value = "";
+            }
+        });
     });
 </script>
 {% endblock %}
