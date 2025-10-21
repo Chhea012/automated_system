@@ -4,24 +4,22 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/contract.css') }}" />
 
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-center align-items-center mb-3">
         <h3>Intern Details - {{ intern.intern_name }}</h3>
-        <div>
+    </div>
+    <div class="d-flex justify-content-center align-items-center mb-3 gap-3">
             <a href="{{ url_for('interns.download_docx', id=intern.id) }}" class="btn btn-success">
                 <i class="bx bx-download"></i> Download DOCX
             </a>
             <a href="{{ url_for('interns.index') }}" class="btn btn-secondary">
                 <i class="bx bx-arrow-back"></i> Back to List
             </a>
-        </div>
     </div>
 
-    <div class="card card-1 p-4">
+
+    <div class="d-flex justify-content-center">
+    <div class="container-card shadow-sm p-5 mb-3" style="font-family: Calibri, sans-serif; max-width: 800px; background-color: #fff;">
         <table class="table table-bordered">
-            <tr>
-                <th>Title</th>
-                <td>{{ intern.intern_title }}</td>
-            </tr>
             <tr>
                 <th>Name</th>
                 <td>{{ intern.intern_name }}</td>
@@ -84,5 +82,8 @@
         </table>
 
     </div>
+    </div>
+    </div>
+
 </div>
 {% endblock %}
