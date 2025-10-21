@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}View Contract - {{ intern.intern_name }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/contract.css') }}" />
+
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="text-center mb-3">
+        <h3>Internship Contract Preview - {{ intern.intern_name }}</h3>
+    </div>
+
+    <!-- Buttons -->
+    <div class="d-flex justify-content-center align-items-center mb-4 gap-3">
+        <a href="{{ url_for('interns.download_docx', id=intern.id) }}" class="btn btn-success">
+            <i class="bx bx-download"></i> Download DOCX
+        </a>
+        <a href="{{ url_for('interns.index') }}" class="btn btn-secondary">
+            <i class="bx bx-arrow-back"></i> Back to List
+        </a>
+    </div>
+
+    <!-- DOCX Preview Card -->
+    <div class="d-flex justify-content-center">
+        <div class="container-card shadow-sm p-5 mb-3" style="font-family: Calibri, sans-serif; max-width: 800px; background-color: #fff;">
+            <!-- DOCX converted HTML content -->
+            <div class="docx-preview">
+                {{ html_content|safe }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* DOCX Preview Styling */
+.docx-preview {
+    white-space: pre-wrap;
+    font-size: 1rem;
+    color: #333;
+}
+
+/* Center headings like INTERNSHIP AGREEMENT BETWEEN */
+.docx-preview h1,
+.docx-preview h2,
+.docx-preview h3 {
+    text-align: center;
+    font-weight: bold;
+}
+
+/* Paragraphs spacing */
+.docx-preview p {
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+/* Table styling */
+.docx-preview table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+}
+
+.docx-preview table, 
+.docx-preview th, 
+.docx-preview td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+.docx-preview th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+/* Optional bolder border class */
+.bolder {
+    border: 1px solid #6e6e6eff;
+}
+</style>
+{% endblock %}

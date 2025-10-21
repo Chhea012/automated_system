@@ -7,13 +7,34 @@ from dateutil.relativedelta import relativedelta
 from docxtpl import DocxTemplate
 import io
 import os
+import zipfile
+from markupsafe import Markup
+import mammoth  # For DOCX to HTML preview
 
 interns_bp = Blueprint('interns', __name__)
 
+# -------------------------------
+# 📝 Helper: Build context for DOCX
+# -------------------------------
+def build_context(intern):
+    def format_date(date):
+        return date.strftime('%d %B %Y') if date else ''
+    def format_allowance(amount):
+        return str(int(amount)) if amount == int(amount) else f"{amount:.2f}"
+
+    context = intern.to_dict()
+    context['start_date'] = format_date(intern.start_date)
+    context['end_date'] = format_date(intern.end_date)
+    context['full_time_period'] = f"Full Time from {context['start_date']} to {context['end_date']}"
+    context['allowance_amount'] = format_allowance(float(intern.allowance_amount))
+    return context
+
+# -------------------------------
+# 📄 List Interns
+# -------------------------------
 @interns_bp.route('/')
 @login_required
 def index():
-    """List all active intern records with filtering, sorting, and pagination."""
     search_query = request.args.get('search', '')
     sort_order = request.args.get('sort', 'created_at_desc')
     entries_per_page = int(request.args.get('entries', 10))
@@ -52,10 +73,12 @@ def index():
         is_admin=current_user.has_role('Admin') if hasattr(current_user, 'has_role') else False
     )
 
+# -------------------------------
+# ➕ Create Intern
+# -------------------------------
 @interns_bp.route('/create', methods=['GET', 'POST'])
 @login_required
 def create():
-    """Create a new intern record."""
     form_data = {'supervisor_info': {'title': '', 'name': ''}}
 
     if request.method == 'POST':
@@ -106,17 +129,21 @@ def create():
 
     return render_template('interns/create.html', form_data=form_data)
 
+# -------------------------------
+# 👁 View Intern Details
+# -------------------------------
 @interns_bp.route('/<string:id>')
 @login_required
 def view(id):
-    """View details of a specific intern record."""
     intern = Intern.query.filter_by(id=id, deleted_at=None).first_or_404()
     return render_template('interns/view.html', intern=intern)
 
+# -------------------------------
+# ✏️ Update Intern
+# -------------------------------
 @interns_bp.route('/update/<string:id>', methods=['GET', 'POST'])
 @login_required
 def update(id):
-    """Update an existing intern record."""
     intern = Intern.query.filter_by(id=id, deleted_at=None).first_or_404()
     form_data = intern.to_dict()
 
@@ -161,10 +188,12 @@ def update(id):
 
     return render_template('interns/update.html', intern=intern, form_data=form_data)
 
+# -------------------------------
+# 🗑 Delete Intern (Soft)
+# -------------------------------
 @interns_bp.route('/delete/<string:id>', methods=['POST'])
 @login_required
 def delete(id):
-    """Soft delete an intern record."""
     intern = Intern.query.filter_by(id=id, deleted_at=None).first_or_404()
     try:
         intern.deleted_at = datetime.utcnow()
@@ -175,51 +204,85 @@ def delete(id):
         flash(f'Error deleting intern record: {str(e)}', 'danger')
     return redirect(url_for('interns.index'))
 
-
-# 🆕 Generate & Download DOCX route (formatted dates + clean allowance)
+# -------------------------------
+# 🧾 Download Single DOCX
+# -------------------------------
 @interns_bp.route('/download/<string:id>')
 @login_required
 def download_docx(id):
-    """Generate and download internship agreement DOCX file."""
     intern = Intern.query.filter_by(id=id, deleted_at=None).first_or_404()
-
-    # Template path
     template_path = os.path.join('app', 'static', 'templates', 'internship_template.docx')
     if not os.path.exists(template_path):
-        flash('Template file not found.', 'danger')
+        flash('Template not found.', 'danger')
         return redirect(url_for('interns.index'))
 
-    # Format functions
-    def format_date(date):
-        return date.strftime('%d %B %Y') if date else ''
-
-    def format_allowance(amount):
-        # Remove .00 if integer
-        if amount == int(amount):
-            return str(int(amount))
-        else:
-            return f"{amount:.2f}"
-
-    # Prepare context
-    context = intern.to_dict()
-    context['start_date'] = format_date(intern.start_date)
-    context['end_date'] = format_date(intern.end_date)
-    context['full_time_period'] = f"Full Time from {context['start_date']} to {context['end_date']}"
-    context['allowance_amount'] = format_allowance(float(intern.allowance_amount))
-
-    # Render the DOCX
     doc = DocxTemplate(template_path)
-    doc.render(context)
-
-    # Save to memory for download
+    doc.render(build_context(intern))
     output = io.BytesIO()
     doc.save(output)
     output.seek(0)
 
     filename = f"{intern.intern_name.replace(' ', '_')}_Internship_Agreement.docx"
-    return send_file(
-        output,
-        as_attachment=True,
-        download_name=filename,
-        mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    )
+    return send_file(output, as_attachment=True, download_name=filename,
+                     mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+
+# -------------------------------
+# 🆕 Download All DOCX in ZIP
+# -------------------------------
+@interns_bp.route('/download_all')
+@login_required
+def download_all_docx():
+    interns = Intern.query.filter_by(deleted_at=None).all()
+    if not interns:
+        flash("No intern records found to generate.", "warning")
+        return redirect(url_for("interns.index"))
+
+    template_path = os.path.join('app', 'static', 'templates', 'internship_template.docx')
+    if not os.path.exists(template_path):
+        flash("Template not found.", "danger")
+        return redirect(url_for("interns.index"))
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for intern in interns:
+            doc = DocxTemplate(template_path)
+            doc.render(build_context(intern))
+
+            file_stream = io.BytesIO()
+            doc.save(file_stream)
+            file_stream.seek(0)
+
+            filename = f"{intern.intern_name.replace(' ', '_')}_Internship_Agreement.docx"
+            zip_file.writestr(filename, file_stream.read())
+
+    zip_buffer.seek(0)
+    return send_file(zip_buffer, as_attachment=True,
+                     download_name="All_Internship_Agreements.zip",
+                     mimetype="application/zip")
+
+# -------------------------------
+# 🆕 View DOCX as HTML
+# -------------------------------
+@interns_bp.route('/view_docx/<string:id>')
+@login_required
+def view_docx(id):
+    """Render the intern DOCX template as HTML for preview."""
+    intern = Intern.query.filter_by(id=id, deleted_at=None).first_or_404()
+    template_path = os.path.join('app', 'static', 'templates', 'internship_template.docx')
+
+    if not os.path.exists(template_path):
+        flash("Template not found.", "danger")
+        return redirect(url_for('interns.index'))
+
+    doc = DocxTemplate(template_path)
+    doc.render(build_context(intern))
+
+    output = io.BytesIO()
+    doc.save(output)
+    output.seek(0)
+
+    # Convert DOCX to HTML for preview
+    result = mammoth.convert_to_html(output)
+    html_content = result.value
+
+    return render_template("interns/view_docx.html", html_content=Markup(html_content), intern=intern)
