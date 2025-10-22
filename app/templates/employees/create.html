@@ -1,0 +1,356 @@
+{% extends "base.html" %}
+{% block title %}Create Employee Contract{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/create.css') }}">
+
+<div class="container mt-4">
+    <div class="form-header text-center mb-0">
+        <h1><i class="bi bi-person-plus"></i> Create Employee Contract</h1>
+    </div>
+    <div class="form-card">
+        <nav class="mb-4">
+            <a href="{{ url_for('employees.index') }}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Back to Employee List
+            </a>
+        </nav>
+
+        <form id="employeeForm" action="{{ url_for('employees.create') }}" method="POST" class="needs-validation" novalidate>
+            
+            <!-- Employee Details -->
+            <div class="section-header mb-4">
+                <h5><i class="bi bi-person-badge"></i> Employee Details</h5>
+                <hr>
+            </div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label for="employee_name" class="form-label fw-bold">Full Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="employee_name" name="employee_name"
+                           value="{{ form_data.employee_name | default('') }}"
+                           placeholder="e.g., Mr. Chan Vicheth" required>
+                    <div class="invalid-feedback">Please enter full name (including title).</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="position_title" class="form-label fw-bold">Position Title <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="position_title" name="position_title"
+                           value="{{ form_data.position_title | default('') }}"
+                           placeholder="e.g., Capacity Development Specialist" required>
+                    <div class="invalid-feedback">Please enter position title.</div>
+                </div>
+                <div class="col-12">
+                    <label for="employee_address" class="form-label">Address</label>
+                    <textarea class="form-control" id="employee_address" name="employee_address" rows="2"
+                              placeholder="Complete address">{{ form_data.employee_address | default('') }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label for="employee_tel" class="form-label">Phone</label>
+                    <input type="tel" class="form-control" id="employee_tel" name="employee_tel"
+                           value="{{ form_data.employee_tel | default('') }}"
+                           placeholder="e.g., 012 953 650">
+                </div>
+                <div class="col-md-6">
+                    <label for="employee_email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="employee_email" name="employee_email"
+                           value="{{ form_data.employee_email | default('') }}"
+                           placeholder="e.g., name@example.com">
+                </div>
+            </div>
+
+            <!-- Contract Details -->
+            <div class="section-header mb-4">
+                <h5><i class="bi bi-file-earmark-contract"></i> Contract Details</h5>
+                <hr>
+            </div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label for="contract_no" class="form-label fw-bold">Contract Number <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="contract_no" name="contract_no"
+                           value="{{ form_data.contract_no | default('NGOF-FDC/001') }}" required>
+                    <div class="invalid-feedback">Please enter contract number.</div>
+                </div>
+                <div class="col-md-4">
+                    <label for="contract_type" class="form-label fw-bold">Contract Type <span class="text-danger">*</span></label>
+                    <select class="form-select" id="contract_type" name="contract_type" required>
+                        <option value="" disabled>Select Contract Type</option>
+                        <option value="Fixed Duration Contract (FDC)" {{ 'selected' if form_data.contract_type | default('') == 'Fixed Duration Contract (FDC)' }}>Fixed Duration Contract (FDC)</option>
+                        <option value="Undefined Duration Contract (UDC)" {{ 'selected' if form_data.contract_type | default('') == 'Undefined Duration Contract (UDC)' }}>Undefined Duration Contract (UDC)</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="working_hours" class="form-label">Working Hours</label>
+                    <input type="text" class="form-control" id="working_hours" name="working_hours"
+                           value="{{ form_data.working_hours | default('Monday to Friday: 08:00am-12:00pm and 01:30pm-05:30pm') }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="start_date" class="form-label fw-bold">Start Date <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="date" class="form-control" id="start_date" name="start_date"
+                               value="{{ form_data.start_date | default('') }}" required aria-describedby="start_date_icon">
+                        <span class="input-group-text" id="start_date_icon">
+                            <i class="bi bi-calendar"></i>
+                        </span>
+                        <div class="invalid-feedback">Please select a start date.</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label for="duration_months" class="form-label fw-bold">Duration <span class="text-danger">*</span></label>
+                    <select class="form-select" id="duration_months" name="duration_months" required>
+                        <option value="" disabled selected>Select Duration</option>
+                        <option value="3">3 Months</option>
+                        <option value="6">6 Months</option>
+                        <option value="12" selected>12 Months</option>
+                        <option value="24">24 Months</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="end_date_display" class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="end_date_display" readonly>
+                </div>
+            </div>
+
+            <!-- Salary and Benefits -->
+            <div class="section-header mb-4">
+                <h5><i class="bi bi-currency-dollar"></i> Salary & Benefits</h5>
+                <hr>
+            </div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label for="salary_amount" class="form-label fw-bold">Salary Amount (USD) <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="salary_amount" name="salary_amount"
+                           value="{{ form_data.salary_amount | default('0.00') }}" min="0" step="0.01" required>
+                    <small id="salary_formatted" class="text-muted"></small>
+                </div>
+                <div class="col-md-4">
+                    <label for="salary_grade" class="form-label">Salary Grade</label>
+                    <input type="text" class="form-control" id="salary_grade" name="salary_grade"
+                           value="{{ form_data.salary_grade | default('G4/L5') }}" placeholder="e.g., G4/L5">
+                </div>
+                <div class="col-md-4">
+                    <label for="salary_amount_words" class="form-label">Salary Amount (Words)</label>
+                    <input type="text" class="form-control" id="salary_amount_words" readonly>
+                </div>
+                <div class="col-md-3">
+                    <label for="medical_allowance" class="form-label">Medical Allowance</label>
+                    <input type="number" class="form-control" id="medical_allowance" name="medical_allowance"
+                           value="{{ form_data.medical_allowance | default('150.00') }}" min="0" step="0.01">
+                </div>
+                <div class="col-md-3">
+                    <label for="child_education_allowance" class="form-label">Child Education</label>
+                    <input type="number" class="form-control" id="child_education_allowance" name="child_education_allowance"
+                           value="{{ form_data.child_education_allowance | default('60.00') }}" min="0" step="0.01">
+                </div>
+                <div class="col-md-3">
+                    <label for="delivery_benefit" class="form-label">Delivery Benefit</label>
+                    <input type="number" class="form-control" id="delivery_benefit" name="delivery_benefit"
+                           value="{{ form_data.delivery_benefit | default('200.00') }}" min="0" step="0.01">
+                </div>
+                <div class="col-md-3">
+                    <label for="death_benefit" class="form-label">Death Benefit</label>
+                    <input type="number" class="form-control" id="death_benefit" name="death_benefit"
+                           value="{{ form_data.death_benefit | default('200.00') }}" min="0" step="0.01">
+                </div>
+                <div class="col-md-6">
+                    <label for="severance_percentage" class="form-label">Severance (%)</label>
+                    <input type="number" class="form-control" id="severance_percentage" name="severance_percentage"
+                           value="{{ form_data.severance_percentage | default('8.33') }}" min="0" step="0.01" max="100">
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check mt-4">
+                        <input class="form-check-input" type="checkbox" id="thirteenth_month_salary" name="thirteenth_month_salary" checked>
+                        <label class="form-check-label" for="thirteenth_month_salary">
+                            Include 13th Month Salary
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Organization Details (Auto-filled) -->
+            <div class="section-header mb-4">
+                <h5><i class="bi bi-building"></i> Organization Details</h5>
+                <hr>
+            </div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label for="organization_name" class="form-label">Organization Name</label>
+                    <input type="text" class="form-control" id="organization_name" name="organization_name"
+                           value="{{ form_data.organization_name | default('The NGO Forum on Cambodia') }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="representative_name" class="form-label">Representative Name</label>
+                    <input type="text" class="form-control" id="representative_name" name="representative_name"
+                           value="{{ form_data.representative_name | default('Mr. Soeung Saroeun') }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="representative_title" class="form-label">Representative Title</label>
+                    <input type="text" class="form-control" id="representative_title" name="representative_title"
+                        value="{{ form_data.representative_title | default('Executive Director') }}"
+                        placeholder="e.g., Executive Director">
+                </div>
+                <div class="col-12">
+                    <label for="organization_address" class="form-label">Address</label>
+                    <textarea class="form-control" id="organization_address" name="organization_address" rows="2">{{ form_data.organization_address | default('#9-11, St. 476, Sangkat Toul Tompong I, Khan Chamka Morn, Phnom Penh, Cambodia') }}</textarea>
+                </div>
+                <div class="col-md-4">
+                    <label for="organization_tel" class="form-label">Phone</label>
+                    <input type="tel" class="form-control" id="organization_tel" name="organization_tel"
+                           value="{{ form_data.organization_tel | default('023 214 429') }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="organization_email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="organization_email" name="organization_email"
+                           value="{{ form_data.organization_email | default('info@ngoforum.org.kh') }}">
+                </div>
+                <div class="col-md-4">
+                    <label for="organization_fax" class="form-label">Fax</label>
+                    <input type="text" class="form-control" id="organization_fax" name="organization_fax"
+                           value="{{ form_data.organization_fax | default('023 994 063') }}">
+                </div>
+            </div>
+
+            <!-- Signatures -->
+            <div class="section-header mb-4">
+                <h5><i class="bi bi-pen"></i> Signatures</h5>
+                <hr>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="employer_signature_name" class="form-label">Employer Signature</label>
+                    <input type="text" class="form-control" id="employer_signature_name" name="employer_signature_name"
+                           value="{{ form_data.employer_signature_name | default('Mr. Soeung Saroeun') }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="employee_signature_name" class="form-label">Employee Signature</label>
+                    <input type="text" class="form-control" id="employee_signature_name" name="employee_signature_name"
+                           value="{{ form_data.employee_signature_name | default('') }}">
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="text-center mt-5">
+                <button type="submit" class="btn btn-primary btn-lg px-5">
+                    <i class="bi bi-save"></i> Create Employee Contract
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('employeeForm');
+    form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    }, false);
+
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    dateInputs.forEach(input => {
+        input.addEventListener('click', () => input.showPicker());
+        const calendarIcon = input.parentElement.querySelector('.input-group-text');
+        if (calendarIcon) {
+            calendarIcon.addEventListener('click', () => {
+                input.focus();
+                input.showPicker();
+            });
+        }
+    });
+
+    const startDateInput = document.getElementById('start_date');
+    const durationSelect = document.getElementById('duration_months');
+    const endDateDisplay = document.getElementById('end_date_display');
+    function calculateEndDate() {
+        const startDate = startDateInput.value;
+        const duration = parseInt(durationSelect.value) || 12;
+        if (startDate) {
+            const start = new Date(startDate + 'T00:00:00');
+            const end = new Date(start);
+            end.setMonth(start.getMonth() + duration);
+            end.setDate(0);
+            endDateDisplay.value = end.toISOString().split('T')[0];
+        } else endDateDisplay.value = '';
+    }
+    startDateInput.addEventListener('change', calculateEndDate);
+    durationSelect.addEventListener('change', calculateEndDate);
+
+    // === Improved Salary Amount Conversion ===
+    const salaryAmount = document.getElementById('salary_amount');
+    const salaryWords = document.getElementById('salary_amount_words');
+    const salaryFormatted = document.getElementById('salary_formatted');
+
+    function numberToWords(num) {
+        const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+        const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+        const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        const scales = ['', 'Thousand', 'Million', 'Billion'];
+        if (num === 0) return 'Zero';
+        function chunkToWords(n) {
+            let words = '';
+            const hundred = Math.floor(n / 100);
+            const remainder = n % 100;
+            if (hundred > 0) words += ones[hundred] + ' Hundred ';
+            if (remainder > 0) {
+                if (remainder < 10) words += ones[remainder];
+                else if (remainder < 20) words += teens[remainder - 10];
+                else {
+                    words += tens[Math.floor(remainder / 10)];
+                    if (remainder % 10 > 0) words += '-' + ones[remainder % 10];
+                }
+            }
+            return words.trim();
+        }
+        const parts = [];
+        let scaleIndex = 0;
+        while (num > 0) {
+            const chunk = num % 1000;
+            if (chunk > 0) parts.unshift(chunkToWords(chunk) + (scales[scaleIndex] ? ' ' + scales[scaleIndex] : ''));
+            num = Math.floor(num / 1000);
+            scaleIndex++;
+        }
+        return parts.join(' ').replace(/\s+/g, ' ').trim();
+    }
+
+    function convertSalaryToWords() {
+        const value = parseFloat(salaryAmount.value);
+        if (isNaN(value) || value <= 0) {
+            salaryWords.value = '';
+            salaryFormatted.textContent = '';
+            return;
+        }
+        const integerPart = Math.floor(value);
+        const decimalPart = Math.round((value - integerPart) * 100);
+        let words = numberToWords(integerPart) + ' US Dollars';
+        if (decimalPart > 0) words += ' and ' + numberToWords(decimalPart) + ' Cents';
+        words += ' only';
+        salaryWords.value = words;
+        salaryFormatted.textContent = 'Formatted: ' + value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+    salaryAmount.addEventListener('input', convertSalaryToWords);
+
+    // Auto-fill employee signature
+    const employeeName = document.getElementById('employee_name');
+    const employeeSignature = document.getElementById('employee_signature_name');
+    employeeName.addEventListener('input', () => employeeSignature.value = employeeName.value);
+
+    // Organization defaults
+    const defaults = {
+        organization_name: 'The NGO Forum on Cambodia',
+        representative_name: 'Mr. Soeung Saroeun',
+        organization_address: '#9-11, St. 476, Sangkat Toul Tompong I, Khan Chamka Morn, Phnom Penh, Cambodia',
+        organization_tel: '023 214 429',
+        organization_fax: '023 994 063',
+        organization_email: 'info@ngoforum.org.kh',
+        employer_signature_name: 'Mr. Soeung Saroeun'
+    };
+    Object.entries(defaults).forEach(([k, v]) => {
+        const el = document.getElementById(k);
+        if (el && !el.value.trim()) el.value = v;
+    });
+
+    calculateEndDate();
+    convertSalaryToWords();
+});
+</script>
+{% endblock %}
