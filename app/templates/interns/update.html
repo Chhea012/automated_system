@@ -61,8 +61,11 @@
                     <label for="start_date" class="form-label">Start Date</label>
                     <div class="input-group">
                         <input type="date" class="form-control" id="start_date" name="start_date" 
-                               value="{{ form_data.start_date | default(intern.start_date.strftime('%Y-%m-%d') if intern.start_date else '') }}" required>
-                        <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+                               value="{{ form_data.start_date | default(intern.start_date.strftime('%Y-%m-%d') if intern.start_date else '') }}" 
+                               required aria-describedby="start_date_icon">
+                        <span class="input-group-text" id="start_date_icon">
+                            <i class="bi bi-calendar"></i>
+                        </span>
                         <div class="invalid-feedback">Please select a start date.</div>
                     </div>
                 </div>
@@ -178,13 +181,19 @@ document.addEventListener('DOMContentLoaded', function () {
     }, false);
 
     // Calendar picker
-    const startDateInput = document.querySelector('#start_date');
-    const calendarIcon = startDateInput.parentElement.querySelector('.input-group-text');
-    if (calendarIcon) {
-        calendarIcon.addEventListener('click', function () {
-            startDateInput.showPicker();
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    dateInputs.forEach(input => {
+        input.addEventListener('click', function () {
+            this.showPicker();
         });
-    }
+        const calendarIcon = input.parentElement.querySelector('.input-group-text');
+        if (calendarIcon) {
+            calendarIcon.addEventListener('click', function () {
+                input.focus();
+                input.showPicker();
+            });
+        }
+    });
 
     // Supervisor auto-fill
     const supervisorMapping = {
