@@ -18,7 +18,8 @@ itsdangerous
 wtforms 
 email-validator 
 mammoth   
-
+docxtpl
+python-dateutil
  
  
  
