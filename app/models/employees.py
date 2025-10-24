@@ -65,27 +65,33 @@ class Employee(db.Model):
 
     # === METHODS ===
     def generate_salary_in_words(self):
-        """Generate salary amount in words."""
+        """Generate salary amount in words with decimal support."""
         if not self.salary_amount or self.salary_amount <= 0:
             self.salary_amount_words = ''
             return
         
         amount = float(self.salary_amount)
         integer_part = int(amount)
-        words = self._number_to_words(integer_part)
-        self.salary_amount_words = f"{words} US Dollars only"
+        decimal_part = int(round((amount - integer_part) * 100))
+        
+        words = self._number_to_words(integer_part) + ' US Dollars'
+        if decimal_part > 0:
+            words += ' and ' + self._number_to_words(decimal_part) + ' Cents'
+        words += ' only'
+        self.salary_amount_words = words
 
     def _number_to_words(self, num):
         """Convert number to words."""
-        ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine']
-        teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 
-                'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
-        tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 
-               'Seventy', 'Eighty', 'Ninety']
-
         if num == 0:
             return 'Zero'
         
+        ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine']
+        teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 
+                 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen']
+        tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 
+                'Seventy', 'Eighty', 'Ninety']
+        scales = ['', 'Thousand', 'Million', 'Billion']
+
         if num < 10:
             return ones[num]
         elif num < 20:
@@ -93,13 +99,21 @@ class Employee(db.Model):
         elif num < 100:
             ten = num // 10
             one = num % 10
-            return tens[ten] + (' ' + ones[one] if one else '')
+            return tens[ten] + ('-' + ones[one].lower() if one else '')
         elif num < 1000:
             hundred = num // 100
             rest = num % 100
             return ones[hundred] + ' Hundred' + (' ' + self._number_to_words(rest) if rest else '')
         else:
-            return 'Amount too large'
+            parts = []
+            scale_index = 0
+            while num > 0:
+                chunk = num % 1000
+                if chunk > 0:
+                    parts.insert(0, self._number_to_words(chunk) + (' ' + scales[scale_index] if scales[scale_index] else ''))
+                num //= 1000
+                scale_index += 1
+            return ' '.join(parts).replace('  ', ' ').strip()
 
     def __repr__(self):
         return f"<Employee {self.employee_name} ({self.contract_no})>"

@@ -119,6 +119,7 @@
                     <input type="number" class="form-control" id="salary_amount" name="salary_amount"
                            value="{{ form_data.salary_amount | default('0.00') }}" min="0" step="0.01" required>
                     <small id="salary_formatted" class="text-muted"></small>
+                    <div class="invalid-feedback">Please enter a valid salary amount.</div>
                 </div>
                 <div class="col-md-4">
                     <label for="salary_grade" class="form-label">Salary Grade</label>
@@ -127,7 +128,8 @@
                 </div>
                 <div class="col-md-4">
                     <label for="salary_amount_words" class="form-label">Salary Amount (Words)</label>
-                    <input type="text" class="form-control" id="salary_amount_words" readonly>
+                    <input type="text" class="form-control" id="salary_amount_words" name="salary_amount_words"
+                           value="{{ form_data.salary_amount_words | default('') }}" readonly>
                 </div>
                 <div class="col-md-3">
                     <label for="medical_allowance" class="form-label">Medical Allowance</label>
@@ -156,7 +158,7 @@
                 </div>
                 <div class="col-md-6">
                     <div class="form-check mt-4">
-                        <input class="form-check-input" type="checkbox" id="thirteenth_month_salary" name="thirteenth_month_salary" checked>
+                        <input class="form-check-input" type="checkbox" id="thirteenth_month_salary" name="thirteenth_month_salary" {{ 'checked' if form_data.thirteenth_month_salary | default(True) }}>
                         <label class="form-check-label" for="thirteenth_month_salary">
                             Include 13th Month Salary
                         </label>
@@ -183,8 +185,8 @@
                 <div class="col-md-4">
                     <label for="representative_title" class="form-label">Representative Title</label>
                     <input type="text" class="form-control" id="representative_title" name="representative_title"
-                        value="{{ form_data.representative_title | default('Executive Director') }}"
-                        placeholder="e.g., Executive Director">
+                           value="{{ form_data.representative_title | default('Executive Director') }}"
+                           placeholder="e.g., Executive Director">
                 </div>
                 <div class="col-12">
                     <label for="organization_address" class="form-label">Address</label>
@@ -244,6 +246,9 @@ document.addEventListener('DOMContentLoaded', function () {
             event.stopPropagation();
         }
         form.classList.add('was-validated');
+        // Ensure salary_amount_words is sent to the server
+        const salaryWordsInput = document.getElementById('salary_amount_words');
+        salaryWordsInput.removeAttribute('readonly');
     }, false);
 
     const dateInputs = document.querySelectorAll('input[type="date"]');
@@ -268,24 +273,27 @@ document.addEventListener('DOMContentLoaded', function () {
             const start = new Date(startDate + 'T00:00:00');
             const end = new Date(start);
             end.setMonth(start.getMonth() + duration);
-            end.setDate(0);
+            end.setDate(0); // Set to last day of the previous month
             endDateDisplay.value = end.toISOString().split('T')[0];
-        } else endDateDisplay.value = '';
+        } else {
+            endDateDisplay.value = '';
+        }
     }
     startDateInput.addEventListener('change', calculateEndDate);
     durationSelect.addEventListener('change', calculateEndDate);
 
-    // === Improved Salary Amount Conversion ===
+    // Improved Salary Amount Conversion
     const salaryAmount = document.getElementById('salary_amount');
     const salaryWords = document.getElementById('salary_amount_words');
     const salaryFormatted = document.getElementById('salary_formatted');
 
     function numberToWords(num) {
+        if (num === 0) return 'Zero';
         const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
         const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
         const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
         const scales = ['', 'Thousand', 'Million', 'Billion'];
-        if (num === 0) return 'Zero';
+
         function chunkToWords(n) {
             let words = '';
             const hundred = Math.floor(n / 100);
@@ -301,6 +309,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             return words.trim();
         }
+
         const parts = [];
         let scaleIndex = 0;
         while (num > 0) {
@@ -314,7 +323,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function convertSalaryToWords() {
         const value = parseFloat(salaryAmount.value);
-        if (isNaN(value) || value <= 0) {
+        if (isNaN(value) || value < 0) {
             salaryWords.value = '';
             salaryFormatted.textContent = '';
             return;
@@ -325,7 +334,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (decimalPart > 0) words += ' and ' + numberToWords(decimalPart) + ' Cents';
         words += ' only';
         salaryWords.value = words;
-        salaryFormatted.textContent = 'Formatted: ' + value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        salaryFormatted.textContent = 'Formatted: $' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
     salaryAmount.addEventListener('input', convertSalaryToWords);
 

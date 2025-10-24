@@ -96,15 +96,16 @@
                     <label for="duration_months" class="form-label fw-bold">Duration <span class="text-danger">*</span></label>
                     <select class="form-select" id="duration_months" name="duration_months" required>
                         <option value="" disabled>Select Duration</option>
-                        <option value="3" {{ 'selected' if (form_data.duration_months | default(employee.duration_months)) == 3 }}>3 Months</option>
-                        <option value="6" {{ 'selected' if (form_data.duration_months | default(employee.duration_months)) == 6 }}>6 Months</option>
-                        <option value="12" {{ 'selected' if (form_data.duration_months | default(employee.duration_months)) == 12 }}>12 Months</option>
-                        <option value="24" {{ 'selected' if (form_data.duration_months | default(employee.duration_months)) == 24 }}>24 Months</option>
+                        <option value="3" {{ 'selected' if (form_data.duration_months | default(employee.duration_months | default(12))) == 3 or (form_data.duration_months | default(employee.duration_months | default(12))) == '3' }}>3 Months</option>
+                        <option value="6" {{ 'selected' if (form_data.duration_months | default(employee.duration_months | default(12))) == 6 or (form_data.duration_months | default(employee.duration_months | default(12))) == '6' }}>6 Months</option>
+                        <option value="12" {{ 'selected' if (form_data.duration_months | default(employee.duration_months | default(12))) == 12 or (form_data.duration_months | default(employee.duration_months | default(12))) == '12' }}>12 Months</option>
+                        <option value="24" {{ 'selected' if (form_data.duration_months | default(employee.duration_months | default(12))) == 24 or (form_data.duration_months | default(employee.duration_months | default(12))) == '24' }}>24 Months</option>
                     </select>
                 </div>
                 <div class="col-md-4">
                     <label for="end_date_display" class="form-label">End Date</label>
-                    <input type="date" class="form-control" id="end_date_display" readonly>
+                    <input type="date" class="form-control" id="end_date_display" readonly
+                           value="{{ form_data.end_date | default(employee.end_date.strftime('%Y-%m-%d') if employee.end_date else '') }}">
                 </div>
             </div>
 
@@ -119,6 +120,7 @@
                     <input type="number" class="form-control" id="salary_amount" name="salary_amount"
                            value="{{ form_data.salary_amount | default('%.2f' % employee.salary_amount if employee.salary_amount is not none else '0.00') }}" min="0" step="0.01" required>
                     <small id="salary_formatted" class="text-muted"></small>
+                    <div class="invalid-feedback">Please enter a valid salary amount.</div>
                 </div>
                 <div class="col-md-4">
                     <label for="salary_grade" class="form-label">Salary Grade</label>
@@ -127,32 +129,33 @@
                 </div>
                 <div class="col-md-4">
                     <label for="salary_amount_words" class="form-label">Salary Amount (Words)</label>
-                    <input type="text" class="form-control" id="salary_amount_words" readonly>
+                    <input type="text" class="form-control" id="salary_amount_words" name="salary_amount_words"
+                           value="{{ form_data.salary_amount_words | default(employee.salary_amount_words) }}" readonly>
                 </div>
                 <div class="col-md-3">
                     <label for="medical_allowance" class="form-label">Medical Allowance</label>
                     <input type="number" class="form-control" id="medical_allowance" name="medical_allowance"
-                           value="{{ form_data.medical_allowance | default('%.2f' % employee.medical_allowance) }}" min="0" step="0.01">
+                           value="{{ form_data.medical_allowance | default('%.2f' % employee.medical_allowance if employee.medical_allowance is not none else '150.00') }}" min="0" step="0.01">
                 </div>
                 <div class="col-md-3">
                     <label for="child_education_allowance" class="form-label">Child Education</label>
                     <input type="number" class="form-control" id="child_education_allowance" name="child_education_allowance"
-                           value="{{ form_data.child_education_allowance | default('%.2f' % employee.child_education_allowance) }}" min="0" step="0.01">
+                           value="{{ form_data.child_education_allowance | default('%.2f' % employee.child_education_allowance if employee.child_education_allowance is not none else '60.00') }}" min="0" step="0.01">
                 </div>
                 <div class="col-md-3">
                     <label for="delivery_benefit" class="form-label">Delivery Benefit</label>
                     <input type="number" class="form-control" id="delivery_benefit" name="delivery_benefit"
-                           value="{{ form_data.delivery_benefit | default('%.2f' % employee.delivery_benefit) }}" min="0" step="0.01">
+                           value="{{ form_data.delivery_benefit | default('%.2f' % employee.delivery_benefit if employee.delivery_benefit is not none else '200.00') }}" min="0" step="0.01">
                 </div>
                 <div class="col-md-3">
                     <label for="death_benefit" class="form-label">Death Benefit</label>
                     <input type="number" class="form-control" id="death_benefit" name="death_benefit"
-                           value="{{ form_data.death_benefit | default('%.2f' % employee.death_benefit) }}" min="0" step="0.01">
+                           value="{{ form_data.death_benefit | default('%.2f' % employee.death_benefit if employee.death_benefit is not none else '200.00') }}" min="0" step="0.01">
                 </div>
                 <div class="col-md-6">
                     <label for="severance_percentage" class="form-label">Severance (%)</label>
                     <input type="number" class="form-control" id="severance_percentage" name="severance_percentage"
-                           value="{{ form_data.severance_percentage | default('%.2f' % employee.severance_percentage) }}" min="0" step="0.01" max="100">
+                           value="{{ form_data.severance_percentage | default('%.2f' % employee.severance_percentage if employee.severance_percentage is not none else '8.33') }}" min="0" step="0.01" max="100">
                 </div>
                 <div class="col-md-6">
                     <div class="form-check mt-4">
@@ -245,6 +248,9 @@ document.addEventListener('DOMContentLoaded', function () {
             event.stopPropagation();
         }
         form.classList.add('was-validated');
+        // Ensure salary_amount_words is sent to the server
+        const salaryWordsInput = document.getElementById('salary_amount_words');
+        salaryWordsInput.removeAttribute('readonly');
     }, false);
 
     // Date pickers
@@ -271,9 +277,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const start = new Date(startDate + 'T00:00:00');
             const end = new Date(start);
             end.setMonth(start.getMonth() + duration);
-            end.setDate(0);
+            end.setDate(0); // Set to last day of the previous month
             endDateDisplay.value = end.toISOString().split('T')[0];
-        } else endDateDisplay.value = '';
+        } else {
+            endDateDisplay.value = '';
+        }
     }
     startDateInput.addEventListener('change', calculateEndDate);
     durationSelect.addEventListener('change', calculateEndDate);
@@ -284,11 +292,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const salaryFormatted = document.getElementById('salary_formatted');
 
     function numberToWords(num) {
+        if (num === 0) return 'Zero';
         const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
         const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
         const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
         const scales = ['', 'Thousand', 'Million', 'Billion'];
-        if (num === 0) return 'Zero';
+
         function chunkToWords(n) {
             let words = '';
             const hundred = Math.floor(n / 100);
@@ -299,11 +308,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 else if (remainder < 20) words += teens[remainder - 10];
                 else {
                     words += tens[Math.floor(remainder / 10)];
-                    if (remainder % 10 > 0) words += '-' + ones[remainder % 10];
+                    if (remainder % 10 > 0) words += '-' + ones[remainder % 10].toLowerCase();
                 }
             }
             return words.trim();
         }
+
         const parts = [];
         let scaleIndex = 0;
         while (num > 0) {
@@ -317,7 +327,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function convertSalaryToWords() {
         const value = parseFloat(salaryAmount.value);
-        if (isNaN(value) || value <= 0) {
+        if (isNaN(value) || value < 0) {
             salaryWords.value = '';
             salaryFormatted.textContent = '';
             return;
@@ -328,7 +338,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (decimalPart > 0) words += ' and ' + numberToWords(decimalPart) + ' Cents';
         words += ' only';
         salaryWords.value = words;
-        salaryFormatted.textContent = 'Formatted: ' + value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        salaryFormatted.textContent = 'Formatted: $' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
     salaryAmount.addEventListener('input', convertSalaryToWords);
 
@@ -337,6 +347,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const employeeSignature = document.getElementById('employee_signature_name');
     employeeName.addEventListener('input', () => employeeSignature.value = employeeName.value);
 
+    // Initialize form
     calculateEndDate();
     convertSalaryToWords();
 });

@@ -10,31 +10,18 @@ import os
 import zipfile
 from markupsafe import Markup
 from sqlalchemy import or_
+import re
 
 employees_bp = Blueprint('employees', __name__)
 
 def build_context(employee):
     """Build context dictionary for DOCX template rendering with improved date formatting."""
-
     def format_date(date_obj):
         if not date_obj:
             return ''
         day = date_obj.day
-
-        # Determine suffix
-        if 11 <= day % 100 <= 13:
-            suffix = 'th'
-        else:
-            suffix = {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
-
-        # Unicode superscripts
-        superscripts = {
-            "st": "ˢᵗ",
-            "nd": "ⁿᵈ",
-            "rd": "ʳᵈ",
-            "th": "ᵗʰ"
-        }
-
+        suffix = 'th' if 11 <= day % 100 <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
+        superscripts = {"st": "ˢᵗ", "nd": "ⁿᵈ", "rd": "ʳᵈ", "th": "ᵗʰ"}
         return f"{day}{superscripts[suffix]} {date_obj.strftime('%B %Y')}"
 
     def format_amount(amount):
@@ -61,6 +48,16 @@ def build_context(employee):
     except Exception as e:
         flash(f'Error building context for DOCX: {str(e)}', 'danger')
         return {}
+
+def sanitize_filename(name):
+    """Sanitize employee name for use in file names by replacing invalid characters."""
+    # Replace invalid characters with underscores
+    invalid_chars = r'[<>:"/\\|?*]'
+    sanitized = re.sub(invalid_chars, '_', name)
+    # Remove leading/trailing whitespace and periods
+    sanitized = sanitized.strip().strip('.')
+    # Ensure the name is not empty; use a fallback if necessary
+    return sanitized if sanitized else 'Employee'
 
 @employees_bp.route('/')
 @login_required
@@ -164,8 +161,13 @@ def create():
                 employee_signature_date=start_date
             )
 
-            if hasattr(new_employee, 'generate_salary_in_words'):
-                new_employee.generate_salary_in_words()
+            # Generate salary_amount_words from salary_amount
+            new_employee.generate_salary_in_words()
+
+            # Validate client-provided salary_amount_words
+            client_salary_words = request.form.get('salary_amount_words', '').strip()
+            if client_salary_words and client_salary_words != new_employee.salary_amount_words:
+                flash('Warning: Client-provided salary amount in words does not match server-generated value. Using server-generated value.', 'warning')
 
             db.session.add(new_employee)
             db.session.commit()
@@ -184,7 +186,6 @@ def create():
             form_data['thirteenth_month_salary'] = request.form.get('thirteenth_month_salary') == 'on'
 
     return render_template('employees/create.html', form_data=form_data)
-
 
 @employees_bp.route('/<string:id>')
 @login_required
@@ -205,7 +206,6 @@ def update(id):
 
         if request.method == 'POST':
             try:
-                # Parse dates
                 start_date_str = request.form['start_date']
                 start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
                 duration_months = int(request.form['duration_months'])
@@ -223,26 +223,30 @@ def update(id):
                     setattr(employee, field, request.form.get(field, '').strip())
 
                 # Update numeric fields safely with defaults
-                employee.salary_amount = float(request.form.get('salary_amount') or 0.0)
-                employee.medical_allowance = float(request.form.get('medical_allowance') or 150.00)
-                employee.child_education_allowance = float(request.form.get('child_education_allowance') or 60.00)
-                employee.delivery_benefit = float(request.form.get('delivery_benefit') or 200.00)
-                employee.delivery_benefit_miscarriage = float(request.form.get('delivery_benefit_miscarriage') or 200.00)
-                employee.death_benefit = float(request.form.get('death_benefit') or 200.00)
-                employee.severance_percentage = float(request.form.get('severance_percentage') or 8.33)
+                employee.salary_amount = float(request.form.get('salary_amount', 0.0))
+                employee.medical_allowance = float(request.form.get('medical_allowance', 150.00))
+                employee.child_education_allowance = float(request.form.get('child_education_allowance', 60.00))
+                employee.delivery_benefit = float(request.form.get('delivery_benefit', 200.00))
+                employee.delivery_benefit_miscarriage = float(request.form.get('delivery_benefit_miscarriage', 200.00))
+                employee.death_benefit = float(request.form.get('death_benefit', 200.00))
+                employee.severance_percentage = float(request.form.get('severance_percentage', 8.33))
 
-                # Boolean fields
+                # Update boolean fields
                 employee.thirteenth_month_salary = request.form.get('thirteenth_month_salary') == 'on'
 
-                # Dates
+                # Update dates
                 employee.start_date = start_date
                 employee.end_date = end_date
                 employee.employer_signature_date = start_date
                 employee.employee_signature_date = start_date
 
-                # Optional method
-                if hasattr(employee, 'generate_salary_in_words'):
-                    employee.generate_salary_in_words()
+                # Generate salary_amount_words from salary_amount
+                employee.generate_salary_in_words()
+
+                # Validate client-provided salary_amount_words
+                client_salary_words = request.form.get('salary_amount_words', '').strip()
+                if client_salary_words and client_salary_words != employee.salary_amount_words:
+                    flash('Warning: Client-provided salary amount in words does not match server-generated value. Using server-generated value.', 'warning')
 
                 db.session.commit()
                 flash('Employee record updated successfully!', 'success')
@@ -260,9 +264,7 @@ def update(id):
                 form_data['thirteenth_month_salary'] = request.form.get('thirteenth_month_salary') == 'on'
 
         else:
-            # GET request: pre-fill form_data with current employee info
             form_data = employee.to_dict()
-            # Calculate duration_months from existing dates
             if employee.start_date and employee.end_date:
                 delta = relativedelta(employee.end_date, employee.start_date)
                 form_data['duration_months'] = delta.years * 12 + delta.months
@@ -305,7 +307,7 @@ def download_docx(id):
         output = io.BytesIO()
         doc.save(output)
         output.seek(0)
-        filename = f"{employee.employee_name.replace(' ', '_')}_Employee_Contract_{employee.contract_no}.docx"
+        filename = f"{employee.contract_no}_{sanitize_filename(employee.employee_name)}.docx"
 
         return send_file(
             output,
@@ -339,7 +341,7 @@ def download_all_docx():
                 file_stream = io.BytesIO()
                 doc.save(file_stream)
                 file_stream.seek(0)
-                filename = f"{employee.employee_name.replace(' ', '_')}_Employee_Contract_{employee.contract_no}.docx"
+                filename = f"{employee.contract_no}_{sanitize_filename(employee.employee_name)}.docx"
                 zip_file.writestr(filename, file_stream.read())
 
         zip_buffer.seek(0)
