@@ -92,7 +92,11 @@
                     <label for="has_nssf" class="form-label">NSSF Benefit</label>
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="has_nssf" name="has_nssf"
-                               {{ 'checked' if form_data.has_nssf }}>
+                               {% if form_data.has_nssf is defined %}
+                                   {{ 'checked' if form_data.has_nssf }}
+                               {% else %}
+                                   checked
+                               {% endif %}>
                         <label class="form-check-label" for="has_nssf">Include NSSF Benefit</label>
                     </div>
                 </div>
